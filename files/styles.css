@@ -1,0 +1,15 @@
+html, body {
+	color: #ccc;
+	background: #111;
+	font: 16px/24px sans-serif;
+}
+a {
+	color: royalblue;
+}
+a:visited {
+	color: #cc33cc;
+}
+#app, .libcanvas-layers-container {
+	border: 1px solid #666;
+	margin: 12px;
+}

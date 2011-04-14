@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: progress bar</title>
+		<link href="/libcanvas/files/styles.css" rel="stylesheet" />
+		<script src="/libcanvas/files/js/atom.js"></script>
+		<script src="/libcanvas/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/libcanvas">Return to index</a></p>
+		<script>
+new function () {
+	new LibCanvas('canvas', {
+		preloadImages: { // 5 mb of images
+			1: 'http://habreffect.ru/files/ffc/19d367b2a/hard.png?1',
+			2: 'http://habreffect.ru/files/ffc/19d367b2a/hard.png?2',
+			3: 'http://habreffect.ru/files/ffc/19d367b2a/hard.png?3',
+			4: 'http://habreffect.ru/files/ffc/19d367b2a/hard.png?4',
+			5: 'http://habreffect.ru/files/ffc/19d367b2a/hard.png?5',
+			6: 'http://habreffect.ru/files/ffc/19d367b2a/hard.png?6',
+			7: 'http://habreffect.ru/files/ffc/19d367b2a/hard.png?7'
+		},
+		progressBarStyle: {
+			width  : 360,
+			height :  25,
+
+			bgColor     : '#dbd2cb',
+			borderColor : '#6895be',
+			barColor    : '#3f3c39',
+			barBgColor  : '#a49d95',
+
+			strips     : true,
+			stripColor : '#5f86af',
+			stripWidth : 25,
+			stripShift : 20,
+			stripStep  : 50,
+
+			blend        : true,
+			blendColor   : '#ffffff',
+			blendHeight  : 10,
+			blendVAlign  : 5,
+			blendOpacity : 0.2
+		}
+	})
+	.size({
+		width : 400,
+		height: 200
+	}, true)
+	.start(function () {
+		this.ctx.fillAll('#dbd2cb').text({
+			text: this.imagePreloader.getInfo(),
+			padding: 20
+		});
+	});
+};
+		</script>
+	</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Creating lines</title>
+		<link href="/libcanvas/files/styles.css" rel="stylesheet" />
+		<script src="/libcanvas/files/js/atom.js"></script>
+		<script src="/libcanvas/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/libcanvas">Return to index</a></p>
+		<p>dblClick on the canvas</p>
+		<script src="/libcanvas/files/js/ui-core.js"></script>
+		<script>
+new function () {
+	var Circle = LibCanvas.Shapes.Circle;
+	var Line   = LibCanvas.Shapes.Line;
+
+	UiCore.libcanvas = new LibCanvas('canvas')
+		.listenMouse()
+		.size({
+			width : 400,
+			height: 250
+		}, true)
+		.start();
+
+	var last = null;
+
+	UiCore.libcanvas.mouse.addEvent('dblclick', function (e) {
+		var coord = e.offset.clone();
+
+		UiCore
+			.createShaper(new Circle(coord, 5), 5)
+			.clickable()
+			.draggable();
+
+		if (last) UiCore.createShaper(new Line(coord, last), 4);
+
+		UiCore.libcanvas.update();
+
+		last = coord;
+	});
+}
+		</script>
+
+	</body>
+</html>

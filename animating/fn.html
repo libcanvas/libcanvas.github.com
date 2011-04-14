@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Function animating</title>
+		<link href="/libcanvas/files/styles.css" rel="stylesheet" />
+		<script src="/libcanvas/files/js/atom.js"></script>
+		<script src="/libcanvas/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/libcanvas">Return to index</a></p>
+		<script>
+new function () {
+	var libcanvas = new LibCanvas('canvas').start();
+
+	var shaper = libcanvas
+		.createShaper({
+			shape : new LibCanvas.Shapes.Circle(75, 75, 25),
+			fill  : '#900',
+			stroke: '#f00'
+		});
+
+	(function () {
+		new LibCanvas.Behaviors.Animatable(shaper.shape)
+			.animate({
+				props: { x : 225 },
+				fn   : 'bounce-out',
+				time : 3000
+			});
+	}.delay(1000));
+}
+		</script>
+
+	</body>
+</html>
