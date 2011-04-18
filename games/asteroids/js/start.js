@@ -23,7 +23,7 @@ window.Asteroids = {
 };
 
 Asteroids.start = function (canvas) {
-	var files = '/libcanvas/games/asteroids/';
+	var files = '/games/asteroids/';
 	
 	atom.dom(canvas).css({ background: 'url("' + files + 'images/stars.jpg")' });
 
