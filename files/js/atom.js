@@ -1575,6 +1575,7 @@ authors:
 
 requires:
 	- atom
+	- accessors
 	- Class
 
 provides: Class.Mutators.Generators
@@ -1592,7 +1593,7 @@ var getter = function (key, fn) {
 };
 
 atom.Class.Mutators.Generators = function(properties) {
-	for (var i in properties) this.prototype.__defineGetter__(i, getter(i, properties[i]));
+	for (var i in properties) atom.accessors.set(this.prototype, i, { get: getter(i, properties[i]) });
 };
 
 };
