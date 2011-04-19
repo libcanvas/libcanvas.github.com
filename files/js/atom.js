@@ -41,6 +41,7 @@ provides: atom
 
 			var ext = proto ? elem[prototype] : elem,
 			    accessors = atom.accessors && atom.accessors.inherit;
+			
 			for (var i in from) if (i != 'constructor') {
 				if ( accessors && accessors(from, ext, i) ) continue;
 
@@ -832,7 +833,7 @@ extend(Class, {
 		}
 		var target = toProto ? this[prototype] : this;
 		for (var name in props) {
-			target.__defineGetter__(name, lambda(props[name]));
+			atom.accessors.set(target, name, { get: lambda(props[name]) });
 		}
 		return this;
 	},
