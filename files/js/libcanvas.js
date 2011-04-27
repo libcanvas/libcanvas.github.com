@@ -3420,7 +3420,7 @@ var accessors = {};
   'lineJoin','lineWidth','miterLimit','shadowOffsetX','shadowOffsetY',
   'shadowBlur','shadowColor','strokeStyle','textAlign','textBaseline'
 ].forEach(function (property) {
-	atom.accessors.set(accessors, property, {
+	atom.accessors.define(accessors, property, {
 		set: function (value) {
 			try {
 				this.ctx2d[property] = value;
@@ -5056,8 +5056,8 @@ LibCanvas.namespace('Shapes').Line = atom.Class({
 			fy = this.from.y,
 			tx = this.to.x,
 			ty = this.to.y,
-			px = this.point.x,
-			py = this.point.y;
+			px = point.x,
+			py = point.y;
 
 		if (!( px.between(min(fx, tx), max(fx, tx))
 		    && py.between(min(fy, ty), max(fy, ty))
