@@ -171,8 +171,6 @@ provides: accessors
 ...
 */
 
-// test
-
 (function (Object) {
 	var standard = !!Object.getOwnPropertyDescriptor, nonStandard = !!{}.__defineGetter__;
 
@@ -633,6 +631,57 @@ atom.implement(atom.dom, {
 	}
 });
 
+
+/*
+---
+
+name: "Cookie"
+
+description: "todo"
+
+license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+
+requires:
+	- atom
+
+provides: cookie
+
+...
+*/
+
+atom.extend({
+	cookie: {
+		get: function (name) {
+			var matches = document.cookie.match(new RegExp(
+			  "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+			));
+			return matches ? decodeURIComponent(matches[1]) : null;
+		},
+		set: function (name, value, options) {
+			options = options || {};
+			var exp = options.expires;
+			if (exp) {
+				if (exp.toUTCString) {
+					exp = exp.toUTCString();
+				} else if (typeof exp == 'number') {
+					exp = exp * 1000 * Date.now();
+				}
+				options.expires = exp;
+			}
+
+			var cookie = [name + "=" + encodeURIComponent(value)];
+			for (var o in options) cookie.push(
+				options[o] === true ? o : o + "=" + options[o]
+			);
+			document.cookie = cookie.join('; ');
+
+			return atom.cookie;
+		},
+		del: function (name) {
+			return atom.cookie.set(name, null, { expires: -1 });
+		}
+	}
+});
 
 /*
 ---
@@ -1120,6 +1169,11 @@ atom.extend(Array, {
 		for (var i in props.toKeys()) array.push(i in obj ? obj[i] : Default);
 		return array;
 	},
+	create: function (length, fn) {
+		var array = new Array(length);
+		for (var i = 0; i < length; i++) array[i] = fn(i, array);
+		return array;
+	},
 	toHash: function () {
 		for (var hash = {}, i = 0, l = this.length; i < l; i++) hash[i] = this[i];
 		return hash;
@@ -1132,6 +1186,14 @@ atom.implement(Array, {
 	},
 	get random(){
 		return this.length ? this[Number.random(0, this.length - 1)] : null;
+	},
+	// Correctly works with `new Array(10).fullMap(fn)`
+	fullMap: function (fn, bind) {
+		var mapped = new Array(this.length);
+		for (var i = 0, l = mapped.length; i < l; i++) {
+			mapped[i] = fn.call(bind, this[i], i, this);
+		}
+		return mapped;
 	},
 	contains: function (elem, fromIndex) {
 		return this.indexOf(elem, fromIndex) != -1;
@@ -1277,6 +1339,9 @@ new function () {
 		lambda : function (value) {
 			var returnThis = (arguments.length == 0);
 			return function () { return returnThis ? this : value; };
+		},
+		copier: function (value) {
+			return function () { return atom.clone(value); }
 		},
 		log: function (msg) {
 			var args = arguments.length ? arguments : null;
