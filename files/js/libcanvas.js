@@ -1133,7 +1133,7 @@ LibCanvas.Mouse = atom.Class({
 	setEvents : function () {
 		var mouse = this, waitEvent = function (event, isOffise) {
 			return function (e) {
-				atom.dom().create('p').html('e+'+event).appendTo(document);
+				atom.dom().create('p').html('e+'+event).appendTo('body');
 				var wait = mouse.isEventAdded(event);
 				if (isOffise || wait) mouse.getOffset(e);
 				if (isOffise) mouse.events.event(event, e);
@@ -1144,7 +1144,7 @@ LibCanvas.Mouse = atom.Class({
 		};
 
 		var move = function (e) {
-			atom.dom().create('p').html('move').appendTo(document);
+			atom.dom().create('p').html('move').appendTo('body');
 			var offset = mouse.getOffset(e);
 			mouse.setCoords(offset);
 			mouse.events.event('mousemove', e);
@@ -1154,7 +1154,7 @@ LibCanvas.Mouse = atom.Class({
 		};
 
 		var out = function (e) {
-			atom.dom().create('p').html('out').appendTo(document);
+			atom.dom().create('p').html('out').appendTo('body');
 			mouse.getOffset(e);
 			mouse.setCoords(null);
 			mouse.events.event('mouseout', e);
