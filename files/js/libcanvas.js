@@ -2312,9 +2312,15 @@ Rectangle = LibCanvas.namespace('Shapes').Rectangle = atom.Class({
 			&& point.y.between(math.min(this.from.y, this.to.y) + padding, math.max(this.from.y, this.to.y) - padding, 1);
 	},
 	moveTo: function (rect) {
-		rect = Rectangle.from(arguments);
-		this.from.moveTo(rect.from);
-		this.  to.moveTo(rect.to);
+		if (rect instanceof LibCanvas.Point) {
+			var diff = this.from.diff(rect);
+			this.from.move(diff);
+			this.  to.move(diff);
+		} else {
+			rect = Rectangle.from(arguments);
+			this.from.moveTo(rect.from);
+			this.  to.moveTo(rect.to);
+		}
 		return this;
 	},
 	draw : function (ctx, type) {
@@ -2895,6 +2901,14 @@ LibCanvas.Canvas2D = atom.Class({
 	interval: null,
 	name: null,
 
+	options: {
+		name: 'main',
+		autoStart: true,
+		clear: true,
+		backBuffer: 'on',
+		fps: 30
+	},
+
 	initialize : function (elem, options) {
 		this._layers = {};
 		this.funcs = {
@@ -2907,13 +2921,7 @@ LibCanvas.Canvas2D = atom.Class({
 		var aElem = atom.dom(elem);
 		elem = aElem.first;
 
-		this.setOptions({
-			name: 'main',
-			autoStart: true,
-			clear: true,
-			backBuffer: 'on',
-			fps: 30
-		}, options);
+		this.setOptions(options);
 
 		this.origElem = elem;
 		this.origCtx  = elem.getContext('2d-libcanvas');
@@ -3125,11 +3133,11 @@ LibCanvas.Canvas2D = atom.Class({
 		}
 	},
 	
-	createLayer: function (name, z) {
+	createLayer: function (name, z, options) {
 		if (name in this._layers) {
 			throw new Error('Layer «' + name + '» already exists');
 		}
-		var layer = this._layers[name] = new LibCanvas.Layer(this, this.options);
+		var layer = this._layers[name] = new LibCanvas.Layer(this, this.options, options);
 		layer._layers = this._layers;
 		layer.zIndex  = z;
 		layer.name    = name;
@@ -3160,11 +3168,11 @@ LibCanvas.Canvas2D = atom.Class({
 			layer.showBuffer();
 		};
 		
-		var current = this._zindex;
+		var current = this._zIndex;
 		
 		if (value == null) value = Infinity;
 		value = value.limit(1, this.maxZIndex + (current ? 1 : 0));
-		
+
 		current = current || Infinity;
 		
 		for (var i in this._layers) if (this._layers[i] != this) {
@@ -3500,7 +3508,7 @@ LibCanvas.Context2D = atom.Class({
 	// Values
 	set : function (name, value) {
 		if (typeof name == 'object') {
-			for (var i in name) this.name = value;
+			for (var i in name) this[i] = name[i];
 		} else this[name] = value;
 		return this;
 	},
@@ -3726,7 +3734,7 @@ LibCanvas.Context2D = atom.Class({
 			       al == 'right' ? to.to.x - lineWidth - pad :
 			           to.from.x + (to.width - lineWidth)/2;
 		};
-		var x, lines = cfg.text.split('\n');
+		var x, lines = String(cfg.text).split('\n');
 		var measure = function (text) {
 			return this.measureText(text).width;
 		}.context(this);
@@ -3871,10 +3879,22 @@ LibCanvas.Context2D = atom.Class({
 		}
 		return result;
 	},
-	// this function is only dublicated as original. maybe, i will change them,
-	createLinearGradient : function () {
-		return this.original('createLinearGradient', arguments, true);
+	createLinearGradient : function (from, to) {
+		var a = arguments;
+		if (a.length != 4) {
+			if (a.length == 2) {
+				to   = PointFrom(to);
+				from = PointFrom(from);
+			} else if (a.length == 1) {
+				// wee
+				to   = PointFrom(a[0].to);
+				from = PointFrom(a[0].from);
+			}
+			a = [from.x, from.y, to.x, to.y];
+		}
+		return this.original('createLinearGradient', a, true);
 	},
+	// this function is only dublicated as original. i will change them, later
 	createRadialGradient : function () {
 		return this.original('createRadialGradient', arguments, true);
 	},
@@ -4074,10 +4094,12 @@ LibCanvas.Layer = atom.Class({
 		}
 	},
 	
-	initialize : function (elem, options) {
+	initialize : function (elem, parentOptions, options) {
 		this.parentLayer = elem;
-		
-		this.parent(elem.createBuffer(), options);
+
+		this.setOptions(parentOptions, options);
+
+		this.parent(elem.createBuffer());
 	},
 
 	listenMouse    : callParent('listenMouse'),

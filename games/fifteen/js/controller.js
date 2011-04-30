@@ -6,6 +6,7 @@ var Controller = atom.Class({
 	initialize: function (canvas, options) {
 		var field     = new Field(options),
 		    libcanvas = new LibCanvas(canvas);
+		libcanvas.listenMouse();
 		libcanvas.size(field.size, true);
 		libcanvas.addElement(field);
 		libcanvas.start();

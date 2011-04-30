@@ -13,6 +13,7 @@ var Field = atom.Class({
 
 	zIndex: 5,
 
+	blocked: false,
 
 	options: {
 		tile  : { width: 32, height: 32 },
@@ -31,15 +32,15 @@ var Field = atom.Class({
 	get size () {
 		var opt = this.options;
 		return {
-			width : opt.tile.width  * 4 + opt.margin.horisontal,
-			height: opt.tile.height * 4 + opt.margin.vertical
+			width : opt.tile.width  * 4 + opt.margin.horisontal * 2,
+			height: opt.tile.height * 4 + opt.margin.vertical * 2
 		};
 	},
 
 	initialize: function (options) {
 		this.setOptions(options);
 		this.addEvent('libcanvasSet', function () {
-			this.createTiles();
+			this.createTiles( this.libcanvas.createLayer('tiles', Infinity, { backBuffer: 'off' }) );
 		});
 	},
 
@@ -78,19 +79,48 @@ var Field = atom.Class({
 		});
 	},
 
-	createTiles: function () {
+	createTiles: function (libcanvas) {
 		var i = 16, pos, tile, tiles = this.tiles = this.makeArray(4);
 		while (--i > 0) {
 			pos = this.pullEmptyPosition();
-			tiles[pos.y][pos.x] = tile = new Tile(i, pos);
+			tiles[pos.y][pos.x] = tile = new Tile(this, i, pos);
 			tile.shape = this.tileShape(pos);
-			this.libcanvas.addElement(tile);
+			libcanvas.addElement(tile);
 		}
 		this.empty = this.emptyTiles.pop();
+		this.emptyRect = this.tileShape(this.empty);
+			console.log(this.emptyRect.dump());
 		return tiles;
+	},
+
+	each: function (fn) {
+		var tiles = this.tiles, x, y = tiles.length;
+		console.log(tiles);
+		while (y-- > 0) for (x = tiles[0].length; x-- > 0;) fn(tiles[y][x]);
+	},
+
+	redraw: function () {
+		this.each(function (tile) { tile && tile.redraw() });
 	},
 
 	draw: function () {
 		this.libcanvas.ctx.fillAll( '#333' );
+	},
+
+	isMoveable: function (tile) {
+		if (this.blocked) return false;
+
+		var pos = tile.position, empty = this.empty, diff = pos.diff(empty);
+		return (diff.x == 0 && diff.y.abs() == 1) || (diff.y == 0 && diff.x.abs() == 1);
+	},
+
+	move: function (tile) {
+		if ( this.isMoveable(tile) ) {
+			var pos = tile.position, empty = this.empty, diff = pos.diff(empty);
+			empty.move(diff, true);
+			  pos.move(diff);
+			this.emptyRect.moveTo(this.translatePoint(empty));
+			tile.move(this.translatePoint(pos));
+		}
 	}
 });

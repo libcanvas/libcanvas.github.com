@@ -1,25 +1,83 @@
 
 var Tile = atom.Class({
-	Implements: [Drawable, Animatable],
+	Implements: [ Drawable, Animatable, Clickable ],
 
 	zIndex: 15,
 
 	index: 0,
 
-	initialize: function (index, position) {
+	initialize: function (field, index, position) {
+		this.field    = field;
 		this.index    = index;
 		this.position = position;
+
+		this.addEvent('libcanvasSet', function () {
+			this.clickable();
+			this.addEvent('statusChanged', this.redraw.bind(this, false));
+		});
+
+		this.addEvent('click', field.move.bind(field, this));
+	},
+
+	move: function (point) {
+		this.field.blocked = true;
+		this.animate({
+			time: 150,
+			props: { x: point.x, y: point.y },
+			onProccess: this.redraw.bind(this, this.shape.clone().moveTo(point)),
+			onFinish: function () {
+				this.field.blocked = false;
+				this.field.redraw();
+			},
+			fn: 'sine-out'
+		});
+	},
+
+	get gradient () {
+		var active   = this.hover && this.field.isMoveable(this),
+		    shape    = this.shape,
+		    gradient = this.libcanvas.ctx.createLinearGradient( shape );
+
+		gradient.addColorStop(0, active ? '#666' : '#444');
+		gradient.addColorStop(1, active ? '#333' : '#111');
+
+		return gradient;
+	},
+
+	get rectangle () {
+		var rect = this.shape.clone(), x = rect.width / 16, y = rect.height / 16;
+		rect.from.move([x/2,y/2]);
+		rect.width  -= x;
+		rect.height -= y;
+		return rect.snapToPixel();
+	},
+
+	redraw: function (moveTo) {
+		var ctx = this.libcanvas.ctx.clearRect(this.shape);
+		if (moveTo) {
+			ctx.clearRect(moveTo).clearRect(this.field.emptyRect);
+		}
+		this.draw();
 	},
 
 	draw: function () {
-		var shape = this.shape;
-		this.libcanvas.ctx.text({
-			text : this.index,
-			to   : shape,
-			size : shape.height / 2,
-			weigth : 'bold', /* bold|normal */
-			padding : [shape.height/4, shape.width/4]
-		});
+		var shape = this.rectangle;
+		this.libcanvas.ctx
+			.save()
+			.clip(this.shape)
+			.fill(shape, this.gradient)
+			.text({
+				text : this.index,
+				to   : shape,
+				size : shape.height / 2,
+				color: 'white',
+				weigth : 'bold', /* bold|normal */
+				align  : 'center',
+				padding : [shape.height/8, shape.width/4]
+			})
+			.set({ globalAlpha: 0.3, lineWidth: 1 })
+			.stroke(shape, '#ccc')
+			.restore();
 	},
 
 
