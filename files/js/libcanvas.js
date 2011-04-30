@@ -1164,6 +1164,8 @@ LibCanvas.Mouse = atom.Class({
 			return false;
 		};
 
+		var down = waitEvent('mousedown', true);
+
 		atom.dom(mouse.elem).bind({
 			/* bug in Linux Google Chrome
 			 * if moving mouse while some text is selected
@@ -1172,9 +1174,14 @@ LibCanvas.Mouse = atom.Class({
 			click      : waitEvent('click'),
 			dblclick   : waitEvent('dblclick'),
 			contextmenu: waitEvent('contextmenu'),
-			mousedown  : waitEvent('mousedown', true),
+			mousedown  : down,
 			mouseup    : waitEvent('mouseup'  , true),
-			touchstart : waitEvent('mousedown', true),
+			touchstart : function () {
+				atom.dom().create('p').html('start').appendTo('body');
+				move.apply(this, arguments);
+				down.apply(this, arguments);
+				return false;
+			},
 			touchmove  : move,
 			mousemove  : move,
 			mouseout   : out,
