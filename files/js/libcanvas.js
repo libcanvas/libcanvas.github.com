@@ -1133,7 +1133,6 @@ LibCanvas.Mouse = atom.Class({
 	setEvents : function () {
 		var mouse = this, waitEvent = function (event, isOffise) {
 			return function (e) {
-				atom.dom().create('p').html('e+'+event).appendTo('body');
 				var wait = mouse.isEventAdded(event);
 				if (isOffise || wait) mouse.getOffset(e);
 				if (isOffise) mouse.events.event(event, e);
@@ -1143,49 +1142,27 @@ LibCanvas.Mouse = atom.Class({
 			};
 		};
 
-		var move = function (e) {
-			atom.dom().create('p').html('move').appendTo('body');
-			var offset = mouse.getOffset(e);
-			mouse.setCoords(offset);
-			mouse.events.event('mousemove', e);
-			mouse.isOut = false;
-			e.preventDefault();
-			return false;
-		};
-
-		var out = function (e) {
-			atom.dom().create('p').html('out').appendTo('body');
-			mouse.getOffset(e);
-			mouse.setCoords(null);
-			mouse.events.event('mouseout', e);
-			mouse.fireEvent('mouseout', [e]);
-			mouse.isOut = true;
-			e.preventDefault();
-			return false;
-		};
-
-		var down = waitEvent('mousedown', true);
-
 		atom.dom(mouse.elem).bind({
-			/* bug in Linux Google Chrome
-			 * if moving mouse while some text is selected
-			 * mouse becomes disable.
-			 */
 			click      : waitEvent('click'),
 			dblclick   : waitEvent('dblclick'),
 			contextmenu: waitEvent('contextmenu'),
-			mousedown  : down,
+			mousedown  : waitEvent('mousedown', true),
 			mouseup    : waitEvent('mouseup'  , true),
-			touchstart : function () {
-				atom.dom().create('p').html('start').appendTo('body');
-				move.apply(this, arguments);
-				down.delay(0, this, arguments);
+			mousemove: function (e) {
+				var offset = mouse.getOffset(e);
+				mouse.setCoords(offset);
+				mouse.events.event('mousemove', e);
+				mouse.isOut = false;
 				return false;
 			},
-			touchmove  : move,
-			mousemove  : move,
-			mouseout   : out,
-			touchend   : out,
+			mouseout : function (e) {
+				mouse.getOffset(e);
+				mouse.setCoords(null);
+				mouse.events.event('mouseout', e);
+				mouse.fireEvent('mouseout', [e]);
+				mouse.isOut = true;
+				return false;
+			},
 			selectstart: false
 		});
 		return this;
