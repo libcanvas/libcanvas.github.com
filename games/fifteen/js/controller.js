@@ -10,13 +10,6 @@ var Controller = atom.Class({
 		libcanvas.size(field.size, true);
 		libcanvas.addElement(field);
 		libcanvas.start();
-
-		var prevent = function (e) { e.preventDefault(); return false; };
-
-		atom.dom(document).bind({
-			'touchstart':prevent,
-			'touchend'  :prevent
-		});
 	}
 
 });
