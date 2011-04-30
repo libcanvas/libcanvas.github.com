@@ -89,13 +89,11 @@ var Field = atom.Class({
 		}
 		this.empty = this.emptyTiles.pop();
 		this.emptyRect = this.tileShape(this.empty);
-			console.log(this.emptyRect.dump());
 		return tiles;
 	},
 
 	each: function (fn) {
 		var tiles = this.tiles, x, y = tiles.length;
-		console.log(tiles);
 		while (y-- > 0) for (x = tiles[0].length; x-- > 0;) fn(tiles[y][x]);
 	},
 
