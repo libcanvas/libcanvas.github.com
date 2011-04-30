@@ -1179,7 +1179,7 @@ LibCanvas.Mouse = atom.Class({
 			touchstart : function () {
 				atom.dom().create('p').html('start').appendTo('body');
 				move.apply(this, arguments);
-				down.apply(this, arguments);
+				down.delay(0, this, arguments);
 				return false;
 			},
 			touchmove  : move,
