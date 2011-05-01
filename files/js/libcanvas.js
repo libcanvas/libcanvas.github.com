@@ -1161,16 +1161,24 @@ LibCanvas.Mouse = atom.Class({
 			e.preventDefault();
 			return false;
 		};
+		var down = waitEvent('mousedown', true);
+		var up   = waitEvent('mouseup'  , true);
 
 		atom.dom(mouse.elem).bind({
 			click      : waitEvent('click'),
 			dblclick   : waitEvent('dblclick'),
 			contextmenu: waitEvent('contextmenu'),
-			mousedown  : waitEvent('mousedown', true),
-			mouseup    : waitEvent('mouseup'  , true),
-			touchstart: move,
+			mousedown  : down,
+			mouseup    : up,
+			touchstart : function () {
+				move.apply(this, arguments);
+				down.apply(this, arguments);
+			},
 			touchmove : move,
-			touchend  : out,
+			touchend  : function () {
+				move.apply(this, arguments);
+				up  .apply(this, arguments);
+			},
 			mousemove : move,
 			mouseout  : out,
 			selectstart: false
