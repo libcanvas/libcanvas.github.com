@@ -1142,38 +1142,37 @@ LibCanvas.Mouse = atom.Class({
 			};
 		};
 
+		var move = function (e) {
+			trace(e.type);
+			var offset = mouse.getOffset(e);
+			mouse.setCoords(offset);
+			mouse.events.event('mousemove', e);
+			mouse.isOut = false;
+			e.preventDefault();
+			return false;
+		};
+		var out = function (e) {
+			trace(e.type);
+			mouse.getOffset(e);
+			mouse.setCoords(null);
+			mouse.events.event('mouseout', e);
+			mouse.fireEvent('mouseout', [e]);
+			mouse.isOut = true;
+			e.preventDefault();
+			return false;
+		};
+
 		atom.dom(mouse.elem).bind({
 			click      : waitEvent('click'),
 			dblclick   : waitEvent('dblclick'),
 			contextmenu: waitEvent('contextmenu'),
 			mousedown  : waitEvent('mousedown', true),
 			mouseup    : waitEvent('mouseup'  , true),
-			touchstart: function () {
-				trace('touchStart');
-			},
-			touchmove: function () {
-				trace('touchMove');
-			},
-			touchend: function () {
-				trace('touchEnd');
-			},
-			mousemove: function (e) {
-				var offset = mouse.getOffset(e);
-				mouse.setCoords(offset);
-				mouse.events.event('mousemove', e);
-				mouse.isOut = false;
-				e.preventDefault();
-				return false;
-			},
-			mouseout : function (e) {
-				mouse.getOffset(e);
-				mouse.setCoords(null);
-				mouse.events.event('mouseout', e);
-				mouse.fireEvent('mouseout', [e]);
-				mouse.isOut = true;
-				e.preventDefault();
-				return false;
-			},
+			touchstart: move,
+			touchmove : move,
+			touchend  : out,
+			mousemove : move,
+			mouseout  : out,
 			selectstart: false
 		});
 		return this;
