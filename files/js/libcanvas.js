@@ -1153,6 +1153,7 @@ LibCanvas.Mouse = atom.Class({
 				mouse.setCoords(offset);
 				mouse.events.event('mousemove', e);
 				mouse.isOut = false;
+				e.preventDefault();
 				return false;
 			},
 			mouseout : function (e) {
@@ -1161,6 +1162,7 @@ LibCanvas.Mouse = atom.Class({
 				mouse.events.event('mouseout', e);
 				mouse.fireEvent('mouseout', [e]);
 				mouse.isOut = true;
+				e.preventDefault();
 				return false;
 			},
 			selectstart: false
@@ -2879,19 +2881,6 @@ LibCanvas.Canvas2D = atom.Class({
 			wrapper.parent = atom.dom().create('div').addClass('libcanvas-layers-container');
 			return wrapper.appendTo(wrapper.parent);
 		},
-		// Needs for mobile some phones (we dont want activating of canvas)
-		cover: function () {
-			if (this.parentLayer) return this.parentLayer.cover;
-			return atom.dom()
-				.create('div')
-				.css({
-					position: 'absolute',
-					width : '100%',
-					height: '100%'
-				})
-				.addClass('libcanvas-layers-cover')
-				.appendTo(this.wrapper);
-		},
 		invoker: function () {
 			return new LibCanvas.Invoker({
 				context: this,
@@ -2926,7 +2915,7 @@ LibCanvas.Canvas2D = atom.Class({
 			render: []
 		};
 		this.elems = [];
-
+				
 
 		var aElem = atom.dom(elem);
 		elem = aElem.first;
@@ -2939,22 +2928,20 @@ LibCanvas.Canvas2D = atom.Class({
 
 		this.createProjectBuffer().addClearer();
 
-		var wrapper = this.wrapper, cover = this.cover;
 		if (this.parentLayer) {
-			aElem.appendTo(wrapper);
+			aElem.appendTo(this.wrapper);
 		} else {
 			this.name = this.options.name;
 			this._layers[this.name] = this;
 			aElem
 				.attr('data-layer-name', this.name)
-				.replaceWith(wrapper.parent)
-				.appendTo(wrapper);
-
+				.replaceWith(this.wrapper.parent)
+				.appendTo(this.wrapper);
+			
 			if (elem.width && elem.height) {
 				this.size(elem.width, elem.height, true);
 			}
 		}
-		cover.css('zIndex', this.maxZIndex + 100);
 
 		this.update = this.update.context(this);
 
