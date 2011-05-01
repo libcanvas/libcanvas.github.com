@@ -1148,6 +1148,15 @@ LibCanvas.Mouse = atom.Class({
 			contextmenu: waitEvent('contextmenu'),
 			mousedown  : waitEvent('mousedown', true),
 			mouseup    : waitEvent('mouseup'  , true),
+			touchstart: function () {
+				trace('touchStart');
+			},
+			touchmove: function () {
+				trace('touchMove');
+			},
+			touchend: function () {
+				trace('touchEnd');
+			},
 			mousemove: function (e) {
 				var offset = mouse.getOffset(e);
 				mouse.setCoords(offset);
