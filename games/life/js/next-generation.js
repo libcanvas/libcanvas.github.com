@@ -18,7 +18,7 @@ new function () {
 		var left  = horCoord(x - 1);
 		var right = horCoord(x + 1);
 		var top   = verCoord(y - 1);
-		var bot   = varCoord(y + 1);
+		var bot   = verCoord(y + 1);
 
 		return old[top][left] + old[top][x] + old[top][right] +
 			   old[ y ][left] +             + old[ y ][right] +
