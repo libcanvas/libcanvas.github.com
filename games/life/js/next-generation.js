@@ -15,10 +15,10 @@ new function () {
 	};
 
 	var count = function (old, x, y) {
-		var left  = verCoord(x - 1);
-		var right = verCoord(x + 1);
-		var top   = horCoord(y - 1);
-		var bot   = horCoord(y + 1);
+		var left  = horCoord(x - 1);
+		var right = horCoord(x + 1);
+		var top   = verCoord(y - 1);
+		var bot   = varCoord(y + 1);
 
 		return old[top][left] + old[top][x] + old[top][right] +
 			   old[ y ][left] +             + old[ y ][right] +
