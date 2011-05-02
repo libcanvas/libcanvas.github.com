@@ -2,6 +2,7 @@ window.bindEvents = function (mouse, engine) {
 	var generation = 0, generationTrace = new LibCanvas.Utils.Trace(generation);
 	var timeout = 0;
 	var cells = engine.matrix;
+	var timeTrace = new LibCanvas.Utils.Trace();
 
 	mouse.addEvent('click', function (e) {
 		var cell = engine.getCell(e.offset);
@@ -9,22 +10,30 @@ window.bindEvents = function (mouse, engine) {
 		engine.update();
 	});
 
-	atom.dom('button.start').bind('click', function () {
+	var start = function () {
 		if (timeout) return;
 
-		timeout = function () {
+		var update = function () {
+			var time = Date.now();
 			nextGeneration(cells);
 			engine.update();
+			timeTrace.value = 'Time: ' + (Date.now() - time);
 			generationTrace.value = 'Generation: ' + ++generation;
-		}.periodical(config.updateTime);
-	});
+			timeout = update.delay(config.updateTime);
+		};
+		update();
+	};
 
-	atom.dom('button.stop').bind('click', function () {
+	var stop = function () {
 		if (timeout) {
 			timeout.stop();
 			timeout = 0;
 		}
-	});
+	};
+
+	atom.dom('button.start').bind('click', start);
+
+	atom.dom('button.stop').bind('click', stop);
 
 	atom.dom('button.clear').bind('click', function () {
 		if (confirm('Clear field?')) {
@@ -33,4 +42,12 @@ window.bindEvents = function (mouse, engine) {
 			}
 		}
 	});
-}
+
+	atom.dom('button.random').bind('click', function () {
+		stop();
+		for (var y = cells.length; y--;) for (var x = cells[y].length; x--;) {
+			cells[y][x] = Number.random(0, 1);
+		}
+		start();
+	});
+};

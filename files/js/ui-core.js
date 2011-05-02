@@ -1,7 +1,7 @@
 
 new function () {
 	var LC   = LibCanvas.extract({}),
-		rand = Number.random;
+	    rand = Number.random;
 
 	window.UiCore = {
 		libcanvas: null,

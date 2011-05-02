@@ -2,13 +2,13 @@
 window.config = {
 	updateTime: 300,
 	field: {
-		width : 50,
+		width : 80,
 		height: 50
 	},
 	cell: {
-		width : 10,
-		height: 10,
-		margin: 1
+		width : 5,
+		height: 5,
+		margin: 0
 	}
 };
 
