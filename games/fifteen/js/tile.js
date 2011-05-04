@@ -49,7 +49,7 @@ var Tile = atom.Class({
 		this.animate({
 			time: 150,
 			props: { x: point.x, y: point.y },
-			onProccess: this.redraw.bind(this, this.shape.clone().moveTo(point)),
+			onProccess: this.redraw.bind(this, true),
 			onFinish: function () {
 				this.field.blocked = false;
 				this.field.redraw();
@@ -78,9 +78,10 @@ var Tile = atom.Class({
 	},
 
 	redraw: function (moveTo) {
-		var ctx = this.libcanvas.ctx.clearRect(this.shape);
 		if (moveTo) {
-			ctx.clearRect(moveTo).clearRect(this.field.emptyRect);
+			this.libcanvas.ctx.clearRect(
+				this.field.emptyRect
+			);
 		}
 		this.draw();
 	},
