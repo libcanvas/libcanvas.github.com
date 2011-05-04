@@ -77,11 +77,11 @@ var Tile = atom.Class({
 		return rect.snapToPixel();
 	},
 
-	redraw: function (moveTo) {
-		if (moveTo) {
-			this.libcanvas.ctx.clearRect(
-				this.field.emptyRect
-			);
+	redraw: function (move) {
+		if (move) {
+			this.libcanvas.ctx
+				.clearRect( this.shape )
+				.clearRect( this.field.emptyRect );
 		}
 		this.draw();
 	},
