@@ -1191,16 +1191,16 @@ LibCanvas.Mouse = atom.Class({
 			touchstart : function (e) {
 				move(e);
 				down(e);
-				trace('start');
 				e.preventDefault();
+				trace('start');
 				return false;
 			},
 			touchmove: move,
 			touchend : function (e) {
 				move(e);
 				up(e);
-				trace('end');
 				e.preventDefault();
+				trace('end');
 				return false;
 			},
 			mousedown  : down,
