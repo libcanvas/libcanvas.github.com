@@ -1166,13 +1166,13 @@ LibCanvas.Mouse = atom.Class({
 		},
 		down = waitEvent('mousedown', true),
 		up   = waitEvent('mouseup'  , true),
-		move = function (prevent, e) {
+		move = function ( e) {
 			var offset = mouse.getOffset(e);
 			mouse.setCoords(offset);
 			mouse.events.event('mousemove', e);
 			mouse.isOut = false;
-			if (prevent) e.preventDefault();
-			return !prevent;
+			e.preventDefault();
+			return false;
 		},
 		out = function (e) {
 			mouse.getOffset(e);
@@ -1188,19 +1188,20 @@ LibCanvas.Mouse = atom.Class({
 			click      : waitEvent('click', false),
 			dblclick   : waitEvent('dblclick', false),
 			contextmenu: waitEvent('contextmenu', false),
-			touchstart : function (e) {
-				move(false, e);
-				down(e);
-			},
-			touchmove: move.bind(null, false),
-			touchend : function (e) {
-				move(false, e);
-				up(e);
-				out(e);
-			},
+			// remove activating in android
+			//touchstart : function (e) {
+			//	move(false, e);
+			//	down(e);
+			//},
+			//touchmove: move.bind(null, false),
+			//touchend : function (e) {
+			//	move(false, e);
+			//	up(e);
+			//	out(e);
+			//},
 			mousedown  : down,
 			mouseup    : up,
-			mousemove  : move.bind(null, true),
+			mousemove  : move,
 			mouseout   : out,
 			selectstart: false,
 			DOMMouseScroll: wheel,
