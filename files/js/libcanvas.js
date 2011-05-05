@@ -1135,8 +1135,8 @@ LibCanvas.Mouse = atom.Class({
 					x: e.page.x - offset.left,
 					y: e.page.y - offset.top
 				});
-				e.offsetX = from.offset.x;
-				e.offsetY = from.offset.y;
+				e.offsetX = e.offset.x;
+				e.offsetY = e.offset.y;
 			}
 		}
 		return e;
