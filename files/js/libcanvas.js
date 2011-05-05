@@ -1189,31 +1189,14 @@ LibCanvas.Mouse = atom.Class({
 			dblclick   : waitEvent('dblclick', false),
 			contextmenu: waitEvent('contextmenu', false),
 			touchstart : function (e) {
-				trace('start');
-				try {
-					move(false, e);
-				} catch (er) {
-					trace('start.move: ' + er.name + ":\n" + er.message);
-				}
-				try {
-					down(e);
-				} catch (er) {
-					trace('start.down: ' + er.name + ":\n" + er.message);
-				}
-				return false;
+				move(false, e);
+				down(e);
 			},
 			touchmove: move.bind(null, false),
 			touchend : function (e) {
-				trace('end');
-				try {
-					move(false, e);
-					up(e);
-					out(e);
-					e.preventDefault();
-				} catch (er) {
-					trace('end: ' + er.name + ":\n" + er.message);
-				}
-				return false;
+				move(false, e);
+				up(e);
+				out(e);
 			},
 			mousedown  : down,
 			mouseup    : up,
