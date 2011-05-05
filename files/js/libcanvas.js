@@ -1191,7 +1191,7 @@ LibCanvas.Mouse = atom.Class({
 			touchstart : function (e) {
 				trace('start');
 				try {
-					move(e);
+					move(false, e);
 				} catch (er) {
 					trace('start.move: ' + er.name + ":\n" + er.message);
 				}
@@ -1206,7 +1206,7 @@ LibCanvas.Mouse = atom.Class({
 			touchend : function (e) {
 				trace('end');
 				try {
-					move(e);
+					move(false, e);
 					up(e);
 					out(e);
 					e.preventDefault();
