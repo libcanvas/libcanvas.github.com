@@ -1121,21 +1121,22 @@ LibCanvas.Mouse = atom.Class({
 		}
 	},
 	expandEvent : function (e) {
+		var from = e.changedTouches ? e.changedTouches[0] : e;
 		if (!('page' in e && 'offset' in e)) {
-			e.page = e.page || {
-				x: 'pageX' in e ? e.pageX : e.clientX + document.scrollLeft,
-				y: 'pageY' in e ? e.pageY : e.clientY + document.scrollTop 
+			e.page = from.page || {
+				x: 'pageX' in from ? from.pageX : from.clientX + document.scrollLeft,
+				y: 'pageY' in from ? from.pageY : from.clientY + document.scrollTop
 			};
-			if ('offsetX' in e) {
-				e.offset = new LibCanvas.Point(e.offsetX, e.offsetY);
+			if ('offsetX' in from) {
+				e.offset = new LibCanvas.Point(from.offsetX, from.offsetY);
 			} else {
-				var offset = this.createOffset(e.target);
+				var offset = this.createOffset(from.target);
 				e.offset = new LibCanvas.Point({
-					x: e.page.x - offset.left,
-					y: e.page.y - offset.top
+					x: from.page.x - offset.left,
+					y: from.page.y - offset.top
 				});
-				e.offsetX = e.offset.x;
-				e.offsetY = e.offset.y;
+				e.offsetX = from.offset.x;
+				e.offsetY = from.offset.y;
 			}
 		}
 		return e;
@@ -1152,7 +1153,7 @@ LibCanvas.Mouse = atom.Class({
 				return !isOffice;
 			};
 		},
-		waitWheel = waitEvent('wheel'),
+		waitWheel = waitEvent('wheel', false),
 		wheel = function (e) {
 			e.delta =
 				// IE, Opera, Chrome - multiplicity is 120
@@ -1162,29 +1163,44 @@ LibCanvas.Mouse = atom.Class({
 			e.up   = e.delta > 0;
 			e.down = e.delta < 0;
 			waitWheel(e);
+		},
+		down = waitEvent('mousedown', true),
+		up   = waitEvent('mouseup'  , true),
+		move = function (e) {
+			var offset = mouse.getOffset(e);
+			mouse.setCoords(offset);
+			mouse.events.event('mousemove', e);
+			mouse.isOut = false;
+			e.preventDefault();
+			return false;
+		},
+		out = function (e) {
+			mouse.getOffset(e);
+			mouse.setCoords(null);
+			mouse.events.event('mouseout', e);
+			mouse.fireEvent('mouseout', [e]);
+			mouse.isOut = true;
+			e.preventDefault();
+			return false;
 		};
 
 		atom.dom(mouse.elem).bind({
-			click      : waitEvent('click'),
-			dblclick   : waitEvent('dblclick'),
-			contextmenu: waitEvent('contextmenu'),
-			mousedown  : waitEvent('mousedown', true),
-			mouseup    : waitEvent('mouseup'  , true),
-			mousemove: function (e) {
-				var offset = mouse.getOffset(e);
-				mouse.setCoords(offset);
-				mouse.events.event('mousemove', e);
-				mouse.isOut = false;
-				return false;
+			click      : waitEvent('click', false),
+			dblclick   : waitEvent('dblclick', false),
+			contextmenu: waitEvent('contextmenu', false),
+			touchstart : function (e) {
+				move(e);
+				down(e);
 			},
-			mouseout : function (e) {
-				mouse.getOffset(e);
-				mouse.setCoords(null);
-				mouse.events.event('mouseout', e);
-				mouse.fireEvent('mouseout', [e]);
-				mouse.isOut = true;
-				return false;
+			touchmove: move,
+			touchend : function (e) {
+				move(e);
+				up(e)
 			},
+			mousedown  : down,
+			mouseup    : up,
+			mousemove  : move,
+			mouseout   : out,
 			selectstart: false,
 			DOMMouseScroll: wheel,
 			mousewheel: wheel
