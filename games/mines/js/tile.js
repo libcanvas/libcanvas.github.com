@@ -11,16 +11,16 @@ Mines.Tile = atom.Class({
 		this.matrix[this.y][this.x] = value;
 	},
 
+	get exists() {
+		var row = this.matrix[this.y];
+		return row != null && row[this.x] != null;
+	},
+
 	eachNeighbour: function (fn) {
-		var m = this.matrix;
-		this.neighbours.forEach(function (point) {
-			var row = m[point.y];
-			if (row != null && row[point.x] != null) {
-				var tile = this.self.from(point);
-				tile.matrix = this.matrix;
-				fn.call(this, tile);
-			}
-		}.bind(this));
+		var n = this.neighbours, i = 0, l = n.length;
+		for (;i < l; i++) {
+			if (n[i].exists) fn.call(this, n[i]);
+		}
 		return this;
 	},
 
@@ -40,5 +40,11 @@ Mines.Tile = atom.Class({
 			this.value = values.length > i+1 ? values[i+1] : values[0];
 		}
 		return this;
+	},
+
+	clone: function () {
+		var tile = this.parent();
+		tile.matrix = this.matrix;
+		return tile;
 	}
 });

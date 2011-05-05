@@ -25,7 +25,6 @@ Mines.Field = atom.Class({
 
 	openClosed: function (tile, value) {
 		tile.value = value || 'empty';
-
 		if (value == 0) {
 			tile.eachNeighbour(function (tile) {
 				this.open( tile, true );
@@ -37,9 +36,12 @@ Mines.Field = atom.Class({
 
 	openNeighbours: function (tile, value) {
 		if (value && value.between(1, 8, true) && tile.countNeighbours('flag') == value) {
-			tile.eachNeighbour(function (tile) {
-				this.open( tile, true );
-			}.bind(this));
+			// avoid too deep "Maximum call stack size exceeded", dont use eachNeighbour
+
+			var n = tile.neighbours;
+			for (var i = n.length; i--;) {
+				if (n[i].exists) this.open( n[i], true );
+			}
 			return true;
 		}
 		return false;
