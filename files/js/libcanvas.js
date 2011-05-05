@@ -1123,7 +1123,7 @@ LibCanvas.Mouse = atom.Class({
 	expandEvent : function (e) {
 		var from = e.changedTouches ? e.changedTouches[0] : e;
 		if (!('page' in e && 'offset' in e)) {
-			e.page = 'page' in from ? from.page : {
+			e.page = from.page || {
 				x: 'pageX' in from ? from.pageX : from.clientX + document.scrollLeft,
 				y: 'pageY' in from ? from.pageY : from.clientY + document.scrollTop
 			};
@@ -1132,8 +1132,8 @@ LibCanvas.Mouse = atom.Class({
 			} else {
 				var offset = this.createOffset(from.target);
 				e.offset = new LibCanvas.Point({
-					x: from.page.x - offset.left,
-					y: from.page.y - offset.top
+					x: e.page.x - offset.left,
+					y: e.page.y - offset.top
 				});
 				e.offsetX = from.offset.x;
 				e.offsetY = from.offset.y;
