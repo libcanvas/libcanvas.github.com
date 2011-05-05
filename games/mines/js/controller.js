@@ -51,9 +51,9 @@ Mines.Controller = atom.Class({
 		var query = atom.uri().queryKey;
 
 		if (query.mines) {
-			var width  = parseInt(query.width ).limit( 5, 50 ),
-			    height = parseInt(query.height).limit( 5, 40 ),
-			    mines  = parseInt(query.mines ).limit( 5, width*height-2 );
+			var width  = parseInt(query.width ).limit( 5, 40 ),
+			    height = parseInt(query.height).limit( 5, 25 ),
+			    mines  = parseInt(query.mines ).limit( 5, width*height-4 );
 			this.setOptions({
 				fieldSize: { width: width, height: height },
 				mines    : mines

@@ -13,3 +13,9 @@ a:visited {
 	border: 1px solid #666;
 	margin: 12px;
 }
+input {
+	color: white;
+	background: black;
+	border:  1px solid #666;
+	padding:  2px 10px;
+}
