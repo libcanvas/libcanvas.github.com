@@ -1194,8 +1194,8 @@ LibCanvas.Mouse = atom.Class({
 					move(e);
 					down(e);
 					e.preventDefault();
-				} catch (e) {
-					trace(e.name + ": " + e.message);
+				} catch (er) {
+					trace('start: ' + er.name + ":\n" + er.message);
 				}
 				return false;
 			},
@@ -1207,8 +1207,8 @@ LibCanvas.Mouse = atom.Class({
 					up(e);
 					out(e);
 					e.preventDefault();
-				} catch (e) {
-					trace(e.name + ": " + e.message);
+				} catch (er) {
+					trace('end: ' + er.name + ":\n" + er.message);
 				}
 				return false;
 			},
