@@ -26,9 +26,7 @@ Mines.Generator = atom.Class({
 		var snapshot = this.snapshot( empty && Point.from(empty) );
 
 		return Array.create(this.count, function () {
-			var random = snapshot.random;
-			snapshot.erase( random );
-			return new Point( random );
+			return new Mines.Tile( snapshot.popRandom() );
 		});
 	},
 
@@ -37,13 +35,12 @@ Mines.Generator = atom.Class({
 		    matrix = Array.fill( f.height, Array.fill( f.width, 0 ) ).clone();
 
 		this.mines( empty ).forEach(function (cell) {
-			matrix[cell.y][cell.x] = index;
+			cell.matrix = matrix;
+			cell.value  = index;
 
-			cell.neighbours.forEach(function(cell) {
-				var row = matrix[cell.y];
-				if (row && row[cell.x] != null && row[cell.x] != index) {
-					row[cell.x]++;
-				}
+			// Увеличиваем всем соседям показатель мин
+			cell.eachNeighbour(function(nb) {
+				if (nb.value != index) nb.value++;
 			});
 		}.bind(this));
 		return matrix;

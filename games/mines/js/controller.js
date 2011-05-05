@@ -1,5 +1,6 @@
 
 Mines.Controller = atom.Class({
+	Implements: [ atom.Class.Options ],
 
 	options: {
 		 tileSize : { width: 24, height: 24 },
@@ -10,6 +11,8 @@ Mines.Controller = atom.Class({
 
 
 	initialize: function (canvas) {
+		this.setSizes();
+
 		var libcanvas, options, field, size, translate, flags = atom.dom('#flags').first;
 
 		libcanvas = new LibCanvas(canvas, { backBuffer: 'off' }).listenMouse();
@@ -42,6 +45,20 @@ Mines.Controller = atom.Class({
 			}
 		});
 
+	},
+
+	setSizes: function () {
+		var query = atom.uri().queryKey;
+
+		if (query.mines) {
+			var width  = parseInt(query.width ).limit( 5, 50 ),
+			    height = parseInt(query.height).limit( 5, 40 ),
+			    mines  = parseInt(query.mines ).limit( 5, width*height-2 );
+			this.setOptions({
+				fieldSize: { width: width, height: height },
+				mines    : mines
+			});
+		}
 	}
 
 });

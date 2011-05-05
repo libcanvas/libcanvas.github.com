@@ -13,7 +13,8 @@ Mines.Draw = atom.Class({
 			closed  : this.drawClosed .bind(this),
 			mine    : this.drawMine   .bind(this),
 			flag    : this.drawFlag   .bind(this),
-			empty   : this.drawEmpty  .bind(this)
+			empty   : this.drawEmpty  .bind(this),
+			wrong   : this.drawWrong  .bind(this)
 		});
 	},
 	
@@ -71,5 +72,14 @@ Mines.Draw = atom.Class({
 	drawFlag: function (ctx, rectangle) {
 		ctx.fill( rectangle, '#999' )
 			.fill( new Circle( rectangle.getCenter(), rectangle.height / 4 ), '#900' );
+	},
+
+	drawWrong: function (ctx, rectangle) {
+		ctx.save()
+			.fill( rectangle, '#999' )
+			.set({ lineWidth: 3 })
+			.stroke( new Line( rectangle.from      , rectangle.to       ), '#900' )
+			.stroke( new Line( rectangle.bottomLeft, rectangle.topRight ), '#900' )
+			.restore();
 	}
 });
