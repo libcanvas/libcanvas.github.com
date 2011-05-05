@@ -1123,7 +1123,7 @@ LibCanvas.Mouse = atom.Class({
 	expandEvent : function (e) {
 		var from = e.changedTouches ? e.changedTouches[0] : e;
 		if (!('page' in e && 'offset' in e)) {
-			e.page = from.page || {
+			e.page = 'page' in from ? from.page : {
 				x: 'pageX' in from ? from.pageX : from.clientX + document.scrollLeft,
 				y: 'pageY' in from ? from.pageY : from.clientY + document.scrollTop
 			};
@@ -1175,6 +1175,8 @@ LibCanvas.Mouse = atom.Class({
 			return false;
 		},
 		out = function (e) {
+			throw new Error('test');
+
 			mouse.getOffset(e);
 			mouse.setCoords(null);
 			mouse.events.event('mouseout', e);
@@ -1195,13 +1197,17 @@ LibCanvas.Mouse = atom.Class({
 					down(e);
 					e.preventDefault();
 				} catch (e) {
-					trace(e + '');
+					trace(e.name + ": " + e.message);
 				}
 				return false;
 			},
 			touchmove: function (e) {
 				trace('move');
-				move(e);
+				try {
+					move(e);
+				} catch (e) {
+					trace(e.name + ": " + e.message);
+				}
 				return false;
 			},
 			touchend : function (e) {
@@ -1211,7 +1217,7 @@ LibCanvas.Mouse = atom.Class({
 					up(e);
 					e.preventDefault();
 				} catch (e) {
-					trace(e + '');
+					trace(e.name + ": " + e.message);
 				}
 				return false;
 			},
