@@ -24,9 +24,7 @@
 	<body>
 		<div class="switch-tool shovel"></div>
 		<script>
-			if (Modernizr.touch) {
-				atom.dom('.switch-tool').css('display', 'block');
-			}
+			alert ([typeof Modernizr.touch, Modernizr.touch]);
 		</script>
 		<form action="index.html" type="get">
 			<p>
