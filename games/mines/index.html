@@ -6,8 +6,28 @@
 		<link href="/files/styles.css" rel="stylesheet" />
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
+		<script src="/files/js/modernizr.js"></script>
+		<style>
+			.switch-tool {
+				display : none;
+				position:fixed;
+				width   :64px;
+				height  :64px;
+				background:url('im/flag-shovel.png') rgba(128,128,128,0.7);
+				z-index:  100;
+			}
+			.switch-tool.shovel {
+				background-position: 64px 0;
+			}
+		</style>
 	</head>
 	<body>
+		<div class="switch-tool shovel"></div>
+		<script>
+			if (Modernizr.touch) {
+				atom.dom('.switch-tool').css('display', 'block');
+			}
+		</script>
 		<form action="index.html" type="get">
 			<p>
 				Width : <input type="text" name="width"  maxlength="2" size="2" />
