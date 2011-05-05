@@ -300,7 +300,12 @@ new function () {
 			lineHeight: true
 		},
 		domReady = false,
-		onDomReady = [];
+		onDomReady = [],
+		camelCase = function (str) {
+			return str.replace(/-\D/g, function(match){
+				return match[1].toUpperCase();
+			});
+		};
 	
 	new function () {
 		var ready = function () {
@@ -384,11 +389,11 @@ new function () {
 			return this.elems[index * 1 || 0];
 		},
 		filter: function (sel) {
-			if (sel.match(tagNameRE)) var tag = sel;
-			if (sel.match(idRE     )) var id  = sel.substr(1);
+			if (sel.match(tagNameRE)) var tag = sel.toUpperCase();
+			if (sel.match(idRE     )) var id  = sel.substr(1).toUpperCase();
 			return new dom(this.elems.filter(function (elem) {
-				return tag ? elem.tagName == tag :
-				       id  ? elem.id      == id :
+				return tag ? elem.tagName.toUpperCase() == tag :
+				       id  ? elem.id     .toUpperCase() == id :
 				  elem.parentNode && toArray(
 				    elem.parentNode.querySelectorAll(sel)
 				  ).indexOf(elem) >= 0;
@@ -438,7 +443,7 @@ new function () {
 					if (typeof value == 'number' && !ignoreCssPostfix[i]) {
 						value += 'px';
 					}
-					elem.style[i] = value;
+					elem.style[camelCase(i)] = value;
 				}
 			});
 		},
@@ -455,7 +460,7 @@ new function () {
 		// todo: unbind
 		delegate : function (selector, event, fn) {
 			return this.bind(event, function (e) {
-				if (new dom(e).is(selector)) {
+				if (new dom(e.target).is(selector)) {
 					fn.apply(this, arguments);
 				}
 			});
@@ -1137,6 +1142,7 @@ provides: Array
 */
 
 new function (undefined) {
+'use strict';
 
 var slice = [].slice;
 
@@ -1343,6 +1349,8 @@ provides: Function
 */
 
 new function () {
+'use strict';
+
 	var getContext = function (bind, self) {
 		return (bind === false || bind === Function.context) ? self : bind;
 	};
@@ -1417,6 +1425,11 @@ provides: Number
 
 ...
 */
+
+new function () {
+
+'use strict';
+
 atom.extend(Number, {
 	random : function (min, max) {
 		return Math.floor(Math.random() * (max - min + 1) + min);
@@ -1469,6 +1482,8 @@ atom.implement(Number, {
 			return Math[method].apply(null, [this].append(arguments));
 		};
 	});
+
+};
 
 /*
 ---
@@ -1574,6 +1589,8 @@ provides: String
 */
 
 new function () {
+
+'use strict';
 
 var substituteRE = /\\?\{([^{}]+)\}/g,
 	safeHtmlRE = /[<'&">]/g,

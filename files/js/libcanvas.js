@@ -860,6 +860,16 @@ var Point = LibCanvas.Point = atom.Class({
 	getNeighbour : function (dir) {
 		return this.clone().move(shifts[dir]);
 	},
+	get neighbours () {
+		return this.getNeighbours( true );
+	},
+	getNeighbours: function (corners) {
+		var shifts = ['t', 'l', 'r', 'b'];
+
+		if (corners) shifts.push('tl', 'tr', 'bl', 'br');
+
+		return shifts.map(this.getNeighbour.bind(this));
+	},
 	equals : function (to, accuracy) {
 		to = Point.from(to);
 		return accuracy == null ? (to.x == this.x && to.y == this.y) :
@@ -1131,15 +1141,27 @@ LibCanvas.Mouse = atom.Class({
 		return e;
 	},
 	setEvents : function () {
-		var mouse = this, waitEvent = function (event, isOffise) {
+		var mouse = this,
+		waitEvent = function (event, isOffice) {
 			return function (e) {
 				var wait = mouse.isEventAdded(event);
-				if (isOffise || wait) mouse.getOffset(e);
-				if (isOffise) mouse.events.event(event, e);
+				if (isOffice || wait) mouse.getOffset(e);
+				if (isOffice) mouse.events.event(event, e);
 				if (wait) mouse.fireEvent(event, [e]);
-				if (isOffise) e.preventDefault();
-				return !isOffise;
+				if (isOffice) e.preventDefault();
+				return !isOffice;
 			};
+		},
+		waitWheel = waitEvent('wheel'),
+		wheel = function (e) {
+			e.delta =
+				// IE, Opera, Chrome - multiplicity is 120
+				e.wheelDelta ?  e.wheelDelta / 120 :
+				// Fx
+				e.detail     ? -e.detail / 3 : null;
+			e.up   = e.delta > 0;
+			e.down = e.delta < 0;
+			waitWheel(e);
 		};
 
 		atom.dom(mouse.elem).bind({
@@ -1163,7 +1185,9 @@ LibCanvas.Mouse = atom.Class({
 				mouse.isOut = true;
 				return false;
 			},
-			selectstart: false
+			selectstart: false,
+			DOMMouseScroll: wheel,
+			mousewheel: wheel
 		});
 		return this;
 	},
@@ -2885,6 +2909,19 @@ LibCanvas.Canvas2D = atom.Class({
 			wrapper.parent = atom.dom().create('div').addClass('libcanvas-layers-container');
 			return wrapper.appendTo(wrapper.parent);
 		},
+		// Needs for right mouse behaviour
+		cover: function () {
+			if (this.parentLayer) return this.parentLayer.cover;
+			return atom.dom()
+				.create('div')
+				.css({
+					position: 'absolute',
+					width : '100%',
+					height: '100%'
+				})
+				.addClass('libcanvas-layers-cover')
+				.appendTo(this.wrapper);
+		},
 		invoker: function () {
 			return new LibCanvas.Invoker({
 				context: this,
@@ -2919,7 +2956,7 @@ LibCanvas.Canvas2D = atom.Class({
 			render: []
 		};
 		this.elems = [];
-				
+
 
 		var aElem = atom.dom(elem);
 		elem = aElem.first;
@@ -2932,20 +2969,22 @@ LibCanvas.Canvas2D = atom.Class({
 
 		this.createProjectBuffer().addClearer();
 
+		var wrapper = this.wrapper, cover = this.cover;
 		if (this.parentLayer) {
-			aElem.appendTo(this.wrapper);
+			aElem.appendTo(wrapper);
 		} else {
 			this.name = this.options.name;
 			this._layers[this.name] = this;
 			aElem
 				.attr('data-layer-name', this.name)
-				.replaceWith(this.wrapper.parent)
-				.appendTo(this.wrapper);
-			
+				.replaceWith(wrapper.parent)
+				.appendTo(wrapper);
+
 			if (elem.width && elem.height) {
 				this.size(elem.width, elem.height, true);
 			}
 		}
+		cover.css('zIndex', this.maxZIndex + 100);
 
 		this.update = this.update.context(this);
 
@@ -4178,6 +4217,12 @@ LibCanvas.namespace('Engines').Tile = atom.Class({
 		return true;
 	},
 	createMatrix : function (width, height, fill) {
+		if (typeof width == 'object') {
+			fill   = 'fill' in width ? width.fill : height;
+			height = width.height;
+			width  = width.width;
+		}
+
 		var matrix = new Array(height);
 		for (var y = height; y--;) matrix[y] = Array.fill(width, fill);
 		this.setMatrix(matrix);
@@ -4199,10 +4244,22 @@ LibCanvas.namespace('Engines').Tile = atom.Class({
 		return this;
 	},
 	setSize : function (cellWidth, cellHeight, margin) {
+		if (typeof cellWidth === 'object') {
+			margin = 'margin' in cellWidth ? cellWidth.margin : cellHeight;
+			cellHeight = cellWidth.height;
+			cellWidth  = cellWidth.width;
+		}
 		this.cellWidth  = cellWidth;
 		this.cellHeight = cellHeight;
 		this.margin = margin || 0;
 		return this;
+	},
+	countSize: function () {
+		var margin = this.margin;
+		return {
+			width : (this.cellWidth  + margin ) * this.width  - margin,
+			height: (this.cellHeight + margin ) * this.height - margin
+		};
 	},
 	update : function () {
 		var changed = false, old = this.oldMatrix;
@@ -4261,7 +4318,7 @@ LibCanvas.namespace('Engines').Tile = atom.Class({
 		return this;
 	},
 	each : function (fn) {
-		var m = this.matrix, height = this.height(), width = this.width(), x, y;
+		var m = this.matrix, height = this.height, width = this.width, x, y;
 		for (y = 0; y < height; y++) for (x = 0; x < width; x++) {
 			fn.call(this, {
 				t : m[y][x],
@@ -4271,10 +4328,10 @@ LibCanvas.namespace('Engines').Tile = atom.Class({
 		}
 		return this;
 	},
-	width : function () {
+	get width () {
 		return (this.matrix[0] && this.matrix[0].length) || 0;
 	},
-	height : function () {
+	get height () {
 		return this.matrix.length || 0;
 	},
 	draw: function () {
