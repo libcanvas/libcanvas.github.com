@@ -2,25 +2,40 @@
 Mines.Field = atom.Class({
 	Implements: [ atom.Class.Options ],
 
+	marked: 0,
+	closed: 0,
+	failed: false,
+	stopWatch: null,
 
 	initialize: function (libcanvas, options) {
 		this.setOptions(options);
 
 		this.libcanvas = libcanvas.createLayer('field', Infinity, { backBuffer: 'off' });
 
-		this.engine = new LibCanvas.Engines.Tile( this.libcanvas )
-			.setSize( this.options.tileSize )
-			.createMatrix( this.options.fieldSize, 'closed' );
+		var engine = this.engine =
+			new LibCanvas.Engines.Tile( this.libcanvas )
+				.setSize( this.options.tileSize )
+				.createMatrix( this.options.fieldSize, 'closed' );
 
-		new Mines.Draw( this.engine );
+		this.closed = engine.width * engine.height;
 
-		this.libcanvas.size( this.engine.countSize() ).shift( this.options.fieldShift );
+		new Mines.Draw( engine, this.libcanvas );
+
+		this.libcanvas.size( engine.countSize() ).shift( this.options.fieldShift );
 
 		this.engine.update();
 	},
 
 	get matrix () {
 		return this.engine.matrix;
+	},
+
+	get time () {
+		return this.stopWatch && this.stopWatch.getTime('{m}:{s}');
+	},
+
+	get minesLeft () {
+		return this.options.mines - this.marked;
 	},
 
 	openClosed: function (tile, value) {
@@ -30,7 +45,10 @@ Mines.Field = atom.Class({
 				this.open( tile, true );
 			}.bind(this));
 		} else if (value == 'mine') {
-			this.fail( tile );
+			return this.fail( tile );
+		}
+		if (--this.closed <= this.options.mines) {
+			this.win();
 		}
 	},
 
@@ -71,10 +89,27 @@ Mines.Field = atom.Class({
 			}
 		}
 		explode.value = 'explode';
+		this.failed = true;
+	},
+	
+	win: function () {
+		var m = this.matrix, y = m.length, width = m[0].length, x;
+		for (; y--;) for (x = width; x--;) {
+			var tile = new Mines.Tile(x, y);
+			tile.matrix = m;
+			if (tile.value == 'closed') {
+				tile.value = 'flag';
+			}
+		}
+
+		alert.delay(100, window, ['Поздравляем! Вы - обезвредили все мины за ' + this.time + '!']);
 	},
 
 	flag: function (tile) {
-		tile.toggleValue( 'flag', 'closed' );
+		var val = tile.toggleValue( 'flag', 'closed' );
+		if (val) {
+			this.marked += val == 'flag' ? 1 : -1;
+		}
 		return true;
 	},
 
@@ -83,6 +118,12 @@ Mines.Field = atom.Class({
 	},
 
 	click: function (point, flag) {
+		if (this.failed) return;
+
+		if (!this.stopWatch) {
+			this.stopWatch = new StopWatch(true);
+		}
+
 		point = new Mines.Tile( this.engine.getCell( point ) );
 		point.matrix = this.matrix;
 

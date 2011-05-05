@@ -1,5 +1,6 @@
 Mines.Draw = atom.Class({
-	initialize: function (engine) {
+	initialize: function (engine, libcanvas) {
+		this.libcanvas = libcanvas;
 		engine.addTiles({
 			1: this.drawNumber.bind(this, 1),
 			2: this.drawNumber.bind(this, 2),
@@ -29,6 +30,11 @@ Mines.Draw = atom.Class({
 		8: '#000'
 	},
 
+	image: function (name) {
+		var im = this.libcanvas.getImage('field');
+		return im.sprite( name == 'mine' ? im.width / 2 : 0, 0, im.width / 2, im.height);
+	},
+
 	gradient: function (ctx, rect, from, to) {
 		var gradient = ctx.createLinearGradient(rect);
 		gradient.addColorStop(0.0, from);
@@ -52,26 +58,35 @@ Mines.Draw = atom.Class({
 	},
 
 	drawClosed: function (ctx, rectangle) {
-		ctx.fill( rectangle, this.gradient(ctx, rectangle, '#eee', '#aaa') );
+		ctx
+			.fill( rectangle, this.gradient(ctx, rectangle, '#eee', '#aaa') );
 	},
 
 	drawEmpty: function (ctx, rectangle) {
-		ctx.fill( rectangle, '#999' ).stroke( rectangle, '#ccc' );
+		ctx
+			.fill( rectangle, '#999' )
+			.stroke( rectangle, '#ccc' );
 	},
 
 	drawMine: function (ctx, rectangle) {
-		ctx.fill( rectangle, '#999' )
-			.fill( new Circle( rectangle.getCenter(), rectangle.height / 4 ), '#000' );
+		ctx
+			.fill( rectangle, '#999' )
+			.stroke( rectangle, '#ccc' )
+			.drawImage({ image: this.image('mine'), draw: rectangle });
 	},
 
 	drawExplode: function (ctx, rectangle) {
-		ctx.fill( rectangle, '#900' )
-			.fill( new Circle( rectangle.getCenter(), rectangle.height / 4 ), '#000' );
+		ctx
+			.fill( rectangle, '#c00' )
+			.stroke( rectangle, '#ccc' )
+			.drawImage({ image: this.image('mine'), draw: rectangle });
 	},
 
 	drawFlag: function (ctx, rectangle) {
-		ctx.fill( rectangle, '#999' )
-			.fill( new Circle( rectangle.getCenter(), rectangle.height / 4 ), '#900' );
+		ctx
+			.fill( rectangle, '#999' )
+			.stroke( rectangle, '#ccc' )
+			.drawImage({ image: this.image('flag'), draw: rectangle });
 	},
 
 	drawWrong: function (ctx, rectangle) {

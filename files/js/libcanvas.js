@@ -5986,8 +5986,6 @@ provides: Utils.StopWatch
 
 LibCanvas.namespace('Utils').StopWatch = atom.Class({
 	startTime : 0,
-	time      : 0,
-	traceElem : null,
 	initialize : function (autoStart) {
 		autoStart && this.start();
 	},
@@ -5997,21 +5995,27 @@ LibCanvas.namespace('Utils').StopWatch = atom.Class({
 	},
 	stop : function () {
 		this.startTime = 0;
-		this.time      = 0;
 		return this;
 	},
-	getTime : function (micro) {
+	getTime : function (format) {
 		var d2 = function (num) { return num < 10 ? '0' + num : num; };
 
-		var t = this.time + (Date.now() - this.startTime);
+		var t = Date.now() - this.startTime;
 
-		if (micro) return t;
-		var s = (t / 1000).round();
-		var m = (s / 60).round();
-		var h = (m / 60).round();
-		return (s < 60) ?
-			d2((t / 1000).toFixed(1)) :
-			h + ':' + d2(m) + ':' + d2(s % 60);
+		if (format === true) return t;
+
+		var s = (t / 1000).round(), m = (s / 60).round(), h = (m / 60).round();
+		if (typeof format === 'string') {
+			return format.substitute({
+				S: s, M: m, H: h,
+				S2: d2(s), M2: d2(s), H2: d2(s),
+				s: d2(s % 60), m: d2(m % 60), h: h
+			});
+		} else {
+			return (s < 60) ?
+				d2((t / 1000).toFixed(1)) :
+				h + ':' + d2(m % 60) + ':' + d2(s % 60);
+		}
 	},
 	toString: Function.lambda('[object LibCanvas.Utils.StopWatch]')
 });

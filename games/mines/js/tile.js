@@ -37,9 +37,9 @@ Mines.Tile = atom.Class({
 	toggleValue: function () {
 		var values = Array.from(arguments), v = this.value, i = values.indexOf(v);
 		if (i >= 0) {
-			this.value = values.length > i+1 ? values[i+1] : values[0];
+			return (this.value = values.length > i+1 ? values[i+1] : values[0]);
 		}
-		return this;
+		return null;
 	},
 
 	clone: function () {
