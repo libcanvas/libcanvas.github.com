@@ -102,7 +102,7 @@ Mines.Field = atom.Class({
 			}
 		}
 
-		alert.delay(100, window, ['Поздравляем! Вы - обезвредили все мины за ' + this.time + '!']);
+		alert.delay(100, window, ['Congratulations! Mines has been neutralized in '+this.time+'!']);
 	},
 
 	flag: function (tile) {
