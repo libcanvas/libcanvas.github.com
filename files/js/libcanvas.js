@@ -1192,10 +1192,13 @@ LibCanvas.Mouse = atom.Class({
 				trace('start');
 				try {
 					move(e);
-					down(e);
-					e.preventDefault();
 				} catch (er) {
-					trace('start: ' + er.name + ":\n" + er.message);
+					trace('start.move: ' + er.name + ":\n" + er.message);
+				}
+				try {
+					down(e);
+				} catch (er) {
+					trace('start.down: ' + er.name + ":\n" + er.message);
 				}
 				return false;
 			},
