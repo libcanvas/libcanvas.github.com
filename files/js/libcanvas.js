@@ -1175,8 +1175,6 @@ LibCanvas.Mouse = atom.Class({
 			return false;
 		},
 		out = function (e) {
-			throw new Error('test');
-
 			mouse.getOffset(e);
 			mouse.setCoords(null);
 			mouse.events.event('mouseout', e);
@@ -1215,6 +1213,7 @@ LibCanvas.Mouse = atom.Class({
 				try {
 					move(e);
 					up(e);
+					out(e);
 					e.preventDefault();
 				} catch (e) {
 					trace(e.name + ": " + e.message);
