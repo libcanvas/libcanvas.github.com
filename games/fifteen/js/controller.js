@@ -5,11 +5,13 @@ var Controller = atom.Class({
 	 */
 	initialize: function (canvas, options) {
 		var field     = new Field(options),
-		    libcanvas = new LibCanvas(canvas);
-		libcanvas.listenMouse();
-		libcanvas.size(field.size, true);
-		libcanvas.addElement(field);
-		libcanvas.start();
+		    libcanvas = new LibCanvas(canvas, { fps: 60 });
+		libcanvas
+			.listenMouse()
+			.fpsMeter()
+			.size(field.size, true)
+			.addElement(field)
+			.start();
 	}
 
 });
