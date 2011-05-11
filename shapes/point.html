@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Draggable objects</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var libcanvas = new LibCanvas('canvas', { clear: '#efebe7' })
+		.listenMouse()
+		.size({
+			width : 400,
+			height: 250
+		}, true);
+
+	var mouse   = libcanvas.mouse.addEvent('move', libcanvas.update),
+	    center  = libcanvas.ctx.rectangle.getCenter(),
+	    cursor  = center.clone(),
+	    cirFrom = new Circle( center, 4 ),
+	    cirTo   = new Circle( cursor, 4 ),
+	    line    = new Line( center, cursor );
+
+
+	libcanvas.start(function () {
+		var ctx = libcanvas.ctx.fill( cirFrom, '#090' );
+
+		if (mouse.inCanvas) {
+			cursor.moveTo( mouse.point );
+
+			ctx
+				.fill  ( cirTo, '#090' )
+				.stroke( line , '#090' )
+				.set  ({ font : '16px monospace' })
+				.fillText('A', cursor.x + 6, cursor.y - 6)
+				.fillText('O', center.x + 6, center.y - 6)
+				.fillText('angleTo : ' + cursor.angleTo(center).getDegree(0) + '°', 15, 25)
+				.fillText('distance: ' + cursor.distanceTo(center).round()        , 15, 45)
+				.fillText('diff.x  : ' + cursor.diff(center).x                    , 15, 65)
+				.fillText('diff.y  : ' + cursor.diff(center).y                    , 15, 85)
+				;
+		}
+	});
+}
+		</script>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-23092701-1']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+	var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+	</body>
+</html>
