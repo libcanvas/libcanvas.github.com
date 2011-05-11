@@ -332,6 +332,11 @@ new function () {
 			return this;
 		}
 
+		if (!context && sel === 'body') {
+			this.elems = [doc.body];
+			return this;
+		}
+
 		if (context !== undefined) {
 			return new dom(context || doc).find(sel);
 		}
@@ -371,6 +376,10 @@ new function () {
 				: typeof sel == 'string' ? dom.query(context, sel) : [context];
 			return (result.length == 1 && result[0] == null) ? [] : result;
 		},
+		create: function (tagName, attr) {
+			var elem = new dom(document.createElement(tagName));
+			return attr ? elem.attr(attr) : elem;
+		},
 		isElement: function (node) {
 			return !!(node && node.nodeName);
 		}
@@ -387,6 +396,18 @@ new function () {
 		},
 		get : function (index) {
 			return this.elems[index * 1 || 0];
+		},
+		parent : function(step) {
+			if(step === undefined)
+				var step = 1;
+			var stepCount = function(elem, step) {
+				if(step > 0) {
+					step--;
+					return stepCount(atom.dom(elem.first.parentNode), step);
+				}
+				return elem;
+			};
+			return stepCount(this, step);
 		},
 		filter: function (sel) {
 			if (sel.match(tagNameRE)) var tag = sel.toUpperCase();
@@ -410,14 +431,22 @@ new function () {
 				return this.first.innerHTML;
 			}
 		},
-		create : function (tagName, index, attr) {
-			if (typeof index == 'object') {
-				attr  = index;
-				index = 0;
+		text : function (value) {
+			if(document.getElementsByTagName("body")[0].innerText != undefined) {
+				if(value === undefined)
+					return this.first.innerText;
+				this.first.innerText = value;
 			}
-			var elem = dom(this.get(index).createElement(tagName));
-			if (attr) elem.attr(attr);
-			return elem;
+			else {
+				if(value === undefined)
+					return this.first.textContent;
+				this.first.textContent = value;
+			}
+			return this;
+		},
+		create : function (tagName, index, attr) {
+			atom.dom.create(tagName, attr).appendTo( this.get(index) );
+			return this;
 		},
 		each : function (fn) {
 			this.elems.forEach(fn.bind(this));
@@ -510,13 +539,50 @@ new function () {
 			});
 		},
 		removeClass: function (classNames) {
-			if (!isArray(classNames) && classNames) classNames = [classNames];
+            if (!classNames) return this;
+
+			if (!isArray(classNames)) classNames = [classNames];
 
 			return this.each(function (elem) {
 				var current = ' ' + elem.className + ' ';
 				for (var i = classNames.length; i--;) {
 					current = current.replace(' ' + classNames[i] + ' ', ' ');
 				}
+				elem.className = current.trim();
+			});
+		},
+		hasClass: function(classNames) {
+			if(!classNames) return false;
+
+			if(!isArray(classNames)) classNames = [classNames];
+
+			var result = false;
+			this.each(function (elem) {
+				var property = elem.className, current = ' ' + property + ' ';
+
+				var elemResult = true;
+				for (var i = classNames.length; i--;) {
+					elemResult = elemResult && (current.indexOf(' ' + classNames[i] + ' ') >= 0);
+				}
+
+				result = result || elemResult;
+			});
+			return result;
+		},
+		toggleClass: function(classNames) {
+			if(!classNames) return this;
+
+			if(!isArray(classNames)) classNames = [classNames];
+
+			return this.each(function (elem) {
+				var property = elem.className, current = ' ' + property + ' ';
+
+				for (var i = classNames.length; i--;) {
+					var c = ' ' + classNames[i];
+					if (current.indexOf(c + ' ') < 0) current = c + current;
+					else current = current.replace(c + ' ', ' ');
+				}
+
 				elem.className = current.trim();
 			});
 		},
@@ -534,6 +600,7 @@ new function () {
 
 	atom.extend({ dom: dom });
 };
+
 
 /*
 ---
@@ -855,6 +922,7 @@ extend(Class, {
 				}
 
 				if (typeOf(value) == 'function'){
+					if (value.$origin) value = value.$origin;
 					if (value.$hidden == 'next') {
 						value.$hidden = true
 					} else if (value.$hidden) {
@@ -1247,6 +1315,13 @@ atom.extend(Array, {
 		for (var i = array.length; i--;) array[i] = fill;
 		return array;
 	},
+	fillMatrix: function (width, height, fill) {
+		var array = new Array(height);
+		while (height--) {
+			array[height] = Array.fill(width, fill);
+		}
+		return array;
+	},
 	collect: function (obj, props, Default) {
 		var array = [];
 		for (var i in props.toKeys()) array.push(i in obj ? obj[i] : Default);
@@ -1348,6 +1423,14 @@ atom.implement(Array, {
 	},
 	max: function(){
 		return Math.max.apply(null, this);
+	},
+	mul: function (factor) {
+		for (var i = this.length; i--;) this[i] *= factor;
+		return this;
+	},
+	add: function (number) {
+		for (var i = this.length; i--;) this[i] += number;
+		return this;
 	},
 	average: function(){
 		return this.length ? this.sum() / this.length : 0;
@@ -1537,6 +1620,13 @@ atom.extend(Object, {
 	},
 	isReal: function (obj) {
 		return obj || obj === 0;
+	},
+	map: function (obj, fn) {
+		var mapped = {};
+		for (var i in obj) if (obj.hasOwnProperty(i)) {
+			mapped[i] = fn( obj[i], i, obj );
+		}
+		return mapped;
 	},
 	max: function (obj) {
 		var max = null, key = null;

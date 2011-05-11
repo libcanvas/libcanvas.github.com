@@ -36,7 +36,7 @@ var LibCanvas = global.LibCanvas = atom.Class({
 				width   = width.width
 			}
 			
-			var canvas = atom.dom()
+			var canvas = atom.dom
 				.create("canvas", {
 					width  : width,
 					height : height
@@ -863,12 +863,21 @@ var Point = LibCanvas.Point = atom.Class({
 	get neighbours () {
 		return this.getNeighbours( true );
 	},
-	getNeighbours: function (corners) {
-		var shifts = ['t', 'l', 'r', 'b'];
+	getNeighbours: function (corners, asObject) {
+		var shifts = ['t', 'l', 'r', 'b'], result, i, dir;
 
 		if (corners) shifts.push('tl', 'tr', 'bl', 'br');
 
-		return shifts.map(this.getNeighbour.bind(this));
+		if (asObject) {
+			result = {};
+			for (i = shifts.length; i--;) {
+				dir = shifts[i];
+				result[dir] = this.getNeighbour( dir );
+			}
+			return result;
+		} else {
+			return shifts.map(this.getNeighbour.bind(this));
+		}
 	},
 	equals : function (to, accuracy) {
 		to = Point.from(to);
@@ -1144,11 +1153,18 @@ LibCanvas.Mouse = atom.Class({
 	setEvents : function () {
 		var mouse = this,
 		waitEvent = function (event, isOffice) {
+			if (event.match(/^mouse/)) {
+				var shortE = event.substr(5);
+			}
+
 			return function (e) {
 				var wait = mouse.isEventAdded(event);
 				if (isOffice || wait) mouse.getOffset(e);
 				if (isOffice) mouse.events.event(event, e);
-				if (wait) mouse.fireEvent(event, [e]);
+				if (wait) {
+					mouse.fireEvent(event, [e]);
+					if (shortE) mouse.fireEvent(shortE, [e]);
+				}
 				if (isOffice) e.preventDefault();
 				return !isOffice;
 			};
@@ -1170,6 +1186,7 @@ LibCanvas.Mouse = atom.Class({
 			var offset = mouse.getOffset(e);
 			mouse.setCoords(offset);
 			mouse.events.event('mousemove', e);
+			mouse.fireEvent('move', [e]);
 			mouse.isOut = false;
 			e.preventDefault();
 			return false;
@@ -1179,6 +1196,7 @@ LibCanvas.Mouse = atom.Class({
 			mouse.setCoords(null);
 			mouse.events.event('mouseout', e);
 			mouse.fireEvent('mouseout', [e]);
+			mouse.fireEvent('out', [e]);
 			mouse.isOut = true;
 			e.preventDefault();
 			return false;
@@ -1909,7 +1927,7 @@ var Trace = LibCanvas.namespace('Utils').Trace = atom.Class({
 	getContainer : function () {
 		var cont = atom.dom('#traceContainer');
 		return cont.length ? cont :
-			atom.dom().create('div', { 'id' : 'traceContainer'})
+			atom.dom.create('div', { 'id' : 'traceContainer'})
 				.css({
 					'zIndex'   : '87223',
 					'position' : 'absolute',
@@ -1958,7 +1976,7 @@ var Trace = LibCanvas.namespace('Utils').Trace = atom.Class({
 			return this.node;
 		}
 
-		this.node = atom.dom()
+		this.node = atom.dom
 			.create('div')
 			.css({
 				background : '#000',
@@ -2473,7 +2491,7 @@ LibCanvas.namespace('Utils').ImagePreloader = atom.Class({
 	},
 	createImage : function (src, key) {
 		this.number++;
-		return this.images[key] = atom.dom()
+		return this.images[key] = atom.dom
 			.create('img', { src : src })
 			.bind({
 				load  : this.createEvent('loaded'),
@@ -2918,19 +2936,19 @@ LibCanvas.Canvas2D = atom.Class({
 			throw new Error('Keyboard is not listened by libcanvas');
 		},
 		wrapper: function () {
-			var wrapper = atom.dom().create('div').css({
+			var wrapper = atom.dom.create('div').css({
 				width   : '100%',
 				height  : '100%',
 				overflow: 'hidden',
 				position: 'absolute'
 			});
-			wrapper.parent = atom.dom().create('div').addClass('libcanvas-layers-container');
+			wrapper.parent = atom.dom.create('div').addClass('libcanvas-layers-container');
 			return wrapper.appendTo(wrapper.parent);
 		},
 		// Needs for right mouse behaviour
 		cover: function () {
 			if (this.parentLayer) return this.parentLayer.cover;
-			return atom.dom()
+			return atom.dom
 				.create('div')
 				.css({
 					position: 'absolute',
@@ -2974,6 +2992,7 @@ LibCanvas.Canvas2D = atom.Class({
 			render: []
 		};
 		this.elems = [];
+		this.processors = { pre: [], post: [] };
 
 
 		var aElem = atom.dom(elem);
@@ -3115,16 +3134,11 @@ LibCanvas.Canvas2D = atom.Class({
 
 	// post-/pre- procesing
 	addProcessor : function (type, processor) {
-		if (!this.processors) {
-			this.processors = { pre: [], post: [] };
-		}
 		this.processors[type].push(processor);
 		return this;
 	},
 	rmProcessor : function (type, processor) {
-		if (this.processors) {
-			this.processors[type].erase(processor);
-		}
+		this.processors[type].erase(processor);
 		return this;
 	},
 
