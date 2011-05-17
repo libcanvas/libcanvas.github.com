@@ -33,18 +33,10 @@ Pong.Ball = atom.Class({
 		var coll = this.field.collidesUnits( this ),
 		    isOut = this.field.isOut( this.shape );
 
-
-		if (isOut) {
-			if (
-				(isOut < 0 && this.impulse.x < 0) ||
-				(isOut > 0 && this.impulse.x > 0)
-			) this.impulse.x *= -1;
-		} else if (coll) {
-			if (
-				(coll < 0 && this.impulse.x < 0) ||
-				(coll > 0 && this.impulse.x > 0)
-			) this.impulse.x *= -1;
-		}
+		if (
+			(( coll < 0 || isOut < 0 ) && this.impulse.x < 0) ||
+			(( coll > 0 || isOut > 0 ) && this.impulse.x > 0)
+		) this.impulse.x *= -1;
 	},
 
 	update: function (time) {

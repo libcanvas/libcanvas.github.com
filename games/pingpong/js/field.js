@@ -5,7 +5,7 @@ Pong.Field = atom.Class({
 	width : 800,
 	height: 500,
 
-	createUnits: function (ball, libcanvas) {
+	createUnits: function (libcanvas) {
 
 		this.unit = new Pong.Unit()
 			.controls('w', 's')
@@ -37,18 +37,19 @@ Pong.Field = atom.Class({
 	},
 
 	drawScore: function (unit, align) {
-		this.libcanvas.ctx
-			.text({
-				text: unit.score,
-				size: 32,
-				padding: [0, 70],
-				color: 'white',
-				align: align
-			});
+		this.libcanvas.ctx.text({
+			text: unit.score,
+			size: 32,
+			padding: [0, 70],
+			color: 'white',
+			align: align
+		});
 		return this;
 	},
 
 	draw: function () {
-		this.drawScore( this.unit, 'left' ).drawScore( this.enemy, 'right' );
+		this
+			.drawScore( this.unit , 'left'  )
+			.drawScore( this.enemy, 'right' );
 	}
 });

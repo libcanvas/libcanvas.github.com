@@ -28,6 +28,6 @@ Pong.Controller = atom.Class({
 				libcanvas.update();
 			});
 
-		field.createUnits( ball, libcanvas );
+		field.createUnits( libcanvas );
 	}
 });
