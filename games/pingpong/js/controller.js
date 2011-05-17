@@ -4,11 +4,14 @@ Pong.Controller = atom.Class({
 	initialize: function (canvas) {
 
 		this.libcanvas = new LibCanvas(canvas, {
+				fps: 60,
+				clear: 'rgba(20, 20, 20, 0.6)',
 				preloadImages: { elems : 'im/elems.png' }
 			})
 			.listenKeyboard([ 'aup', 'adown' ])
 			.addEvent('ready', this.start.bind(this))
-			.start();
+			.start()
+			.fpsMeter();
 	},
 
 	start: function () {
