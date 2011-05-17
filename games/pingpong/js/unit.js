@@ -3,7 +3,7 @@ Pong.Unit = atom.Class({
 	Implements: [ Drawable ],
 
 	size: { width: 20, height: 100, padding: 20 },
-	speed: new Point( 0, 110 ),
+	speed: new Point( 0, 300 ),
 	score: 0,
 
 	controls: function (up, down) {

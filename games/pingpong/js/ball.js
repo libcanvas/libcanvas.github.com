@@ -6,8 +6,8 @@ Pong.Ball = atom.Class({
 
 	initialize: function (controller) {
 		this.impulse = new Point(
-			100 + Number.random(25, 75),
-			100 + Number.random(25, 75)
+			300 + Number.random(25, 75),
+			300 + Number.random(25, 75)
 		);
 		this.controller = controller;
 	},
