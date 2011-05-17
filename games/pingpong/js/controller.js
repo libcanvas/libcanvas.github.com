@@ -8,7 +8,7 @@ Pong.Controller = atom.Class({
 				clear: 'rgba(20, 20, 20, 0.6)',
 				preloadImages: { elems : 'im/elems.png' }
 			})
-			.listenKeyboard([ 'aup', 'adown' ])
+			.listenKeyboard([ 'aup', 'adown', 'w', 's' ])
 			.addEvent('ready', this.start.bind(this))
 			.start()
 			.fpsMeter();
@@ -26,7 +26,7 @@ Pong.Controller = atom.Class({
 			.addFunc(function (time) {
 				ball.update( time );
 				libcanvas.update();
-			}.bind(this));
+			});
 
 		field.createUnits( ball, libcanvas );
 	}

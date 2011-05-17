@@ -4,12 +4,13 @@ Pong.Ball = atom.Class({
 
 	impulse: null,
 
-	initialize: function (controller) {
+	initialize: function () {
+		this.image = this.libcanvas.getImage('elems').sprite( 23, 0, 26, 26 );
+
 		this.impulse = new Point(
-			300 + Number.random(25, 75),
-			300 + Number.random(25, 75)
+			Number.random(325, 375),
+			Number.random(325, 375)
 		);
-		this.controller = controller;
 	},
 
 	appendTo: function (field) {
@@ -58,10 +59,7 @@ Pong.Ball = atom.Class({
 	},
 
 	draw: function () {
-		this.libcanvas.ctx.drawImage({
-			image: this.libcanvas.getImage('elems').sprite( 23, 0, 26, 26 ),
-			draw : this.shape
-		});
+		this.libcanvas.ctx.drawImage( this.image, this.shape );
 	}
 
 });
