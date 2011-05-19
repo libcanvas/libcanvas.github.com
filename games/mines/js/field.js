@@ -1,29 +1,40 @@
 
 Mines.Field = atom.Class({
 	Implements: [ atom.Class.Options ],
+	
+	Generators: {
+		size: function () {
+			return this.engine.countSize();
+		},
+		rect: function () {
+			return new Rectangle({ from: [0,0], size: this.size });
+		},
+		engine: function () {
+			return new LibCanvas.Engines.Tile( this.libcanvas )
+				.setSize( this.options.tileSize )
+				.createMatrix( this.options.fieldSize, 'closed' );
+		}
+	},
 
+	/** created in "generate" */
+	field: null,
+	/** number of flags on the field */
 	marked: 0,
+	/** number of closed cells left */
 	closed: 0,
+	/** is game failed already? */
 	failed: false,
+	/** created in "startTime" */
 	stopWatch: null,
 
 	initialize: function (libcanvas, options) {
-		this.setOptions(options);
+		this.setOptions( options );
+		this.libcanvas = libcanvas;
 
-		this.libcanvas = libcanvas.createLayer('field', Infinity, { backBuffer: 'off' });
-
-		var engine = this.engine =
-			new LibCanvas.Engines.Tile( this.libcanvas )
-				.setSize( this.options.tileSize )
-				.createMatrix( this.options.fieldSize, 'closed' );
-
+		var engine = this.engine;
 		this.closed = engine.width * engine.height;
-
-		new Mines.Draw( engine, this.libcanvas );
-
-		this.libcanvas.size( engine.countSize() ).shift( this.options.fieldShift );
-
-		this.engine.update();
+		new Mines.Draw( engine, libcanvas.size( this.size, true ) );
+		engine.update();
 	},
 
 	get matrix () {
@@ -38,28 +49,43 @@ Mines.Field = atom.Class({
 		return this.options.mines - this.marked;
 	},
 
-	openClosed: function (tile, value) {
-		tile.value = value || 'empty';
-		if (value == 0) {
-			tile.eachNeighbour(function (tile) {
-				this.open( tile, true );
-			}.bind(this));
-		} else if (value == 'mine') {
-			return this.fail( tile );
+	startTime: function () {
+		if (!this.stopWatch) {
+			this.stopWatch = new StopWatch(true);
 		}
-		if (--this.closed <= this.options.mines) {
-			this.win();
+	},
+
+	getTile: function (point) {
+		return new Mines.Tile(
+			this.engine.getCell( point )
+		).belongsTo( this.matrix );
+	},
+
+	openClosed: function (tile, value) {
+		if (value == 'mine') {
+			this.fail( tile );
+			return;
+		}
+
+		if (value == 0) {
+			tile.value = 'empty';
+			this.openFlood( tile.neighbours );
+		} else {
+			tile.value = value;
+		}
+
+		if (--this.closed <= this.options.mines) this.win();
+	},
+
+	openFlood: function (tiles) {
+		for (var i = tiles.length; i--;) {
+			this.open( tiles[i], true );
 		}
 	},
 
 	openNeighbours: function (tile, value) {
 		if (value && value.between(1, 8, true) && tile.countNeighbours('flag') == value) {
-			// avoid too deep "Maximum call stack size exceeded", dont use eachNeighbour
-
-			var n = tile.neighbours;
-			for (var i = n.length; i--;) {
-				if (n[i].exists) this.open( n[i], true );
-			}
+			this.openFlood( tile.neighbours );
 			return true;
 		}
 		return false;
@@ -77,55 +103,46 @@ Mines.Field = atom.Class({
 	},
 
 	fail: function ( explode ) {
-		var m = this.matrix, f = this.field, y = f.length, width = f[0].length, x;
-		for (; y--;) for (x = width; x--;) {
-			var tile = new Mines.Tile(x, y), current = tile.clone();
-			tile.matrix    = f;
-			current.matrix = m;
-			if (tile.value == 'mine') {
-				if (current.value != 'flag') current.value = 'mine';
-			} else if (current.value == 'flag') {
-				current.value = 'wrong';
-			}
-		}
+		Mines.Tile.each(this.field, function ( tile ) {
+			var current = tile.clone().belongsTo( this.matrix ),
+				t = tile.value,
+				c = current.value;
+
+				if (t == 'mine' && c != 'flag') current.value = 'mine';
+				if (t != 'mine' && c == 'flag') current.value = 'wrong';
+		}.bind(this));
 		explode.value = 'explode';
-		this.failed = true;
+		this.failed   = true;
 	},
 	
 	win: function () {
-		var m = this.matrix, y = m.length, width = m[0].length, x;
-		for (; y--;) for (x = width; x--;) {
-			var tile = new Mines.Tile(x, y);
-			tile.matrix = m;
-			if (tile.value == 'closed') {
-				tile.value = 'flag';
-			}
-		}
+		Mines.Tile.each( this.field, function ( tile ) {
+			if (tile.value == 'closed') tile.value = 'flag';
+		});
 
 		alert.delay(100, window, ['Congratulations! Mines has been neutralized in '+this.time+'!']);
 	},
 
 	flag: function (tile) {
-		var val = tile.toggleValue( 'flag', 'closed' );
-		if (val) {
-			this.marked += val == 'flag' ? 1 : -1;
+		var value = tile.toggleValue( 'flag', 'closed' );
+		if (value) {
+			if (value == 'flag'  ) this.marked++;
+			if (value == 'closed') this.marked--;
+			return true;
 		}
-		return true;
+		return false;
 	},
 
 	isFlag: function (tile, flag) {
 		return flag && ['flag', 'closed'].contains( tile.value );
 	},
 
-	click: function (point, flag) {
+	action: function (point, flag) {
 		if (this.failed) return;
 
-		if (!this.stopWatch) {
-			this.stopWatch = new StopWatch(true);
-		}
+		this.startTime();
 
-		point = new Mines.Tile( this.engine.getCell( point ) );
-		point.matrix = this.matrix;
+		point = this.getTile( point );
 
 		if (!this.field) this.generate(point);
 

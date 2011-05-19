@@ -6,26 +6,16 @@
 		<link href="/files/styles.css" rel="stylesheet" />
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
-		<script src="/files/js/modernizr.js"></script>
 		<style>
-			.switch-tool {
-				display : none;
-				position:fixed;
-				width   :64px;
-				height  :64px;
-				background:url('im/flag-shovel.png') rgba(128,128,128,0.7);
-				z-index:  100;
+			.stat {
+				padding-left: 25px;
 			}
-			.switch-tool.shovel {
-				background-position: 64px 0;
+			.stat span {
+				padding-right: 40px;
 			}
 		</style>
 	</head>
 	<body>
-		<div class="switch-tool shovel"></div>
-		<script>
-			alert ([typeof Modernizr.touch, Modernizr.touch]);
-		</script>
 		<form action="index.html" type="get">
 			<p>
 				Width : <input type="text" name="width"  maxlength="2" size="2" />
@@ -43,6 +33,11 @@
 				<button>Expert</button>	</a>
 		</p>
 		<canvas></canvas>
+		<p class="stat">
+			<span class="tiles-left">Tiles: <em>0</em></span>
+			<span class="mines-left">Mines: <em>0</em></span>
+			<!-- span class="time">Time : <em>0</em></span -->
+		</p>
 		<p><a href="/">Return to index</a></p>
 
 		<!-- Game engine -->

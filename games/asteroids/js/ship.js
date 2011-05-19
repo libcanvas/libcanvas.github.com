@@ -41,9 +41,9 @@ Asteroids.Ship = atom.Class({
 		this.velocity = new Point(0, 0);
 
 		this.addEvent('libcanvasSet', function () {
-			this.full = this.libcanvas.ctx.getFullRectangle();
+			this.full = this.libcanvas.ctx.rectangle;
 			// Setting position
-			this.position = this.full.getCenter();
+			this.position = this.full.center;
 
 			this.setShape(new Circle({
 				center: this.position, radius: this.radius

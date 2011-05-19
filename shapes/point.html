@@ -22,7 +22,7 @@ new function () {
 		}, true);
 
 	var mouse   = libcanvas.mouse.addEvent('move', libcanvas.update),
-	    center  = libcanvas.ctx.rectangle.getCenter(),
+	    center  = libcanvas.ctx.rectangle.center,
 	    cursor  = center.clone(),
 	    cirFrom = new Circle( center, 4 ),
 	    cirTo   = new Circle( cursor, 4 ),

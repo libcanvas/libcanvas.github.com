@@ -2235,11 +2235,14 @@ LibCanvas.Shape = atom.Class({
 	get topRight () {
 		return new LibCanvas.Point(this.to.x, this.from.y);
 	},
-	getCenter : function () {
+	get center () {
 		return new LibCanvas.Point(
 			(this.from.x + this.to.x) / 2,
 			(this.from.y + this.to.y) / 2
 		);
+	},
+	getCenter : function () {
+		return this.center;
 	},
 	move : function (distance, reverse) {
 		distance = this.invertDirection(distance, reverse);
@@ -3316,6 +3319,8 @@ var Point = LibCanvas.Point;
 LibCanvas.namespace('Shapes').Circle = atom.Class({
 	Extends: LibCanvas.Shape,
 	set : function () {
+		delete this.center;
+
 		var a = Array.pickFrom(arguments);
 
 		if (a.length >= 3) {
@@ -3907,7 +3912,7 @@ LibCanvas.Context2D = atom.Class({
 			]);
 		} else if (a.draw) {
 			var draw = Rectangle.from(a.draw);
-			if (a.angle) this.rotate(a.angle, draw.getCenter());
+			if (a.angle) this.rotate(a.angle, draw.center);
 
 			if (a.crop) {
 				var crop = Rectangle.from(a.crop);
@@ -5176,9 +5181,7 @@ provides: Shapes.Line
 new function () {
 
 var Point = LibCanvas.Point,
-	math = Math,
-	max = math.max,
-	min = math.min,
+	math  = Math,
 	between = function (x, a, b) {
 		return x === a || x === b || (a < x && x < b) || (b < x && x < a);
 	};
@@ -5189,8 +5192,13 @@ LibCanvas.namespace('Shapes').Line = atom.Class({
 	set : function (from, to) {
 		var a = Array.pickFrom(arguments);
 
-		this.from = Point.from(a[0] || a.from);
-		this.to   = Point.from(a[1] || a.to);
+		if (a.length === 4) {
+			this.from = new Point( a[0], a[1] );
+			this.to   = new Point( a[2], a[3] );
+		} else {
+			this.from = Point.from(a[0] || a.from);
+			this.to   = Point.from(a[1] || a.to);
+		}
 		
 		return this;
 	},
@@ -5202,8 +5210,8 @@ LibCanvas.namespace('Shapes').Line = atom.Class({
 			px = point.x,
 			py = point.y;
 
-		if (!( px.between(min(fx, tx), max(fx, tx))
-		    && py.between(min(fy, ty), max(fy, ty))
+		if (!( point.x.between(math.min(fx, tx), math.max(fx, tx))
+		    && point.y.between(math.min(fy, ty), math.max(fy, ty))
 		)) return false;
 
 		// if triangle square is zero - points are on one line
@@ -5237,6 +5245,34 @@ LibCanvas.namespace('Shapes').Line = atom.Class({
 		return between(x, a.x, b.x) && between (y, a.y, b.y) &&
 		       between(x, c.x, d.x) && between (y, c.y, d.y) ?
 		            (point ? new Point(x, y) : true) : FALSE;
+	},
+	distanceTo: function (p, asInfiniteLine) {
+		var f = this.from, t = this.t, degree, s, x, y;
+		if (p instanceof Point) {
+			
+			if (!asInfiniteLine) {
+				degree = math.atan2(p.x - t.x, p.y - t.y).getDegree();
+				if ( degree.between(-90, 90) ) {
+					return t.distanceTo( p );
+				}
+
+				degree = math.atan2(f.x - p.x, f.y - p.y).getDegree();
+				if ( degree.between(-90, 90) ) {
+					return f.distanceTo( p );
+				}
+			}
+
+			s = (
+				f.x * (t.y - p.y) +
+				t.x * (p.y - f.y) +
+				p.x * (f.y - t.y)
+			).abs() / 2;
+
+			x = f.x - t.x;
+			y = f.y - t.y;
+			return 2 * s / math.sqrt(x*x+y*y);
+		}
+		return null;
 	},
 	get length () {
 		return this.to.distanceTo(this.from);

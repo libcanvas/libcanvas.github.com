@@ -1,6 +1,17 @@
 Mines.Tile = atom.Class({
 	Extends: Point,
 
+	Static: {
+		each: function (matrix, fn) {
+			var y = matrix.length, width = matrix[0].length, x;
+
+			while (y--) for (x = width; x--;) {
+				fn.call(this, new Mines.Tile(x, y).belongsTo( matrix ));
+			}
+			return this;
+		}
+	},
+
 	matrix: null,
 
 	get value () {
@@ -16,35 +27,36 @@ Mines.Tile = atom.Class({
 		return row != null && row[this.x] != null;
 	},
 
-	eachNeighbour: function (fn) {
-		var n = this.neighbours, i = 0, l = n.length;
-		for (;i < l; i++) {
-			if (n[i].exists) fn.call(this, n[i]);
-		}
+	get neighbours () {
+		return this.getNeighbours( true ).filter(function (nb) {
+			return nb.exists;
+		});
+	},
+
+	belongsTo: function (matrix) {
+		this.matrix = matrix;
 		return this;
 	},
 
 	countNeighbours: function (value) {
-		var count = 0;
-		this.eachNeighbour(function (tile) {
-			if (value == null || tile.value == value ) {
-				count++;
-			}
-		});
+		var count = 0, nb = this.neighbours, i = nb.length;
+
+		if (value == null) return i;
+		
+		while (i--) if (nb[i].value == value) {
+			count++;
+		}
 		return count;
 	},
 
-	toggleValue: function () {
-		var values = Array.from(arguments), v = this.value, i = values.indexOf(v);
-		if (i >= 0) {
-			return (this.value = values.length > i+1 ? values[i+1] : values[0]);
-		}
+	toggleValue: function (first, second) {
+		var v = this.value;
+		if (v == first ) return this.value = second;
+		if (v == second) return this.value = first;
 		return null;
 	},
 
 	clone: function () {
-		var tile = this.parent();
-		tile.matrix = this.matrix;
-		return tile;
+		return this.parent().belongsTo( this.matrix );
 	}
 });

@@ -14,8 +14,8 @@ Mines.Generator = atom.Class({
 	},
 
 	snapshot: function (ignore) {
-		var f = this.field, y = f.height, x, result = [];
-		while (y--) for (x = f.width; x--;) {
+		var f = this.field, result = [];
+		for (var y = f.height; y--;) for (var x = f.width; x--;) {
 			if (ignore && ignore.x == x && ignore.y == y) continue;
 			result.push([x, y]);
 		}
@@ -23,7 +23,7 @@ Mines.Generator = atom.Class({
 	},
 
 	mines: function (empty) {
-		var snapshot = this.snapshot( empty && Point.from(empty) );
+		var snapshot = this.snapshot( empty );
 
 		return Array.create(this.count, function () {
 			return new Mines.Tile( snapshot.popRandom() );
@@ -31,18 +31,18 @@ Mines.Generator = atom.Class({
 	},
 
 	generate: function (empty) {
-		var index = this.index, f = this.field,
-		    matrix = Array.fill( f.height, Array.fill( f.width, 0 ) ).clone();
+		var mine   = this.index, f = this.field,
+		    matrix = Array.fillMatrix( f.width, f.height, 0 );
 
 		this.mines( empty ).forEach(function (cell) {
-			cell.matrix = matrix;
-			cell.value  = index;
+			cell.belongsTo( matrix ).value = mine;
 
-			// Увеличиваем всем соседям показатель мин
-			cell.eachNeighbour(function(nb) {
-				if (nb.value != index) nb.value++;
-			});
-		}.bind(this));
+			var nb = cell.neighbours, i = nb.length;
+
+			while (i--) if (nb[i].value != mine) {
+				nb[i].value++;
+			}
+		});
 		return matrix;
 	}
 
