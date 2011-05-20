@@ -30,7 +30,6 @@ new function () {
 	if (anchor) {
 		path = new Path.Builder(anchor).build();
 		path.each(function (method, args) {
-			console.log( arguments );
 			if (method == 'moveTo' ) start = args[0];
 			if (method == 'lineTo' ) line  = args[0];
 			if (method == 'curveTo') {
