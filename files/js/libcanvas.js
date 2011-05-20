@@ -5356,11 +5356,17 @@ var Path = LibCanvas.Shapes.Path = atom.Class({
 	},
 	processPath : function (ctx, noWrap) {
 		if (!noWrap) ctx.beginPath();
-		this.builder.parts.forEach(function (part) {
-			ctx[part.method].apply(ctx, part.args);
+		this.each(function (method, args) {
+			ctx[method].apply(ctx, args);
 		});
 		if (!noWrap) ctx.closePath();
 		return ctx;
+	},
+	each: function (fn) {
+		this.builder.parts.forEach(function (part) {
+			fn( part.method, part.args );
+		});
+		return this;
 	},
 	hasPoint : function (point) {
 		var ctx = this.buffer.ctx;
@@ -5397,8 +5403,9 @@ var Path = LibCanvas.Shapes.Path = atom.Class({
 });
 
 LibCanvas.Shapes.Path.Builder = atom.Class({
-	initialize: function () {
+	initialize: function (str) {
 		this.parts = [];
+		if (str) this.parse( str );
 	},
 	build : function (str) {
 		if ( str != null ) this.parse(str);
@@ -5498,23 +5505,24 @@ LibCanvas.Shapes.Path.Builder = atom.Class({
 	},
 	
 	// stringing
-	stringify : function () {
-		var p = function (p) { return ' ' + p.x.toFixed(2) + ' ' + p.y.toFixed(2); };
+	stringify : function (sep) {
+		if (!sep) sep = ' ';
+		var p = function (p) { return sep + p.x.round(2) + sep + p.y.round(2); };
 		return this.parts.map(function (part) {
 			var a = part.args[0];
 			switch(part.method) {
 				case 'moveTo' : return 'M' + p(a);
 				case 'lineTo' : return 'L' + p(a);
-				case 'curveTo': return 'C' + part.args.map(p);
+				case 'curveTo': return 'C' + part.args.map(p).join('');
 				case 'arc': return 'A'
-					+ p( a.circle.center ) + ' ' + a.circle.radius.toFixed(2) + ' '
-					+ a.angle.start.toFixed(2) + ' ' + a.angle.end.toFixed(2) + ' ' + (a.acw ? 1 : 0);
+					+ p( a.circle.center ) + sep + a.circle.radius.round(2) + sep
+					+ a.angle.start.round(2) + sep + a.angle.end.round(2) + sep + (a.acw ? 1 : 0);
 			}
-		}).join(' ');
+		}).join(sep);
 	},
 
 	parse : function (string) {
-		var parts = string.split(' '), full  = [];
+		var parts = string.split(/[ ,|]/), full  = [];
 
 		parts.forEach(function (part) {
 			if (!part.length) return;
@@ -5527,10 +5535,7 @@ LibCanvas.Shapes.Path.Builder = atom.Class({
 		});
 
 		full.forEach(function (p) {
-			var method = {
-				M : 'moveTo', L: 'lineTo', C: 'curveTo', A: 'arc'
-			}[p.method];
-
+			var method = { M : 'move', L: 'line', C: 'curve', A: 'arc' }[p.method];
 			return this[method].apply(this, p.args);
 		}.bind(this));
 

@@ -8,6 +8,7 @@
 		<script src="/files/js/libcanvas.js"></script>
 	</head>
 	<body>
+		<button>Save</button>
 		<canvas></canvas>
 		<p><a href="/">Return to index</a></p>
 		<script src="/files/js/ui-core.js"></script>
@@ -23,25 +24,45 @@ new function () {
 		}, true)
 		.start();
 
-	var
-		start   = new Point( 200,  50 ),
-		line    = new Point( 300,  50 ),
-		curveTo = new Point( 250, 150 ),
-		curve1  = new Point( 350, 125 ),
-		curve2  = new Point( 240,  60 ),
-		center  = new Point( 200, 150 ),
-		circle  = new Circle( center, center.distanceTo( curveTo ) );
+	var anchor = atom.uri().anchor;
+	var path, start, line, curveTo, curve1, curve2, center, circle;
 
-	var path = new Path.Builder()
-		.move ( start )
-		.line ( line  )
-		.curve( curveTo, curve1, curve2 )
-		.arc  ({
-			circle: circle,
-			angle : [ 0, (270).degree() ]
-		})
-		.snapToPixel()
-		.build();
+	if (anchor) {
+		path = new Path.Builder(anchor).build();
+		path.each(function (method, args) {
+			console.log( arguments );
+			if (method == 'moveTo' ) start = args[0];
+			if (method == 'lineTo' ) line  = args[0];
+			if (method == 'curveTo') {
+				curveTo = args[0];
+				curve1  = args[1];
+				curve2  = args[2];
+			}
+			if (method == 'arc'    ) {
+				circle = args[0].circle;
+				center = circle.center;
+			}
+		});
+	} else {
+		start   = new Point( 200,  50 );
+		line    = new Point( 300,  50 );
+		curveTo = new Point( 250, 150 );
+		curve1  = new Point( 350, 125 );
+		curve2  = new Point( 240,  60 );
+		center  = new Point( 200, 150 );
+		circle  = new Circle( center, center.distanceTo( curveTo ) );
+		
+		path = new Path.Builder()
+			.move ( start )
+			.line ( line  )
+			.curve( curveTo, curve1, curve2 )
+			.arc  ({
+				circle: circle,
+				angle : [ 0, (270).degree() ]
+			})
+			.snapToPixel()
+			.build();
+	}
 
 
 	[curveTo, center].invoke('addEvent', 'move', function () {
@@ -93,6 +114,10 @@ new function () {
 				stroke: '#006600'
 			})
 			.setZIndex(2);
+	});
+
+	atom.dom('button').bind('click', function () {
+		window.location = '#' + path.builder.stringify('|');
 	});
 }
 		</script>
