@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="utf-8" />
-		<title>LibCanvas :: Base animating</title>
+		<title>LibCanvas :: Ui :: Moveable objects</title>
 		<link href="/files/styles.css" rel="stylesheet" />
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
@@ -10,30 +10,12 @@
 	<body>
 		<canvas></canvas>
 		<p><a href="/">Return to index</a></p>
+		<p>click on the canvas</p>
 		<script>
 new function () {
-	var libcanvas = new LibCanvas('canvas').start();
 
-	var shaper = libcanvas
-		.createShaper({
-			shape : new LibCanvas.Shapes.Circle(150, 75, 15),
-			fill  : '#900',
-			stroke: '#f00'
-		});
-
-	(function () {
-		shaper.animate({
-			props: {
-				radius: 75,
-				fill  : '#090',
-				stroke: '#0f0'
-			},
-			time: 2000
-		});
-	}.delay(1000));
 }
 		</script>
-
 		<script src="/files/js/google-analytics.js"></script>
 	</body>
 </html>

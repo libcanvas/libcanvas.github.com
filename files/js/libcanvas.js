@@ -20,9 +20,7 @@ provides: LibCanvas
 
 (function () {
 
-var global = (this.window || GLOBAL);
-
-var LibCanvas = global.LibCanvas = atom.Class({
+var LibCanvas = this.LibCanvas = atom.Class({
 	Static: {
 		Buffer: function (width, height, withCtx) {
 			var a = Array.pickFrom(arguments), zero = (width == null || width === true);
@@ -49,15 +47,18 @@ var LibCanvas = global.LibCanvas = atom.Class({
 			return elem && elem instanceof LibCanvas.Canvas2D;
 		},
 		namespace: function (namespace) {
-			var current = LibCanvas;
-			namespace.split('.').forEach(function(part){
-				if (current[part] == null) current[part] = {};
-				current = current[part];
+			var current;
+			Array.from(arguments).forEach(function (namespace) {
+				current = LibCanvas;
+				namespace.split('.').forEach(function(part){
+					if (current[part] == null) current[part] = {};
+					current = current[part];
+				});
 			});
 			return current;
 		},
 		extract: function (to) {
-			to = to || global;
+			to = to || atom.global;
 
 			for (var i in {Shapes: 1, Behaviors: 1, Utils: 1}) {
 				for (var k in LibCanvas[i]) {
@@ -87,7 +88,8 @@ atom.dom && atom.dom(function () {
 	LibCanvas.invoker.invoke();
 });
 
-
+LibCanvas.namespace( 'Behaviors', 'Engines', 'Inner', 'Processors', 'Shapes', 'Ui', 'Utils' );
+	
 })();
 
 /*
@@ -236,7 +238,7 @@ new function () {
 
 var math = Math;
 
-var TF = LibCanvas.namespace('Inner').TimingFunctions = atom.Class({
+var TF = LibCanvas.Inner.TimingFunctions = atom.Class({
 	Static: {
 		_instance: null,
 		get instance () {
@@ -351,7 +353,7 @@ new function () {
 
 var math = Math;
 
-var Color = LibCanvas.namespace('Utils').Color = atom.Class({
+var Color = LibCanvas.Utils.Color = atom.Class({
 	Static: {
 		isColorString : function (string) {
 			if (typeof string != 'string') return false;
@@ -487,7 +489,7 @@ provides: Behaviors.Animatable
 var TF    = LibCanvas.Inner.TimingFunctions,
 	Color = LibCanvas.Utils.Color;
 
-LibCanvas.namespace('Behaviors').Animatable = atom.Class({
+LibCanvas.Behaviors.Animatable = atom.Class({
 	Implements: [LibCanvas.Invoker.AutoChoose],
 
 	initialize: atom.Class.hiddenMethod(function (element) {
@@ -927,7 +929,7 @@ provides: Inner.MouseEvents
 ...
 */
 
-LibCanvas.namespace('Inner').MouseEvents = atom.Class({
+LibCanvas.Inner.MouseEvents = atom.Class({
 	initialize : function (mouse) {
 		this.subscribers   = [];
 		this.lastMouseMove = [];
@@ -1293,7 +1295,7 @@ events:
 */
 
 // Should extends LibCanvas.Behaviors.Drawable
-LibCanvas.namespace('Behaviors').MouseListener = atom.Class({
+LibCanvas.Behaviors.MouseListener = atom.Class({
 	listenMouse : function (stopListen) {
 		return this.addEvent('libcanvasSet', function () {
 			var command = stopListen ? "unsubscribe" : "subscribe";
@@ -1333,7 +1335,7 @@ var setValFn = function (object, name, val) {
 };
 
 // Should extends drawable, implements mouseListener
-LibCanvas.namespace('Behaviors').Clickable = atom.Class({
+LibCanvas.Behaviors.Clickable = atom.Class({
 	Implements: [LibCanvas.Behaviors.MouseListener],
 
 	clickable : function () { 
@@ -1375,7 +1377,7 @@ provides: Behaviors.Draggable
 
 new function () {
 
-LibCanvas.namespace('Behaviors').Draggable = atom.Class({
+LibCanvas.Behaviors.Draggable = atom.Class({
 	Extends: LibCanvas.Behaviors.MouseListener,
 
 	isDraggable : null,
@@ -1461,7 +1463,7 @@ var stop = function () {
 	return 'remove';
 };
 
-LibCanvas.namespace('Behaviors').Drawable = atom.Class({
+LibCanvas.Behaviors.Drawable = atom.Class({
 	Implements: [atom.Class.Events],
 	libcanvasIsReady: false,
 	setLibcanvas : function (libcanvas) {
@@ -1540,7 +1542,7 @@ provides: Behaviors.Droppable
 ...
 */
 
-LibCanvas.namespace('Behaviors').Droppable = atom.Class({
+LibCanvas.Behaviors.Droppable = atom.Class({
 	drops : null,
 	drop : function (obj) {
 		if (this.drops === null) {
@@ -1588,7 +1590,7 @@ provides: Behaviors.Linkable
 ...
 */
 
-LibCanvas.namespace('Behaviors').Linkable = atom.Class({
+LibCanvas.Behaviors.Linkable = atom.Class({
 	links : null,
 	moveLinks : function (move) {
 		(this.links || []).forEach(function (elem) {
@@ -1636,7 +1638,7 @@ provides: Behaviors.Moveable
 
 ...
 */
-LibCanvas.namespace('Behaviors').Moveable = atom.Class({
+LibCanvas.Behaviors.Moveable = atom.Class({
 	stopMoving : function () {
 		var sm = this.stopMoving;
 		if (sm.animation) {
@@ -1851,7 +1853,7 @@ provides: Utils.Trace
 
 new function () {
 
-var Trace = LibCanvas.namespace('Utils').Trace = atom.Class({
+var Trace = LibCanvas.Utils.Trace = atom.Class({
 	Static: {
 		dumpRec : function (obj, level, plain) {
 			level  = parseInt(level) || 0;
@@ -2034,7 +2036,7 @@ provides: Inner.FrameRenderer
 ...
 */
 
-LibCanvas.namespace('Inner').FrameRenderer = atom.Class({
+LibCanvas.Inner.FrameRenderer = atom.Class({
 	checkAutoDraw : function () {
 		if (!this._freezed && this.updateFrame) {
 			this.updateFrame = false;
@@ -2123,7 +2125,7 @@ provides: Utils.FpsMeter
 ...
 */
 
-LibCanvas.namespace('Utils').FpsMeter = atom.Class({
+LibCanvas.Utils.FpsMeter = atom.Class({
 	initialize : function (framesMax) {
 		this.trace = new LibCanvas.Utils.Trace();
 		this.genTime   = [];
@@ -2174,7 +2176,7 @@ provides: Inner.FpsMeter
 
 ...
 */
-LibCanvas.namespace('Inner').FpsMeter = atom.Class({
+LibCanvas.Inner.FpsMeter = atom.Class({
 	fpsMeter : function (frames) {
 		var fpsMeter = new LibCanvas.Utils.FpsMeter(frames || (this.fps ? this.fps / 2 : 10));
 		return this.addEvent('frameRenderStarted', function () {
@@ -2295,7 +2297,7 @@ var Point  = LibCanvas.Point,
 	math   = Math,
 	random = Number.random,
 
-Rectangle = LibCanvas.namespace('Shapes').Rectangle = atom.Class({
+Rectangle = LibCanvas.Shapes.Rectangle = atom.Class({
 	Extends: LibCanvas.Shape,
 	set : function () {
 		var a = Array.pickFrom(arguments);
@@ -2304,8 +2306,12 @@ Rectangle = LibCanvas.namespace('Shapes').Rectangle = atom.Class({
 			this.from = new Point(a[0], a[1]);
 			this.to   = this.from.clone().move({x:a[2], y:a[3]});
 		} else if (a.length == 2) {
-			this.from = Point.from(a[0]);
-			this.to   = Point.from(a[1]);
+			if ('width' in a[1] && 'height' in a[1]) {
+				this.set({ from: a[0], size: a[1] });
+			} else {
+				this.from = Point.from(a[0]);
+				this.to   = Point.from(a[1]);
+			}
 		} else {
 			a = a[0];
 			if (a.from) {
@@ -2465,7 +2471,7 @@ provides: Utils.ImagePreloader
 ...
 */
 
-LibCanvas.namespace('Utils').ImagePreloader = atom.Class({
+LibCanvas.Utils.ImagePreloader = atom.Class({
 	Implements: [atom.Class.Events],
 	processed : 0,
 	number: 0,
@@ -2567,7 +2573,7 @@ var linesIntersect = function (a,b,c,d) {
 
 var Point = LibCanvas.Point;
 
-LibCanvas.namespace('Shapes').Polygon = atom.Class({
+LibCanvas.Shapes.Polygon = atom.Class({
 	Extends: LibCanvas.Shape,
 	initialize: function () {
 		this.points = [];
@@ -2689,7 +2695,7 @@ var Buffer    = LibCanvas.Buffer,
 	Polygon   = LibCanvas.Shapes.Polygon,
 	Point     = LibCanvas.Point;
 
-LibCanvas.namespace('Utils').ProgressBar = atom.Class({
+LibCanvas.Utils.ProgressBar = atom.Class({
 	Implements: [LibCanvas.Behaviors.Animatable],
 	initialize : function () {
 		this.coord = new Point(0,0);
@@ -2831,7 +2837,7 @@ provides: Inner.DownloadingProgress
 
 ...
 */
-LibCanvas.namespace('Inner').DownloadingProgress = atom.Class({
+LibCanvas.Inner.DownloadingProgress = atom.Class({
 	getImage : function (name) {
 		if (this.parentLayer) return this.parentLayer.getImage(name);
 		
@@ -3316,7 +3322,7 @@ new function () {
 
 var Point = LibCanvas.Point;
 	
-LibCanvas.namespace('Shapes').Circle = atom.Class({
+LibCanvas.Shapes.Circle = atom.Class({
 	Extends: LibCanvas.Shape,
 	set : function () {
 		delete this.center;
@@ -3345,6 +3351,12 @@ LibCanvas.namespace('Shapes').Circle = atom.Class({
 		}
 		if (this.center == null) throw new TypeError('center is null');
 		if (this.radius == null) throw new TypeError('radius is null');
+	},
+	get center () {
+		return this._center;
+	},
+	set center (center) {
+		this._center = center;
 	},
 	getCoords : function () {
 		return this.center;
@@ -4236,7 +4248,7 @@ provides: Engines.Tile
 ...
 */
 
-LibCanvas.namespace('Engines').Tile = atom.Class({
+LibCanvas.Engines.Tile = atom.Class({
 	Implements: [
 		LibCanvas.Behaviors.Drawable,
 		atom.Class.Events
@@ -4413,7 +4425,7 @@ provides: Inner.ProjectiveTexture
 
 new function () {
 
-LibCanvas.namespace('Inner').ProjectiveTexture = atom.Class({
+LibCanvas.Inner.ProjectiveTexture = atom.Class({
 	initialize : function (image) {
 		if (typeof image == 'string') {
 			this.image = new Image;
@@ -4785,7 +4797,7 @@ provides: Processors.Clearer
 ...
 */
 
-LibCanvas.namespace('Processors').Clearer = atom.Class({
+LibCanvas.Processors.Clearer = atom.Class({
 	style : null,
 	initialize : function (style) {
 		this.style = style || null;
@@ -4824,7 +4836,7 @@ new function () {
 
 var math = Math;
 
-LibCanvas.namespace('Processors').Color = atom.Class({
+LibCanvas.Processors.Color = atom.Class({
 	rgbToHsb: function(red, green, blue){
 		var hue = 0,
 			max = math.max(red, green, blue),
@@ -4889,7 +4901,7 @@ provides: Processors.Grayscale
 ...
 */
 
-LibCanvas.namespace('Processors').Grayscale = atom.Class({
+LibCanvas.Processors.Grayscale = atom.Class({
 	style : null,
 	initialize : function (type) {
 		// sepia, luminance, average, red, green, blue, default
@@ -4948,7 +4960,7 @@ provides: Processors.HsbShift
 */
 
 
-LibCanvas.namespace('Processors').HsbShift = atom.Class({
+LibCanvas.Processors.HsbShift = atom.Class({
 	Extends: LibCanvas.Processors.Color,
 	shift : 0,
 	param : 'hue',
@@ -5007,7 +5019,7 @@ provides: Processors.Invert
 ...
 */
 
-LibCanvas.namespace('Processors').Invert = atom.Class({
+LibCanvas.Processors.Invert = atom.Class({
 	processPixels : function (data) {
 		var d = data.data, i = 0, l = d.length;
 		for (;i < l; i++) if (i % 4 != 3) d[i] = 255 - d[i];
@@ -5036,7 +5048,7 @@ provides: Processors.Mask
 ...
 */
 
-LibCanvas.namespace('Processors').Mask = atom.Class({
+LibCanvas.Processors.Mask = atom.Class({
 	color : null,
 	initialize : function (color) { // [r,g,b]
 		this.color = color || [0,0,0];
@@ -5076,7 +5088,7 @@ provides: Shapes.Ellipse
 ...
 */
 
-LibCanvas.namespace('Shapes').Ellipse = atom.Class({
+LibCanvas.Shapes.Ellipse = atom.Class({
 	Extends: LibCanvas.Shapes.Rectangle,
 	set : function () {
 		this.parent.apply(this, arguments);
@@ -5187,7 +5199,7 @@ var Point = LibCanvas.Point,
 	};
 
 
-LibCanvas.namespace('Shapes').Line = atom.Class({
+LibCanvas.Shapes.Line = atom.Class({
 	Extends: LibCanvas.Shape,
 	set : function (from, to) {
 		var a = Array.pickFrom(arguments);
@@ -5321,17 +5333,20 @@ provides: Shapes.Path
 
 var Point = LibCanvas.Point, Shapes = LibCanvas.Shapes;
 
-var Path = LibCanvas.namespace('Shapes').Path = atom.Class({
+var Path = LibCanvas.Shapes.Path = atom.Class({
 	Extends: LibCanvas.Shape,
+
+	Generators : {
+		buffer: function () {
+			return LibCanvas.Buffer(1, 1, true);
+		}
+	},
+
 	// todo : refactoring
 	set : function (builder) {
 		this.builder = builder;
 		builder.path = this;
 		return this;
-	},
-	getBuffer : function () {
-		if (!this.buffer) this.buffer = LibCanvas.Buffer(1, 1, true);
-		return this.buffer;
 	},
 	processPath : function (ctx, noWrap) {
 		if (!noWrap) ctx.beginPath();
@@ -5342,7 +5357,7 @@ var Path = LibCanvas.namespace('Shapes').Path = atom.Class({
 		return ctx;
 	},
 	hasPoint : function (point) {
-		var ctx = this.getBuffer().ctx;
+		var ctx = this.buffer.ctx;
 		if (this.builder.changed) {
 			this.builder.changed = false;
 			this.processPath(ctx);
@@ -5354,8 +5369,7 @@ var Path = LibCanvas.namespace('Shapes').Path = atom.Class({
 		return this;
 	},
 	move : function (distance) {
-		var moved = [];
-		var move = function (a) {
+		var moved = [], move = function (a) {
 			if (!moved.contains(a)) {
 				a.move(distance);
 				moved.push(a);
@@ -5363,7 +5377,7 @@ var Path = LibCanvas.namespace('Shapes').Path = atom.Class({
 		};
 		this.builder.parts.forEach(function (part) {
 			var a = part.args[0];
-			switch(part.method) {
+			switch (part.method) {
 				case 'moveTo':
 				case 'lineTo':
 					move(a);
@@ -5520,7 +5534,7 @@ provides: Shapes.RoundedRectangle
 ...
 */
 
-LibCanvas.namespace('Shapes').RoundedRectangle = atom.Class({
+LibCanvas.Shapes.RoundedRectangle = atom.Class({
 	Extends: LibCanvas.Shapes.Rectangle,
 
 	radius: 0,
@@ -5586,7 +5600,7 @@ new function () {
 var Beh = LibCanvas.Behaviors,
 	Sh  = LibCanvas.Shapes;
 
-LibCanvas.namespace('Ui').Shaper = atom.Class({
+LibCanvas.Ui.Shaper = atom.Class({
 	Extends: atom.Class.Options,
 	Implements: [
 		Beh.Drawable,
@@ -5705,7 +5719,7 @@ provides: Utils.AudioContainer
 ...
 */
 
-LibCanvas.namespace('Utils').AudioContainer = atom.Class({
+LibCanvas.Utils.AudioContainer = atom.Class({
 	support : false,
 	initialize: function (files) {
 		this.allAudios = [];
@@ -5765,7 +5779,7 @@ provides: Utils.AudioElement
 ...
 */
 
-LibCanvas.namespace('Utils').AudioElement = atom.Class({
+LibCanvas.Utils.AudioElement = atom.Class({
 	Implements: [LibCanvas.Behaviors.Animatable],
 	stub   : true,
 	initialize : function (container, file) {
@@ -5930,8 +5944,8 @@ provides: Utils.Image
 var Point     = LibCanvas.Point,
 	Buffer    = LibCanvas.Buffer,
 	Rectangle = LibCanvas.Shapes.Rectangle,
-	math      = Math,
-	ImgProto  = HTMLImageElement.prototype;
+	ImgProto  = HTMLImageElement.prototype,
+	math      = Math;
 
 // <image> tag
 atom.implement(HTMLImageElement, {
@@ -6048,7 +6062,7 @@ provides: Utils.StopWatch
 ...
 */
 
-LibCanvas.namespace('Utils').StopWatch = atom.Class({
+LibCanvas.Utils.StopWatch = atom.Class({
 	startTime : 0,
 	initialize : function (autoStart) {
 		autoStart && this.start();
@@ -6087,66 +6101,6 @@ LibCanvas.namespace('Utils').StopWatch = atom.Class({
 /*
 ---
 
-name: "Utils.Storage"
-
-description: "Storage"
-
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-
-authors:
-	- "Shock <shocksilien@gmail.com>"
-
-requires:
-	- LibCanvas
-
-provides: Utils.Storage
-
-...
-*/
-
-
-LibCanvas.namespace('Utils').Storage = atom.Class({
-	initialize : function () {
-		this.store = this.getStorage();
-	},
-	getStorage : function () {
-		return 'localStorage' in window ?
-			window.localStorage :
-			window.sessionStorage;
-	},
-	store : '',
-	setScope : function (name) {
-		var st = this.store;
-		name += '\0';
-		if (!st[name]) st[name] = {};
-		this.scope = st[name];
-		return this;
-	},
-	keys : function () {
-		return Object.keys(this.store);
-	},
-	values : function () {
-		var values = [];
-		for (var i in this.store) values.push(this.store[i]);
-		return values;
-	},
-	has : function (name) {
-		return (name in this.store);
-	},
-	get : function (name) {
-		return this.has(name) ? this.store[name] : null;
-	},
-	set  : function (name, value) {
-		typeof name == 'object' ?
-			atom.extend(this.store, name) : (this.store[name] = value);
-		return this;
-	},
-	toString: Function.lambda('[object LibCanvas.Utils.Storage]')
-});
-
-/*
----
-
 name: "Utils.TimeLogger"
 
 description: "TimeLogger"
@@ -6169,7 +6123,7 @@ new function () {
 
 var Utils = LibCanvas.Utils;
 
-LibCanvas.namespace('Utils').TimeLogger = atom.Class({
+LibCanvas.Utils.TimeLogger = atom.Class({
 	last : 10,
 	sw   : null,
 	trace: null,
@@ -6219,7 +6173,7 @@ new function () {
 
 var Point = LibCanvas.Point;
 
-LibCanvas.namespace('Utils').Translator = atom.Class({
+LibCanvas.Utils.Translator = atom.Class({
 	initialize : function (rectTo) {
 		this.shapes = [];
 		this.rectTo = rectTo;
