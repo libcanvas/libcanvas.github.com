@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Path Builder</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script src="/files/js/ui-core.js"></script>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var libcanvas = new LibCanvas('canvas')
+		.listenMouse()
+		.size({
+			width : 400,
+			height: 250
+		}, true)
+		.start();
+
+	var
+		start   = new Point( 200,  50 ),
+		line    = new Point( 300,  50 ),
+		curveTo = new Point( 250, 150 ),
+		curve1  = new Point( 350, 125 ),
+		curve2  = new Point( 240,  60 ),
+		center  = new Point( 200, 150 ),
+		circle  = new Circle( center, center.distanceTo( curveTo ) );
+
+	var path = new Path.Builder()
+		.move ( start )
+		.line ( line  )
+		.curve( curveTo, curve1, curve2 )
+		.arc  ({
+			circle: circle,
+			angle : [ 0, (270).degree() ]
+		})
+		.snapToPixel()
+		.build();
+
+
+	[curveTo, center].invoke('addEvent', 'move', function () {
+		circle.radius = center.distanceTo( curveTo );
+	});
+
+	libcanvas
+		.createShaper({
+			shape : path,
+			stroke: '#990000',
+			fill  : '#330000',
+			hover : {
+				stroke: '#cc0000',
+				fill  : '#660000'
+			},
+			active : {
+				stroke: '#cc6600',
+				fill  : '#663300'
+			}
+		})
+		.setZIndex(1)
+		.clickable()
+		.draggable();
+
+	[start, line, curveTo, curve1, curve2, center].forEach(function (point) {
+		libcanvas
+			.createShaper({
+				shape : new Circle(point, 4),
+				stroke: '#009900',
+				fill  : '#003300',
+				hover : {
+					stroke: '#00ff00',
+					fill  : '#009900'
+				},
+				active : {
+					stroke: '#00ff66',
+					fill  : '#009933'
+				}
+			})
+			.setZIndex(3)
+			.clickable()
+			.draggable();
+	});
+
+	[ [line, curve1], [curveTo, curve2] ].forEach(function (line) {
+		libcanvas
+			.createShaper({
+				shape : new Line( line ),
+				stroke: '#006600'
+			})
+			.setZIndex(2);
+	});
+}
+		</script>
+		<script src="/files/js/google-analytics.js"></script>
+	</body>
+</html>
