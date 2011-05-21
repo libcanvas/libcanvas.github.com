@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: progress bar</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var lc = new LibCanvas('canvas', { backBuffer: 'off' })
+		.size({
+			width : 400,
+			height: 200
+		}, true)
+		.listenMouse()
+		.start();
+
+	var bufferFactory = function (size) {
+		var buffer = LibCanvas.Buffer( size, size, true );
+		var grad   = buffer.ctx.createLinearGradient( buffer.ctx.rectangle );
+		grad.addColorStop( 0.0, 'red' );
+		grad.addColorStop( 1.0, 'blue' );
+
+		buffer.ctx.fillAll( grad );
+		return buffer;
+	};
+
+	var Item = atom.Class({
+		Extends: Drawable,
+
+		initialize: function (libcanvas) {
+
+			lc.addElement( this.setZIndex(2) ).addFunc( this.update.bind(this) );
+
+			var rect = new Rectangle(16, 16, 64, 64);
+			this.posit = rect.center;
+			this.shape = rect.toPolygon();
+			this.image = bufferFactory( rect.width );
+			this.angle = 0;
+
+			this.createPoints();
+		},
+
+		createPoints: function () {
+			this.shape.each(function (point) {
+				lc.createShaper({
+					shape: new Circle(point, 5),
+					stroke : 'red',
+					hover: { stroke : 'red', fill: 'green' }
+				})
+				.setZIndex(3)
+				.clickable();
+			}, this);
+		},
+
+		update: function (time) {
+			var rotate = (45).degree() * time.toSeconds();
+
+			this.angle += rotate;
+
+			this.shape.rotate(rotate, this.posit);
+
+			this.libcanvas.update();
+		},
+
+		draw: function () {
+			// drawing Item
+			this.libcanvas.ctx.drawImage({
+				image : this.image,
+				center: this.posit,
+				angle : this.angle
+			});
+		}
+	});
+
+	var item = new Item(lc);
+};
+		</script>
+		<script src="/files/js/google-analytics.js"></script>
+	</body>
+</html>
