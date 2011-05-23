@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: progress bar</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var lc = new LibCanvas('canvas', { backBuffer: 'off' })
+		.size({
+			width : 400,
+			height: 250
+		}, true)
+		.listenMouse()
+		.start();
+
+	var Parent = atom.Class({
+		Implements: [ Drawable, Moveable ],
+		initialize: function ( x, y, color ) {
+			this.shape = new Circle(x, y, 20);
+			this.color = color;
+		},
+		draw: function () {
+			this.libcanvas.ctx.fill( this.shape, this.color );
+		}
+	});
+
+	var Foo = atom.Class({ Extends: Parent });
+	var Bar = atom.Class({ Extends: Parent });
+
+	var foo = new Foo(  50, 100, 'green'  ).addEvent('move', lc.update);
+	var bar = new Bar( 350, 100, 'orange' ).addEvent('move', lc.update);
+
+	lc.addElement(foo).addElement(bar);
+
+	lc.mouse.addEvent('wheel', function (e) {
+		(e.up ? foo : bar).moveTo( e.offset, 80 );
+	});
+};
+		</script>
+		<script src="/files/js/google-analytics.js"></script>
+	</body>
+</html>
