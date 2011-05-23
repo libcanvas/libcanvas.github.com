@@ -39,11 +39,12 @@ new function () {
 	var foo = new Foo(  50, 100, 'green'  ).addEvent('move', lc.update);
 	var bar = new Bar( 350, 100, 'orange' ).addEvent('move', lc.update);
 
-	lc.addElement(foo).addElement(bar);
-
-	lc.mouse.addEvent('wheel', function (e) {
-		(e.up ? foo : bar).moveTo( e.offset, 80 );
-	});
+	lc
+		.addElement(foo)
+		.addElement(bar)
+		.mouse.addEvent('wheel', function (e) {
+			(e.up ? foo : bar).moveTo( e.offset, 80 );
+		});
 };
 		</script>
 		<script src="/files/js/google-analytics.js"></script>
