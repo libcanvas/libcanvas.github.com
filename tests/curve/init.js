@@ -25,11 +25,11 @@ atom.dom(function (atom, $) {
 		gradient:{
 			from:'#c00000',
 			to:'#0015FF',
-			fn:'quad-in'
+			fn:'linear'
 		},
 		width:{
-			from:10,
-			to:35,
+			from:40,
+			to:10,
 			fn:'linear'
 		},
 		from: from.point,
