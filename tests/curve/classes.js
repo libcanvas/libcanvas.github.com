@@ -2,6 +2,8 @@ ExtendedCurves.Grip = atom.Class({
 	Implements: [ atom.Class.Events ],
 	
 	initialize: function (point, libcanvas) {
+		var realtime = atom.dom('[name="realtime"]').first;
+		
 		this.libcanvas = libcanvas;
 		this.point     = new Point(point);
 		this.shaper    = libcanvas.createShaper({
@@ -13,6 +15,9 @@ ExtendedCurves.Grip = atom.Class({
 		.setZIndex(2)
 		.clickable()
 		.draggable()
+		.addEvent('moveDrag', function () {
+			if (realtime.checked) this.fireEvent('update');
+		}.bind(this))
 		.addEvent('stopDrag', this.fireEvent.bind(this, 'update'));
 	},
 	link: function (grip) {
