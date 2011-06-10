@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+		<script>
+LibCanvas.extract();
+
+atom.dom(function() {
+	var Item = atom.Class({
+		Implements: [ Drawable, Draggable ],
+		// В конструкторе мы принимаем два аргумента -
+		// Point - центр вращения и скорость вращения в радианах за секунду
+		initialize: function (center, speed) {
+			this.line = new Line( center,
+				// Мы клонируем и смещаем точку вправо так мы получаем
+				// ещё одну точку в двадцати пикселях от текущей
+				center.clone().move([ 20, 0 ])
+			);
+			// создаём круг
+			this.shape = new Circle( center, 25 );
+			// время передаётся в милисекундах, а скорость указана в миллисекундах
+			// потому необходимо привести скорость к формату "радиан/миллисекунду"
+			this.speed = speed / 1000;
+		},
+		update: function (time) {
+			// мы вращаем вторую точку прямой вокруг первой
+			this.line.to.rotate(
+				// для того, чтобы скорость вращения не зависела от fps мы
+				// умножаем скорость на прошедшее время. Если fps низкий, то
+				// обновляться будет реже, но изменения будут на больший угол
+				this.speed * time,
+				this.line.from
+			);
+			// Необходимо сообщить libcanvas, что изменился
+			// внешний вид холста и надо бы его перерисовать
+			this.libcanvas.update();
+		},
+		draw: function () {
+			// просто рисуем прямую
+			this.libcanvas.ctx
+				.stroke( this.line, 'black' )
+				.stroke( this.shape, '#c00' );
+		}
+	});
+
+	var libcanvas = new LibCanvas('canvas');
+
+	// Мы конструируем новый объект
+	// Обратите внимание на запись угла. Человеку обычно привычнее считать угол в градусах
+	// В программировании принято хранить угол в радианах.
+	// Такая запись позволяет легко получить радианы из градусов
+	var item = new Item( new Point(50, 50), (180).degree() );
+
+
+	libcanvas
+		// Очень важно не забыть "запустить" LibCanvas, он ждёт вашей команды "start"
+		.start()
+		// Без вызова этого метода действия с мышью - невозможны
+		.listenMouse()
+		.addElement( item.draggable() )
+		// обратите внимание, что если мы просто передадим "item.update", то он будет вызван
+		// с неверным контекстом, потому привязываем его при помощи bind к объекту:
+		.addFunc( item.update.bind(item) );
+});
+		</script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<script src="/files/js/google-analytics.js"></script>
+	</body>
+</html>
