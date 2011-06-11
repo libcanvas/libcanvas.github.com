@@ -33,7 +33,7 @@ Asteroids.Bullet = atom.Class({
 		this.velocity = this.getVelocity();
 
 		this.addEvent('libcanvasSet', function () {
-			this.animation = new Animation()
+			this.animation = new LibCanvas.Animation.Sprite()
 				.addSprites(this.libcanvas.getImage('shot'), 60)
 				.run({
 					frames: [
@@ -44,7 +44,7 @@ Asteroids.Bullet = atom.Class({
 						{sprite: 0, delay: 40}
 					]
 				})
-				.addEvent('stop', this.die.context(this));
+				.addEvent('stop', this.die.bind(this));
 		});
 	},
 
@@ -80,7 +80,7 @@ Asteroids.Bullet = atom.Class({
 		if (this.hidden) return;
 
 		this.libcanvas.ctx.drawImage({
-			image : this.animation.getSprite(),
+			image : this.animation.sprite,
 			center: this.position,
 			angle : this.angle - (90).degree()
 		});

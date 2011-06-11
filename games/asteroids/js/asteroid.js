@@ -49,9 +49,9 @@ Asteroids.Asteroid = atom.Class({
 			this.velocity = this.getVelocity();
 
 			this.position = options.position ||
-				this.libcanvas.ctx.getFullRectangle().getRandomPoint(50);
+				this.libcanvas.ctx.rectangle.getRandomPoint(50);
 
-			this.setShape(new Circle(this.position, this.radius ));
+			this.shape = new Circle( this.position, this.radius );
 		});
 	},
 	update: function (time) {
@@ -64,14 +64,12 @@ Asteroids.Asteroid = atom.Class({
 	},
 	explode: function (decay) {
 		this.libcanvas.rmElement(this);
-		if (decay && this.size < 2) {
-			for (var c = 3; c--;) {
-				decay(new this.self({
-					position: this.position.clone(),
-					size : this.size+1,
-					color: this.color
-				}));
-			}
+		if (decay && this.size < 2) for (var c = 3; c--;) {
+			decay(new this.self({
+				position: this.position.clone(),
+				size : this.size+1,
+				color: this.color
+			}));
 		}
 		return this;
 	},

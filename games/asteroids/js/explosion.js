@@ -33,16 +33,13 @@ Asteroids.Explosion = atom.Class({
 		this.position = position;
 
 		this.addEvent('libcanvasSet', function () {
-			this.animation = new Animation()
+			this.animation = new LibCanvas.Animation.Sprite()
 				.addSprites(this.libcanvas.getImage('explosion'), 162)
-				.run({
-					delay: 40,
-					line : Array.range(0, 9)
-				})
+				.run( Array.range(0, 9) )
 				.addEvent('stop', function () {
 					this.libcanvas.rmElement(this);
 					this.fireEvent('stop', []);
-				}.context(this))
+				}.bind(this));
 
 			this.libcanvas.getAudio('explosion').playNext();
 		});
@@ -50,7 +47,7 @@ Asteroids.Explosion = atom.Class({
 
 	draw : function () {
 		this.libcanvas.ctx.drawImage({
-			image : this.animation.getSprite(),
+			image : this.animation.sprite,
 			center: this.position
 		});
 	}

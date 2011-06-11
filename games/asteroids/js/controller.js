@@ -6,13 +6,13 @@ Asteroids.Controller = atom.Class({
 
 		this.bullets   = [];
 		this.asteroids = [];
-		this.bulletOnDie = this.bulletOnDie.context(this);
-		this.addAsteroid = this.addAsteroid.context(this);
+		this.bulletOnDie = this.bulletOnDie.bind(this);
+		this.addAsteroid = this.addAsteroid.bind(this);
 		this.start();
 	},
 
 	start: function () {
-		this.invoker.addFunction(10, this.update.context(this));
+		this.invoker.addFunction(10, this.update.bind(this));
 		this.createAsteroids();
 
 		this.ship = new Asteroids.Ship();

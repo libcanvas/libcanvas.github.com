@@ -49,7 +49,7 @@ Asteroids.Ship = atom.Class({
 				center: this.position, radius: this.radius
 			}));
 
-			this.animation = new Animation()
+			this.animation = new LibCanvas.Animation.Sprite()
 				.addSprites(this.libcanvas.getImage('ship'), 60)
 				.run({
 					line : Array.range(0,8),
@@ -78,9 +78,9 @@ Asteroids.Ship = atom.Class({
 					.stop(1)
 					.run('end');
 			}
-		}.context(this);
+		}.bind(this);
 
-		var key = this.libcanvas.getKey.context(this.libcanvas);
+		var key = this.libcanvas.getKey.bind(this.libcanvas);
 
 		// Weapon reloading
 		this.reload = (this.reload - time).limit(0);
@@ -128,7 +128,7 @@ Asteroids.Ship = atom.Class({
 		this.drawEngines();
 
 		this.libcanvas.ctx.drawImage({
-			image : this.animation.getSprite(),
+			image : this.animation.sprite,
 			center: this.position,
 			angle : this.angle + (90).degree()
 		});
@@ -142,7 +142,7 @@ Asteroids.Ship = atom.Class({
 		this.hidden = true;
 		this.libcanvas.addElement(
 			new Asteroids.Explosion(this.position.clone())
-				.addEvent('stop', this.respawn.context(this, [true]))
+				.addEvent('stop', this.respawn.bind(this, true))
 		);
 		return this;
 	},
@@ -170,7 +170,7 @@ Asteroids.Ship = atom.Class({
 		blinker.fn = function (error) {
 			this.hidden = !this.hidden;
 			this.invoker.after(250 - error, blinker);
-		}.context(this);
+		}.bind(this);
 
 		blinker(0);
 
@@ -178,7 +178,7 @@ Asteroids.Ship = atom.Class({
 			blinker.fn = null;
 			this.hidden = false;
 			fn.call(this);
-		}.context(this));
+		}.bind(this));
 
 		return this;
 	},
@@ -234,7 +234,7 @@ Asteroids.Ship = atom.Class({
 	},
 	createFireAnimation : function () {
 		var image = this.libcanvas.getImage('fire');
-		return new LibCanvas.Animation()
+		return new LibCanvas.Animation.Sprite()
 			.addSprites({
 				small : image.sprite(  0, 0, 20, 140),
 				med1  : image.sprite( 20, 0, 20, 140),
@@ -285,8 +285,8 @@ Asteroids.Ship = atom.Class({
 	},
 	getEnginesImages : function () {
 		var get = function (type) {
-			return this.getFireAnimation(type).getSprite();
-		}.context(this);
+			return this.getFireAnimation(type).sprite;
+		}.bind(this);
 		
 		return {
 			'mainLeft'  : {
