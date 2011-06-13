@@ -733,6 +733,8 @@ LibCanvas.Behaviors.Animatable = atom.Class({
 			}.bind(this),
 			instance: this
 		};
+
+		if ('onProccess' in args) args.onProcess = args.onProccess;
 		
 		var fn = function (time) {
 			timeLeft -= Math.min(time, timeLeft);
@@ -753,7 +755,7 @@ LibCanvas.Behaviors.Animatable = atom.Class({
 				}
 			}
 
-			args.onProccess && args.onProccess.call(this, animation, start);
+			args.onProcess && args.onProcess.call(this, animation, start);
 
 			if (timeLeft <= 0) {
 				args.onFinish && invoker.after(0, function() {
@@ -1700,10 +1702,40 @@ LibCanvas.Behaviors.Drawable = atom.Class({
 		  .removeEvent('libcanvasSet', start)
 		     .addEvent('libcanvasSet', stop);
 	},
-	draw : atom.Class.abstractMethod
+	update : atom.Class.abstractMethod,
+	draw   : atom.Class.abstractMethod
 });
 
 };
+
+/*
+---
+
+name: "Behaviors.DrawableSprite"
+
+description: "Abstract class for drawable canvas sprites"
+
+license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- Behaviors.Drawable
+
+provides: Behaviors.DrawableSprite
+
+...
+*/
+
+LibCanvas.Behaviors.DrawableSprite = atom.Class({
+	Extends: LibCanvas.Behaviors.Drawable,
+
+	draw: function () {
+		this.libcanvas.ctx.drawImage( this.sprite, this.shape );
+	}
+});
 
 /*
 ---
@@ -2078,14 +2110,21 @@ LibCanvas.Inner.FrameRenderer = atom.Class({
 		}
 		return this;
 	},
-	drawAll : function () {
+	invokeAll : function (method, time) {
 		var elems = this.elems.sortBy('getZIndex');
 		for (var i = elems.length; i--;) {
 			if (elems[i].isReady()) {
-				elems[i].draw();
+				elems[i][method](time);
 			}
 		}
 		return this;
+	},
+	updateAll : function (time) {
+		if (!this.options.invoke) return this;
+		return this.invokeAll('update', time);
+	},
+	drawAll : function (time) {
+		return this.invokeAll('draw', time);
 	},
 	processing : function (type) {
 		this.processors[type].forEach(function (processor) {
@@ -2108,12 +2147,13 @@ LibCanvas.Inner.FrameRenderer = atom.Class({
 		return this;
 	},
 	renderLayer: function (layer, time) {
-		layer.innerInvoke('plain', time);
+		layer.innerInvoke('plain', time).updateAll(time);
+
 		if (layer.checkAutoDraw()) {
 			layer.processing('pre');
 			if (layer.isReady()) {
 				layer.innerInvoke('render', time);
-				layer.drawAll();
+				layer.drawAll(time);
 			} else {
 				layer.renderProgress();
 			}
@@ -3033,6 +3073,7 @@ LibCanvas.Canvas2D = atom.Class({
 		name: 'main',
 		autoStart: true,
 		clear: true,
+		invoke: false, // invoke objects each frame
 		backBuffer: 'off',
 		fps: 30
 	},
