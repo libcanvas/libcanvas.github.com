@@ -50,7 +50,7 @@ atom.dom(function() {
 		}
 	});
 
-	var libcanvas = new LibCanvas('canvas');
+	var libcanvas = new LibCanvas('canvas', { invoke: true });
 
 	// Мы конструируем новый объект
 	// Обратите внимание на запись угла. Человеку обычно привычнее считать угол в градусах
@@ -64,10 +64,7 @@ atom.dom(function() {
 		.start()
 		// Без вызова этого метода действия с мышью - невозможны
 		.listenMouse()
-		.addElement( item.draggable() )
-		// обратите внимание, что если мы просто передадим "item.update", то он будет вызван
-		// с неверным контекстом, потому привязываем его при помощи bind к объекту:
-		.addFunc( item.update.bind(item) );
+		.addElement( item.draggable() );
 });
 		</script>
 	</head>
