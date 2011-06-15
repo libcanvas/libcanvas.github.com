@@ -14,7 +14,7 @@
 new function () {
 	function sleep(milliseconds) {
 		var start = Date.now();
-		for (;;) if ((Date.now() - start) > milliseconds) break;
+		while (Date.now() - start < milliseconds);
 	}
 	
 	var libcanvas = new LibCanvas('canvas').start();
@@ -43,6 +43,7 @@ new function () {
 					props: prevProps,
 					fn : 'bounce-out',
 					time : 800,
+					onProcess: onProcess,
 					onFinish: prevAnim.repeat
 				});
 			}
