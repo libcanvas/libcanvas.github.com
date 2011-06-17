@@ -17,9 +17,8 @@ Solitaire.Controller = atom.Class({
 	start: function () {
 		var stacks = 4,
 			fields = 7,
-			layer = this.libcanvas.createLayer('cards');
-
-		var cards = this.createCards(),
+			layer = this.libcanvas.createLayer('cards'),
+			cards = this.createCards(),
 			deck = cards.slice(0).shuffle();
 
 		while (stacks--) {
@@ -31,7 +30,7 @@ Solitaire.Controller = atom.Class({
 			layer.addElement( field );
 		}
 
-		layer.addElement( new Solitaire.Deck (deck)  );
+		layer.addElement( new Solitaire.Deck(deck) );
 
 		this.libcanvas.addElement( new Solitaire.Table()  );
 	},
