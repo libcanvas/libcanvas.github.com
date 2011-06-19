@@ -4057,8 +4057,7 @@ LibCanvas.Context2D = atom.Class({
 	},
 
 	putImageData : function () {
-		var a = arguments;
-		var put = {};
+		var a = arguments, put = {}, args, rect;
 
 		switch (a.length) {
 			case 1: {
@@ -4070,9 +4069,7 @@ LibCanvas.Context2D = atom.Class({
 				put.image = a.image;
 				put.from = Point(a.from);
 
-				if (a.crop) {
-					put.crop = (a.crop instanceof Rectangle) ? a.crop : new Rectangle(a.crop);
-				}
+				if (a.crop) put.crop = Rectangle(a.crop);
 			} break;
 
 			case 3: {
@@ -4082,18 +4079,17 @@ LibCanvas.Context2D = atom.Class({
 
 			case 7: {
 				put.image = a[0];
-				put.from = Point([a[1], a[2]]);
-
+				put.from = new Point(a[1], a[2]);
 				put.crop = new Rectangle(a[3], a[4], a[5], a[6]);
 			} break;
 
 			default : throw new TypeError('Wrong args number in the Context.putImageData');
 		}
 
-		var args = [put.image, put.from.x, put.from.y];
+		args = [put.image, put.from.x, put.from.y];
 
 		if (put.crop) {
-			var rect = put.crop;
+			rect = put.crop;
 			args.append([rect.from.x, rect.from.y, rect.width, rect.height])
 		}
 
@@ -4106,10 +4102,10 @@ LibCanvas.Context2D = atom.Class({
 		return this.original('getImageData', [rect.from.x, rect.from.y, rect.width, rect.height], true);
 	},
 	getPixels : function (rectangle) {
-		var rect = office.makeRect.call(this, arguments);
-		var data = this.getImageData(rect).data;
-
-		var result = [], line = [];
+		var rect = Rectangle(arguments),
+			data = this.getImageData(rect).data,
+			result = [],
+			line = [];
 		for (var i = 0, L = data.length; i < L; i+=4)  {
 			line.push({
 				r : data[i],
@@ -4139,10 +4135,26 @@ LibCanvas.Context2D = atom.Class({
 		}
 		return this.original('createLinearGradient', a, true);
 	},
-	// this function is only dublicated as original. i will change them, later
-	createRadialGradient : function () {
-		return this.original('createRadialGradient', arguments, true);
+	createRadialGradient: function () {
+		var points, c1, c2, a = arguments;
+		if (a.length == 1 || a.length == 2) {
+			if (a.length == 2) {
+				c1 = Circle( a[0] );
+				c2 = Circle( a[1] );
+			} else {
+				c1 = Circle( a.start );
+				c2 = Circle( a.end   );
+			}
+			points = [c1.center.x, c1.center.y, c1.radius, c2.center.x, c2.center.y, c2.radius];
+		} else if (a.length == 6) {
+			points = a;
+		} else {
+			throw new TypeError('Wrong args number in the Context.createRadialGradient');
+		}
+
+		return this.original('createRadialGradient', points, true);
 	},
+
 	createPattern : function () {
 		return this.original('createPattern', arguments, true);
 	},
@@ -4156,6 +4168,20 @@ LibCanvas.Context2D = atom.Class({
 	// is this just properties , that can be used by set ?
 	// shadowOffsetX shadowOffsetY shadowBlur shadowColor
 });
+
+CanvasGradient.prototype.addColorStop = function () {
+	var addColorStop = CanvasGradient.prototype.addColorStop;
+	return function (colors) {
+		if (typeof colors == 'object') {
+			for (var position in colors) {
+				addColorStop.call( this, parseFloat(position), colors[position] );
+			}
+		} else {
+			addColorStop.apply( this, arguments );
+		}
+		return this;
+	}
+}();
 
 LibCanvas.Context2D.office = office;
 

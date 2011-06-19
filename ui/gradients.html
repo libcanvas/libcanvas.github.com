@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Gradients</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var libcanvas = new LibCanvas('canvas')
+		.listenMouse()
+		.size(400, 250, true)
+		.start();
+
+	var LinearGradient = atom.Class({
+		Implements: [ Drawable, Draggable ],
+
+		initialize: function (shape) {
+			this.shape = shape;
+
+			this.addEvent('libcanvasSet', function () {
+				this.draggable().addEvent('moveDrag', this.libcanvas.update);
+			});
+		},
+
+		draw: function () {
+			var ctx = this.libcanvas.ctx;
+			ctx.fill(this.shape, ctx
+				.createLinearGradient( this.shape )
+				.addColorStop({
+					'0.0' : 'black',
+					'0.3' : 'blue',
+					'0.7' : 'green',
+					'1.0' : 'red'
+				})
+			);
+
+		}
+	});
+
+	var RadialGradient = atom.Class({
+		Extends: LinearGradient,
+
+		initialize: function (outer, inner) {
+			this.parent( outer );
+			this.inner = inner;
+		},
+
+		fixed: function () {
+			this.shape.addEvent('move', function (diff) {
+				this.inner.move( diff );
+			}.bind(this));
+			return this;
+		},
+
+		draw: function () {
+			var ctx = this.libcanvas.ctx;
+			ctx.fill( this.shape, ctx
+				.createRadialGradient(this.inner, this.shape)
+				.addColorStop({
+					'0.0' : 'black',
+					'0.3' : 'blue',
+					'0.7' : 'green',
+					'1.0' : 'red'
+				})
+			);
+		}
+	});
+
+	[
+		new LinearGradient( new Rectangle(20, 20, 100, 100) ),
+		new RadialGradient(
+			new Circle(200, 160, 50),
+			new Circle(200, 160, 10)
+		),
+		new RadialGradient(
+			new Circle(270, 60, 50),
+			new Circle(270, 60, 10)
+		).fixed()
+	].forEach(function (gradient, z) {
+		gradient.zIndex = z;
+		libcanvas.addElement( gradient );
+	});
+}
+		</script>
+		<script src="/files/js/google-analytics.js"></script>
+	</body>
+</html>
