@@ -13,19 +13,23 @@
 		<script src="/files/js/ui-core.js"></script>
 		<script>
 new function () {
-	var shape = new LibCanvas.Shapes.RoundedRectangle(50, 50, 150, 40).setRadius(10);
+	var rect = new LibCanvas.Shapes.RoundedRectangle(50, 50, 150, 40).setRadius(10),
+		ellipse = new LibCanvas.Shapes.Ellipse(120, 130, 150, 60);
 
 	UiCore.libcanvas = new LibCanvas('canvas')
 		.listenMouse()
-		.size({
-			width : 400,
-			height: 250
-		}, true)
-		.start();
+		.size(400, 250, true);
 
-	UiCore.createShaper( shape, 1 )
+	UiCore.createShaper( rect, 1 )
 		.clickable()
 		.draggable();
+
+	UiCore.createShaper( ellipse, 2 )
+		.clickable()
+		.draggable();
+
+	UiCore.libcanvas.start();
+
 }
 		</script>
 		<script src="/files/js/google-analytics.js"></script>
