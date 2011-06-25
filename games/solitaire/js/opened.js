@@ -1,5 +1,6 @@
 (function (cfg) {
 
+// Место, куда открываются карты из колоды
 Solitaire.Opened = atom.Class({
 	Extends: DrawableSprite,
 

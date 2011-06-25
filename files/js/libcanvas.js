@@ -1595,15 +1595,18 @@ var initDraggable = function () {
 	return this
 		.addEvent(startDrag, function () {
 			if (!isDraggable(this, false)) return;
-		
-			this.fireEvent('startDrag');
+
 			this['draggable.mouse'] = this.libcanvas.mouse.point.clone();
-			this.addEvent(dragging, dragFn);
+			this
+				.fireEvent('startDrag', [this.libcanvas.mouse.point.clone()])
+				.addEvent(dragging, dragFn);
 		})
 		.addEvent(stopDrag, function () {
 			if (!isDraggable(this, true)) return;
 
-			this.fireEvent('stopDrag').removeEvent(dragging, dragFn);
+			this
+				.fireEvent('stopDrag', [this.libcanvas.mouse.point.clone()])
+				.removeEvent(dragging, dragFn);
 			delete this['draggable.mouse'];
 		});
 };
@@ -1634,11 +1637,11 @@ new function () {
 	
 var start = function () {
 	this.libcanvas.addElement(this);
-	return 'remove';
+	return 'removeEvent';
 };
 var stop = function () {
 	this.libcanvas.rmElement(this);
-	return 'remove';
+	return 'removeEvent';
 };
 
 LibCanvas.Behaviors.Drawable = atom.Class({
@@ -3231,7 +3234,9 @@ LibCanvas.Canvas2D = atom.Class({
 	// Element : add, rm
 	addElement : function (elem) {
 		this.elems.include(elem);
-		elem.setLibcanvas(this);
+		if (elem.libcanvas != this) {
+			elem.setLibcanvas(this);
+		}
 		return this;
 	},
 	rmElement : function (elem) {

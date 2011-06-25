@@ -15,31 +15,36 @@ Solitaire.Controller = atom.Class({
 	},
 
 	start: function () {
-		var stacks = 4,
+		var libcanvas = this.libcanvas,
+			stacks = 4,
 			fields = 7,
-			layer = this.libcanvas.createLayer('cards'),
-			cards = this.createCards(),
-			deck = cards.slice(0).shuffle();
+			layer  = libcanvas.createLayer('cards'),
+			deck   = this.createCards( libcanvas.createLayer( 'action' ) ).shuffle();
 
 		while (stacks--) {
 			layer.addElement( new Solitaire.Stack(stacks) );
 		}
+		var fieldsArray = [];
 		while (fields--) {
-			var field = new Solitaire.Field(fields);
+			var field = new Solitaire.Field(fields, fieldsArray);
 			for (var c = fields; c-- >= 0;) field.addCard(deck.pop());
+			field.cards.last.isClosed = false;
 			layer.addElement( field );
+			fieldsArray.push( field );
 		}
 
 		layer.addElement( new Solitaire.Deck(deck) );
 
-		this.libcanvas.addElement( new Solitaire.Table()  );
+		libcanvas.addElement( new Solitaire.Table() );
 	},
 
-	createCards: function () {
-		var Card = Solitaire.Card, cards = [], libcanvas = this.libcanvas;
+	createCards: function (libcanvas) {
+		var Card  = Solitaire.Card,
+			cards = [],
+			card  = null;
 		Card.suits.forEach(function(suit) {
 			Card.ranks.forEach(function (rank) {
-				var card = new Card(rank, suit);
+				card = new Card(rank, suit);
 				libcanvas.addElement( card );
 				cards.push( card.stopDrawing() );
 			});
