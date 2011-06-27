@@ -9,6 +9,12 @@ Solitaire.Table = atom.Class({
 		}
 	},
 
+	initialize: function () {
+		this.addEvent('libcanvasReady', function () {
+			this.libcanvas.update();
+		});
+	},
+
 	draw: function () {
 		this.libcanvas.ctx.fillAll( this.clothPattern );
 	}

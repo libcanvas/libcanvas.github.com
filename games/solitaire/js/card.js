@@ -1,5 +1,12 @@
 (function (cfg) {
 
+var colors = {
+	spades  : 'black',
+	clubs   : 'black',
+	hearts  : 'red',
+	diamonds: 'red'
+};
+
 Solitaire.Card = atom.Class({
 
 	Implements: [ DrawableSprite, Animatable, Draggable, Droppable ],
@@ -33,6 +40,14 @@ Solitaire.Card = atom.Class({
 
 	rank: null,
 	suit: null,
+
+	get color () {
+		return colors[this.suit];
+	},
+
+	get power () {
+		return this.self.ranks.indexOf( this.rank );
+	},
 
 	initialize: function (rank, suit) {
 		this.rank = rank;
@@ -102,6 +117,10 @@ Solitaire.Card = atom.Class({
 				},
 				onProcess: this.libcanvas.update
 			});
+	},
+
+	canDrop: function (card) {
+		return card.color != this.color && (card.power - this.power) == 1;
 	},
 
 	drawTo: function (ctx, rectangle) {

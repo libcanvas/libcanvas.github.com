@@ -28,26 +28,30 @@ Solitaire.Field = atom.Class({
 			field.removeCard(this).draw();
 			this.draw();
 			return 'removeEvent';
-		}).addEvent('stopDrag', function (point) {
+		}).addEvent('stopDrag', function () {
 			var active = field;
 			for (var i = field.fields.length; i--;) {
-				if (field.fields[i].shape.hasPoint(point)) {
+				if (field.fields[i].shape.hasPoint( this.libcanvas.mouse.point )) {
 					active = field.fields[i];
 					break;
 				}
 			}
+			if (!active.canDrop(this)) active = field;
 			if (active != field) {
 				if (field.cards.length) {
-					field.cards.last.isClosed = false;
+					var last = field.cards.last;
+					last.isClosed = false;
 				}
 				field.draw();
 			}
 			this.moveTo( active.rectangle(active.cards.length), function (card) {
 				active.addCard( card ).draw();
+				if (last) last.draggable();
 			});
 		});
 
 		card.zIndex = i;
+		this.cards.invoke('draggable', true);
 		this.cards.include( card.draggable() );
 		return this;
 	},
@@ -55,6 +59,15 @@ Solitaire.Field = atom.Class({
 	removeCard: function (card) {
 		this.cards.erase( card );
 		return this;
+	},
+
+	canDrop: function (card) {
+		var last = this.cards.last;
+		if (!last) {
+			return card.power === 0;
+		} else {
+			return last.canDrop(card);
+		}
 	},
 
 	rectangle: function (i) {
