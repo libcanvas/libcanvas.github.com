@@ -1728,6 +1728,7 @@ LibCanvas.Behaviors.DrawableSprite = atom.Class({
 
 	draw: function () {
 		this.libcanvas.ctx.drawImage( this.sprite, this.shape );
+		return this;
 	}
 });
 
@@ -2310,6 +2311,7 @@ LibCanvas.Shape = atom.Class({
 	},
 	move : function (distance, reverse) {
 		distance = this.invertDirection(distance, reverse);
+		this.fireEvent('beforeMove', distance);
 		this.from.move(distance);
 		this. to .move(distance);
 		return this.parent(distance);
@@ -3129,7 +3131,7 @@ LibCanvas.Canvas2D = atom.Class({
 	},
 	
 	hide: function () {
-		this.origElem.atom.css('display', 'hide');
+		this.origElem.atom.css('display', 'none');
 		return this;
 	},
 
@@ -3301,6 +3303,10 @@ LibCanvas.Canvas2D = atom.Class({
 	createLayer: function (name, z, options) {
 		if (name in this._layers) {
 			throw new Error('Layer «' + name + '» already exists');
+		}
+		if (typeof z == 'object') {
+			options = z;
+			z = null;
 		}
 		options = atom.extend({ name: name }, options || {});
 		var layer = this._layers[name] = new LibCanvas.Layer(this, this.options, options);
@@ -3928,11 +3934,13 @@ LibCanvas.Context2D = atom.Class({
 		}.context(this);
 		if (cfg.wrap == 'no') {
 			lines.forEach(function (line, i) {
+				if (!line) return;
 				this.fillText(line, xGet(cfg.align == 'left' ? 0 : this.measureText(line).width), to.from.y + (i+1)*lh);
 			}.context(this));
 		} else {
 			var lNum = 0;
 			lines.forEach(function (line) {
+				if (!line) return;
 				var words = line.match(/.+?(\s|$)/g);
 				var L  = '';
 				var Lw = 0;
@@ -4138,7 +4146,7 @@ LibCanvas.Context2D = atom.Class({
 			}
 			a = [from.x, from.y, to.x, to.y];
 		}
-		return this.original('createLinearGradient', a, true);
+		return fixGradient( this.original('createLinearGradient', a, true) );
 	},
 	createRadialGradient: function () {
 		var points, c1, c2, a = arguments;
@@ -4157,7 +4165,7 @@ LibCanvas.Context2D = atom.Class({
 			throw new TypeError('Wrong args number in the Context.createRadialGradient');
 		}
 
-		return this.original('createRadialGradient', points, true);
+		return fixGradient( this.original('createRadialGradient', points, true) );
 	},
 
 	createPattern : function () {
@@ -4173,9 +4181,13 @@ LibCanvas.Context2D = atom.Class({
 	// is this just properties , that can be used by set ?
 	// shadowOffsetX shadowOffsetY shadowBlur shadowColor
 });
-
-CanvasGradient.prototype.addColorStop = function () {
-	var addColorStop = CanvasGradient.prototype.addColorStop;
+var addColorStop = function () {
+	var orig = document
+		.createElement('canvas')
+		.getContext('2d')
+		.createLinearGradient(0,0,1,1)
+		.addColorStop;
+		
 	return function (colors) {
 		if (typeof colors == 'object') {
 			for (var position in colors) {
@@ -4187,6 +4199,11 @@ CanvasGradient.prototype.addColorStop = function () {
 		return this;
 	}
 }();
+
+var fixGradient = function (grad) {
+	grad.addColorStop = addColorStop;
+	return grad;
+};
 
 LibCanvas.Context2D.office = office;
 
