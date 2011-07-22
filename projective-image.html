@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Projective Image</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+LibCanvas.extract();
+atom.dom(function () {
+
+	var Projective = atom.Class({
+		Extends: Drawable,
+
+		initialize: function () {
+			this.shape = new LibCanvas.Shapes.Polygon([
+				[300, 120],
+				[400,  50],
+				[400, 450],
+				[300, 380]
+			]);
+		},
+
+		draw: function () {
+			this.libcanvas.ctx.projectiveImage({
+				image: this.libcanvas.getImage('test'),
+				to: this.shape,
+				patchSize: 32,
+				limit: 3
+			})
+			.stroke( this.shape, 'red' );
+		}
+	});
+
+	var libcanvas = new LibCanvas('canvas', {
+		preloadImages: { test: 'im/compiled-image.jpg' }
+	})
+	.size(800, 500, true)
+	.listenMouse()
+	.start();
+
+	var proj = new Projective;
+
+	libcanvas.addElement( proj );
+
+	proj.shape.points.forEach(function (p) {
+		libcanvas.createShaper({
+			shape: new Circle(p, 5),
+			fill: 'red'
+		})
+		.draggable();
+	});
+});
+		</script>
+		<script src="/files/js/google-analytics.js"></script>
+	</body>
+</html>
