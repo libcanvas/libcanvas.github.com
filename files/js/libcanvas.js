@@ -6718,4 +6718,4 @@ var Translator = LibCanvas.Utils.Translator = Class({
 
 });
 
-})(atom, Math);
+}).call((0, eval)("this"), atom, Math);
