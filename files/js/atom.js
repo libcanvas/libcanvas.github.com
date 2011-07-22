@@ -185,7 +185,7 @@ provides: atom
 			return o && toString.call(o) === '[object Array]';
 		};
 	}
-}).call(typeof exports == "undefined" ? exports : window, Object, Array);
+}).call((0, eval)("this"), Object, Array);
 
 /*
 ---
