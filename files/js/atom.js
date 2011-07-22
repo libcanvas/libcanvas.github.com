@@ -1,15 +1,35 @@
 /*
 ---
 
+name: "AtomJS"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
+
+inspiration:
+	- "[JQuery](http://jquery.com)"
+	- "[MooTools](http://mootools.net)"
+
+...
+*/
+
+(function (undefined) { // AtomJS
+'use strict';
+	
+/*
+---
+
 name: "Core"
 
 description: "The core of AtomJS."
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-
-copyright: "Copyright (c) 2010-2011 [Ponomarenko Pavel](shocksilien@gmail.com)."
-
-authors: "The AtomJS production team"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 inspiration:
   - "[JQuery](http://jquery.com)"
@@ -61,13 +81,20 @@ provides: atom
 		if (item.nodeName){
 			if (item.nodeType == 1) return 'element';
 			if (item.nodeType == 3) return /\S/.test(item.nodeValue) ? 'textnode' : 'whitespace';
-		} else if (item && item.callee && typeof item.length == 'number'){
-			return 'arguments';
 		}
 		
 		var type = typeof item;
+
+		if (item && type == 'object') {
+			if (atom.Class && item instanceof atom.Class) return 'class';
+			try {
+				if ('length' in item && typeof item.length == 'number') return 'arguments';
+			} catch (e) {
+				debugger;
+			}
+		}
 		
-		return (type == 'object' && atom.Class && item instanceof atom.Class) ? 'class' : type;
+		return type;
 	};
 	typeOf.types = {};
 	['Boolean', 'Number', 'String', 'Function', 'Array', 'Date', 'RegExp', 'Class'].forEach(function(name) {
@@ -107,6 +134,15 @@ provides: atom
 		log: function () {
 			// ie9 bug, typeof console.log == 'object'
 			if (atom.global.console) FuncProto[apply].call(console.log, console, arguments);
+		},
+		append: function (target, source) {
+			for (var i = 1, l = arguments.length; i < l; i++){
+				source = arguments[i] || {};
+				for (var key in source) {
+					target[key] = source[key];
+				}
+			}
+			return target;
 		},
 		typeOf: typeOf,
 		clone: clone
@@ -158,11 +194,9 @@ name: "Accessors"
 
 description: "Implementing accessors"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-
-copyright: "Copyright (c) 2010-2011 [Ponomarenko Pavel](shocksilien@gmail.com)."
-
-authors: "The AtomJS production team"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -250,7 +284,9 @@ name: "Dom"
 
 description: "todo"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -614,7 +650,9 @@ name: "Ajax"
 
 description: "todo"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -678,7 +716,9 @@ name: "Ajax.Dom"
 
 description: todo
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -716,7 +756,9 @@ name: "Cookie"
 
 description: "todo"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -815,7 +857,9 @@ name: "Class"
 
 description: "Contains the Class Function for easily creating, extending, and implementing reusable Classes."
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -841,7 +885,7 @@ var typeOf = atom.typeOf,
 var Class = function (params) {
 	if (Class.$prototyping) return this;
 
-	if (typeOf(params) == 'function') params = { initialize: params };
+	if (typeof params == 'function' && typeOf(params) == 'function') params = { initialize: params };
 
 	var Constructor = function(){
 		if (this instanceof Constructor) {
@@ -938,7 +982,7 @@ Class.extend({
 					if (value == null) continue;
 				}
 
-				if (typeOf(value) == 'function'){
+				if (typeof value == 'function' && typeOf(value) == 'function'){
 					if (value.$origin) value = value.$origin;
 					if (value.$hidden == 'next') {
 						value.$hidden = true
@@ -1013,7 +1057,9 @@ name: "Class.Events"
 
 description: ""
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -1162,7 +1208,9 @@ name: "Class.Options"
 
 description: ""
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -1186,8 +1234,8 @@ atom.Class.Options = atom.Class({
 			this.options = atom.clone(this.options);
 		}
 
-		for (var a = arguments, i = 0, l = a.length; i < l;) {
-			atom.extend(this.options, a[i++]);
+		for (var a = arguments, i = 0, l = a.length; i < l; i++) {
+			if (typeof a[i] == 'object') atom.extend(this.options, a[i]);
 		}
 		var options = this.options;
 		
@@ -1208,7 +1256,9 @@ name: "Number"
 
 description: "Contains Number Prototypes like limit, round, times, and ceil."
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -1219,9 +1269,7 @@ provides: Number
 */
 
 new function () {
-
-'use strict';
-
+	
 atom.extend(Number, {
 	random : function (min, max) {
 		return Math.floor(Math.random() * (max - min + 1) + min);
@@ -1284,7 +1332,9 @@ name: "Array"
 
 description: "Contains Array Prototypes like include, contains, and erase."
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -1296,8 +1346,6 @@ provides: Array
 */
 
 new function (undefined) {
-'use strict';
-
 var slice = [].slice;
 
 atom.extend(Array, {
@@ -1333,7 +1381,9 @@ atom.extend(Array, {
 	},
 	collect: function (obj, props, Default) {
 		var array = [];
-		for (var i in props.toKeys()) array.push(i in obj ? obj[i] : Default);
+		for (var i = 0, l = props.length; i < l; i++) {
+			array.push(props[i] in obj ? obj[props[i]] : Default);
+		}
 		return array;
 	},
 	create: function (length, fn) {
@@ -1512,7 +1562,9 @@ name: "Function"
 
 description: "Contains Function Prototypes like context, periodical and delay."
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -1524,7 +1576,6 @@ provides: Function
 */
 
 new function () {
-'use strict';
 
 	var getContext = function (bind, self) {
 		return (bind === false || bind === Function.context) ? self : bind;
@@ -1591,7 +1642,9 @@ name: "Object"
 
 description: "Object generic methods"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -1718,7 +1771,9 @@ name: "String"
 
 description: "Contains String Prototypes like repeat, substitute, replaceAll and begins."
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 requires:
 	- atom
@@ -1729,8 +1784,6 @@ provides: String
 */
 
 new function () {
-
-'use strict';
 
 var substituteRE = /\\?\{([^{}]+)\}/g,
 	safeHtmlRE = /[<'&">]/g,
@@ -1804,7 +1857,9 @@ name: "Class.Mutators.Generators"
 
 description: "Provides Generators mutator"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1833,4 +1888,5 @@ atom.Class.Mutators.Generators = function(properties) {
 };
 
 };
- 
+
+})(); 

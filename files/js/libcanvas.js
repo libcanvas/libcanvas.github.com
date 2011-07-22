@@ -3,24 +3,44 @@
 
 name: "LibCanvas"
 
-description: "LibCanvas initialization"
+description: "LibCanvas - free javascript library, based on AtomJS framework."
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
-	- Anna Shurubey aka Nutochka <iamnutochka@gmail.com>
-	- Nikita Baksalyar <nikita@baksalyar.ru>
+
+...
+*/
+
+(function (atom, Math) { // LibCanvas
+
+'use strict';
+
+var undefined,
+	Class = atom.Class;
+/*
+---
+
+name: "LibCanvas"
+
+description: "LibCanvas initialization"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
 
 provides: LibCanvas
 
 ...
 */
 
-
-(function () {
-
-var LibCanvas = this.LibCanvas = atom.Class({
+var LibCanvas = this.LibCanvas = Class({
 	Static: {
 		Buffer: function (width, height, withCtx) {
 			var a = Array.pickFrom(arguments), zero = (width == null || width === true);
@@ -44,7 +64,7 @@ var LibCanvas = this.LibCanvas = atom.Class({
 			return canvas;
 		},
 		isLibCanvas: function (elem) {
-			return elem && elem instanceof LibCanvas.Canvas2D;
+			return elem && elem instanceof Canvas2D;
 		},
 		namespace: function (namespace) {
 			var current;
@@ -65,7 +85,7 @@ var LibCanvas = this.LibCanvas = atom.Class({
 					to[k] = LibCanvas[i][k];
 				}
 			}
-			for (i in {Point: 1, Animation: 1}) {
+			for (i in {Point: 1, Animation: 1, Processors: 1}) {
 				to[i] = LibCanvas[i];
 			}
 			return to;
@@ -73,19 +93,22 @@ var LibCanvas = this.LibCanvas = atom.Class({
 
 		get invoker () {
 			if (this._invoker == null) {
-				this._invoker = new LibCanvas.Invoker().invoke();
+				this._invoker = new Invoker().invoke();
 			}
 			return this._invoker;
 		}
 	},
 	initialize: function() {
-		return LibCanvas.Canvas2D.factory(arguments);
+		return Canvas2D.factory(arguments);
 	}
 });
 
 LibCanvas.namespace( 'Animation', 'Behaviors', 'Engines', 'Inner', 'Processors', 'Shapes', 'Ui', 'Utils' );
-	
-})();
+
+var
+	Inner      = LibCanvas.Inner,
+	Processors = LibCanvas.Processors,
+	Buffer     = LibCanvas.Buffer;
 
 /*
 ---
@@ -94,7 +117,9 @@ name: "Animation.Sprite"
 
 description: "Provides basic animation via sprites"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -107,8 +132,8 @@ provides: Animation.Sprite
 ...
 */
 
-LibCanvas.Animation.Sprite = atom.Class({
-	Implements: [atom.Class.Events],
+LibCanvas.Animation.Sprite = Class({
+	Implements: [Class.Events],
 	sprites : null,
 
 	initialize: function () {
@@ -256,7 +281,9 @@ name: "Invoker"
 
 description: "Invoker calles functions"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -269,10 +296,17 @@ provides: Invoker
 ...
 */
 
-LibCanvas.Invoker = atom.Class({
+var Invoker = LibCanvas.Invoker = Class({
+	Static: {
+		AutoChoose: Class({
+			get invoker () {
+				return 'libcanvas' in this ? this.libcanvas.invoker : LibCanvas.invoker;
+			}
+		})
+	},
 	Implements: [
-		atom.Class.Options,
-		atom.Class.Events
+		Class.Options,
+		Class.Events
 	],
 	options: {
 		fpsLimit : 60,
@@ -358,12 +392,6 @@ LibCanvas.Invoker = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Invoker]')
 });
 
-LibCanvas.Invoker.AutoChoose = atom.Class({
-	get invoker () {
-		return 'libcanvas' in this ? this.libcanvas.invoker : LibCanvas.invoker;
-	}
-});
-
 /*
 ---
 
@@ -371,7 +399,9 @@ name: "Inner.TimingFunctions"
 
 description: "Animated Timing Functions"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -387,11 +417,9 @@ inspiration:
 ...
 */
 
-new function () {
-
-var math = Math;
-
-var TF = LibCanvas.Inner.TimingFunctions = atom.Class({
+var TimingFunctions = LibCanvas.Inner.TimingFunctions = function () {
+	
+return Class({
 	Static: {
 		_instance: null,
 		get instance () {
@@ -436,31 +464,31 @@ var TF = LibCanvas.Inner.TimingFunctions = atom.Class({
 	},
 
 	pow: function(p, x){
-		return math.pow(p, x && x[0] || 6);
+		return Math.pow(p, x && x[0] || 6);
 	},
 
 	expo: function(p){
-		return math.pow(2, 8 * (p - 1));
+		return Math.pow(2, 8 * (p - 1));
 	},
 
 	circ: function(p){
-		return 1 - math.sin(math.acos(p));
+		return 1 - Math.sin(Math.acos(p));
 	},
 
 	sine: function(p){
-		return 1 - math.sin((1 - p) * math.PI / 2);
+		return 1 - Math.sin((1 - p) * Math.PI / 2);
 	},
 
 	back: function(p, x){
 		x = x && x[0] || 1.618;
-		return math.pow(p, 2) * ((x + 1) * p - x);
+		return Math.pow(p, 2) * ((x + 1) * p - x);
 	},
 
 	bounce: function(p){
 		var value;
 		for (var a = 0, b = 1; 1; a += b, b /= 2){
 			if (p >= (7 - 4 * a) / 11){
-				value = b * b - math.pow((11 - 6 * a - 11 * p) / 4, 2);
+				value = b * b - Math.pow((11 - 6 * a - 11 * p) / 4, 2);
 				break;
 			}
 		}
@@ -468,20 +496,18 @@ var TF = LibCanvas.Inner.TimingFunctions = atom.Class({
 	},
 
 	elastic: function(p, x){
-		return math.pow(2, 10 * --p) * math.cos(20 * p * math.PI * (x && x[0] || 1) / 3);
+		return Math.pow(2, 10 * --p) * Math.cos(20 * p * Math.PI * (x && x[0] || 1) / 3);
 	}
-});
-
-TF.implement(
+}).implement(
 	['quad', 'cubic', 'quart', 'quint']
 		.associate(function(name, i){
 			return function (p) {
-				return math.pow(p, [i + 2]);
+				return Math.pow(p, i + 2);
 			}
 		})
 );
 
-};
+}();
 
 /*
 ---
@@ -490,7 +516,9 @@ name: "Utils.Color"
 
 description: "Provides Color class"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -503,11 +531,7 @@ provides: Utils.Color
 ...
 */
 
-new function () {
-
-var math = Math;
-
-var Color = LibCanvas.Utils.Color = atom.Class({
+var Color = LibCanvas.Utils.Color = Class({
 	Static: {
 		invoke: function (color) {
 			if (color == null) return null;
@@ -620,10 +644,10 @@ var Color = LibCanvas.Utils.Color = atom.Class({
 	},
 	shift: function (array) {
 		var clone = this.clone();
-		clone.r += math.round(array[0]);
-		clone.g += math.round(array[1]);
-		clone.b += math.round(array[2]);
-		if (3 in array) clone.a += math.round(array[3]);
+		clone.r += Math.round(array[0]);
+		clone.g += Math.round(array[1]);
+		clone.b += Math.round(array[2]);
+		if (3 in array) clone.a += Math.round(array[3]);
 		return clone;
 	},
 	dump: function () {
@@ -634,8 +658,6 @@ var Color = LibCanvas.Utils.Color = atom.Class({
 	}
 });
 
-}();
-
 /*
 ---
 
@@ -643,7 +665,9 @@ name: "Behaviors.Animatable"
 
 description: "Basic abstract class for animatable objects."
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -659,15 +683,14 @@ provides: Behaviors.Animatable
 ...
 */
 
-(function (LibCanvas) {
+var Animatable = LibCanvas.Behaviors.Animatable = function () {
 
-var TF    = LibCanvas.Inner.TimingFunctions,
-	Color = LibCanvas.Utils.Color;
+var TF = TimingFunctions;
 
-LibCanvas.Behaviors.Animatable = atom.Class({
-	Implements: [LibCanvas.Invoker.AutoChoose],
+return Class({
+	Implements: [ Invoker.AutoChoose ],
 
-	initialize: atom.Class.hiddenMethod(function (element) {
+	initialize: Class.hiddenMethod(function (element) {
 		this['animate.element'] = element;
 		this['animate.func']    = atom.typeOf(element) == 'function';
 	}),
@@ -780,7 +803,7 @@ LibCanvas.Behaviors.Animatable = atom.Class({
 	}
 });
 
-})(LibCanvas);
+}();
 
 /*
 ---
@@ -789,7 +812,9 @@ name: "Geometry"
 
 description: "Base for such things as Point and Shape"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -802,8 +827,8 @@ provides: Geometry
 ...
 */
 
-LibCanvas.Geometry = atom.Class({
-	Implements: [atom.Class.Events],
+var Geometry = LibCanvas.Geometry = Class({
+	Implements: [Class.Events],
 	Static: {
 		invoke: function (obj) {
 			return (typeof obj == 'object' && obj[0] instanceof this) ? obj[0]
@@ -837,7 +862,9 @@ name: "Utils.Math"
 
 description: "Helpers for basic math operations, such as degree, hypotenuse from two cathetus, etc"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -848,69 +875,69 @@ provides: Utils.Math
 */
 
 // Number
-new function () {
+(function () {
 
 
-var degreesCache = {};
+	var degreesCache = {};
 
-atom.implement(Number, {
-	/**
-	 * Cast degrees to radians
-	 * (90).degree() == Math.PI/2
-	 */
-	degree: function () {
-		return this in degreesCache ? degreesCache[this] :
-			this * Math.PI / 180;
-	},
-	/**
-	 * Cast radians to degrees
-	 * (Math.PI/2).getDegree() == 90
-	 */
-	getDegree: function (round) {
-		return arguments.length == 0 ?
-			this / Math.PI * 180 :
-			this.getDegree().round(round);
-	},
-	normalizeAngle : function () {
-		var num  = this % d360;
-		return num < 0 ? num + d360 : num;
-	},
-	normalizeDegree : function (base) {
-		return this
-			.getDegree()
-			.round(base || 0)
-			.degree()
-			.normalizeAngle();
-	},
+	atom.implement(Number, {
+		/**
+		 * Cast degrees to radians
+		 * (90).degree() == Math.PI/2
+		 */
+		degree: function () {
+			return this in degreesCache ? degreesCache[this] :
+				this * Math.PI / 180;
+		},
+		/**
+		 * Cast radians to degrees
+		 * (Math.PI/2).getDegree() == 90
+		 */
+		getDegree: function (round) {
+			return arguments.length == 0 ?
+				this / Math.PI * 180 :
+				this.getDegree().round(round);
+		},
+		normalizeAngle : function () {
+			var num  = this % d360;
+			return num < 0 ? num + d360 : num;
+		},
+		normalizeDegree : function (base) {
+			return this
+				.getDegree()
+				.round(base || 0)
+				.degree()
+				.normalizeAngle();
+		},
 
-	toSeconds: function () {
-		return this / 1000;
-	},
-	toMinutes: function () {
-		return this / 60 / 1000;
-	},
-	toHours: function () {
-		return this / 60 / 60 / 1000;
-	},
+		toSeconds: function () {
+			return this / 1000;
+		},
+		toMinutes: function () {
+			return this / 60 / 1000;
+		},
+		toHours: function () {
+			return this / 60 / 60 / 1000;
+		},
 
-	seconds: function () {
-		return this * 1000;
-	},
-	minutes: function () {
-		return this * 60 * 1000;
-	},
-	hours: function () {
-		return this * 60 * 60 * 1000;
+		seconds: function () {
+			return this * 1000;
+		},
+		minutes: function () {
+			return this * 60 * 1000;
+		},
+		hours: function () {
+			return this * 60 * 60 * 1000;
+		}
+
+	});
+
+	for (var degree in [0, 45, 90, 135, 180, 225, 270, 315, 360].toKeys()) {
+		degreesCache[degree] = (degree * 1).degree();
 	}
+	var d360 = degreesCache[360];
 
-});
-
-for (var degree in [0, 45, 90, 135, 180, 225, 270, 315, 360].toKeys()) {
-	degreesCache[degree] = (degree * 1).degree();
-}
-var d360 = degreesCache[360];
-
-};
+})();
 
 atom.extend(Math, {
 	hypotenuse: function (cathetus1, cathetus2)  {
@@ -928,7 +955,9 @@ name: "Point"
 
 description: "A X/Y point coordinates encapsulating class"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -943,7 +972,7 @@ provides: Point
 ...
 */
 
-new function (undefined) {
+var Point = LibCanvas.Point = function () {
 
 var shifts = {
 	top    : {x: 0, y:-1},
@@ -960,8 +989,8 @@ var shifts = {
 	br     : {x: 1, y: 1}
 };
 
-var Point = LibCanvas.Point = atom.Class({
-	Extends: LibCanvas.Geometry,
+return Class({
+	Extends: Geometry,
 	set : function (x, y) {
 		var args = arguments;
 		if (atom.typeOf(x) == 'arguments') {
@@ -1086,7 +1115,7 @@ var Point = LibCanvas.Point = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Point]')
 });
 
-};
+}();
 
 /*
 ---
@@ -1095,7 +1124,9 @@ name: "Inner.MouseEvents"
 
 description: "Class which contains several basic mouse events "
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1109,7 +1140,7 @@ provides: Inner.MouseEvents
 ...
 */
 
-LibCanvas.Inner.MouseEvents = atom.Class({
+var MouseEvents = LibCanvas.Inner.MouseEvents = Class({
 	initialize : function (mouse) {
 		this.subscribers   = [];
 		this.lastMouseMove = [];
@@ -1205,7 +1236,9 @@ name: "Mouse"
 
 description: "A mouse control abstraction class"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1221,8 +1254,8 @@ provides: Mouse
 */
 
 
-LibCanvas.Mouse = atom.Class({
-	Implements: [ atom.Class.Events ],
+var Mouse = LibCanvas.Mouse = Class({
+	Implements: [ Class.Events ],
 	
 	Static: {
 		buttons: {
@@ -1254,12 +1287,12 @@ LibCanvas.Mouse = atom.Class({
 	
 	initialize : function (libcanvas) {
 		this.inCanvas = false;
-		this.point = new LibCanvas.Point(null, null);
+		this.point = new Point(null, null);
 
 		this.libcanvas = libcanvas;
 		this.elem      = libcanvas.wrapper;
 
-		this.events = new LibCanvas.Inner.MouseEvents(this);
+		this.events = new MouseEvents(this);
 
 		this.setEvents();
 	},
@@ -1319,10 +1352,10 @@ LibCanvas.Mouse = atom.Class({
 				y: 'pageY' in from ? from.pageY : from.clientY + document.scrollTop
 			};
 			if ('offsetX' in from) {
-				e.offset = new LibCanvas.Point(from.offsetX, from.offsetY);
+				e.offset = new Point(from.offsetX, from.offsetY);
 			} else {
 				var offset = this.createOffset(from.target);
-				e.offset = new LibCanvas.Point({
+				e.offset = new Point({
 					x: e.page.x - offset.left,
 					y: e.page.y - offset.top
 				});
@@ -1426,7 +1459,7 @@ LibCanvas.Mouse = atom.Class({
 		}
 	},
 	debug : function (on) {
-		this.debugTrace = on === false ? null : new LibCanvas.Utils.Trace();
+		this.debugTrace = on === false ? null : new Trace();
 		this.debugUpdate();
 		return this;
 	},
@@ -1447,7 +1480,9 @@ name: "Behaviors.MouseListener"
 
 description: "Canvas mouse listener"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1475,7 +1510,7 @@ events:
 */
 
 // Should extends LibCanvas.Behaviors.Drawable
-LibCanvas.Behaviors.MouseListener = atom.Class({
+var MouseListener = LibCanvas.Behaviors.MouseListener = Class({
 	listenMouse : function (stopListen) {
 		return this.addEvent('libcanvasSet', function () {
 			var command = stopListen ? "unsubscribe" : "subscribe";
@@ -1491,7 +1526,9 @@ name: "Behaviors.Clickable"
 
 description: "Provides interface for clickable canvas objects"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1505,7 +1542,7 @@ provides: Behaviors.Clickable
 ...
 */
 
-new function () {
+var Clickable = LibCanvas.Behaviors.Clickable = function () {
 
 var setValFn = function (object, name, val) {
 	return function () {
@@ -1515,8 +1552,8 @@ var setValFn = function (object, name, val) {
 };
 
 // Should extends drawable, implements mouseListener
-LibCanvas.Behaviors.Clickable = atom.Class({
-	Implements: [LibCanvas.Behaviors.MouseListener],
+return Class({
+	Implements: [ MouseListener ],
 
 	clickable : function () { 
 		this.listenMouse();
@@ -1532,7 +1569,7 @@ LibCanvas.Behaviors.Clickable = atom.Class({
 	}
 });
 
-};
+}();
 
 /*
 ---
@@ -1541,7 +1578,9 @@ name: "Behaviors.Draggable"
 
 description: "When object implements LibCanvas.Behaviors.Draggable interface dragging made possible"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1555,19 +1594,7 @@ provides: Behaviors.Draggable
 ...
 */
 
-new function () {
-
-LibCanvas.Behaviors.Draggable = atom.Class({
-	Extends: LibCanvas.Behaviors.MouseListener,
-
-	draggable : function (stopDrag) {
-		if (! ('draggable.isDraggable' in this) ) {
-			this.addEvent('libcanvasSet', initDraggable);
-		}
-		this['draggable.isDraggable'] = !stopDrag;
-		return this;
-	}
-});
+var Draggable = LibCanvas.Behaviors.Draggable = function () {
 
 var isDraggable = function (elem, started) {
 	return elem['draggable.isDraggable'] && (!started || elem['draggable.mouse']);
@@ -1611,7 +1638,19 @@ var initDraggable = function () {
 		});
 };
 
-};
+return Class({
+	Extends: MouseListener,
+
+	draggable : function (stopDrag) {
+		if (! ('draggable.isDraggable' in this) ) {
+			this.addEvent('libcanvasSet', initDraggable);
+		}
+		this['draggable.isDraggable'] = !stopDrag;
+		return this;
+	}
+});
+	
+}();
 
 /*
 ---
@@ -1620,7 +1659,9 @@ name: "Behaviors.Drawable"
 
 description: "Abstract class for drawable canvas objects"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1633,7 +1674,7 @@ provides: Behaviors.Drawable
 ...
 */
 
-new function () {
+var Drawable = LibCanvas.Behaviors.Drawable = function () {
 	
 var start = function () {
 	this.libcanvas.addElement(this);
@@ -1644,8 +1685,8 @@ var stop = function () {
 	return 'removeEvent';
 };
 
-LibCanvas.Behaviors.Drawable = atom.Class({
-	Implements: [atom.Class.Events],
+return Class({
+	Implements: [Class.Events],
 	libcanvasIsReady: false,
 	setLibcanvas : function (libcanvas) {
 		if (this.libcanvas) {
@@ -1696,11 +1737,11 @@ LibCanvas.Behaviors.Drawable = atom.Class({
 		  .removeEvent('libcanvasSet', start)
 		     .addEvent('libcanvasSet', stop);
 	},
-	update : atom.Class.abstractMethod,
-	draw   : atom.Class.abstractMethod
+	update : Class.abstractMethod,
+	draw   : Class.abstractMethod
 });
 
-};
+}();
 
 /*
 ---
@@ -1709,7 +1750,9 @@ name: "Behaviors.DrawableSprite"
 
 description: "Abstract class for drawable canvas sprites"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1723,8 +1766,8 @@ provides: Behaviors.DrawableSprite
 ...
 */
 
-LibCanvas.Behaviors.DrawableSprite = atom.Class({
-	Extends: LibCanvas.Behaviors.Drawable,
+var DrawableSprite = LibCanvas.Behaviors.DrawableSprite = Class({
+	Extends: Drawable,
 
 	draw: function () {
 		this.libcanvas.ctx.drawImage( this.sprite, this.shape );
@@ -1739,7 +1782,9 @@ name: "Behaviors.Droppable"
 
 description: "Abstract class for droppable canvas objects"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1754,7 +1799,7 @@ provides: Behaviors.Droppable
 ...
 */
 
-LibCanvas.Behaviors.Droppable = atom.Class({
+var Droppable = LibCanvas.Behaviors.Droppable = Class({
 	drops : null,
 	drop : function (obj) {
 		if (this.drops === null) {
@@ -1789,7 +1834,9 @@ name: "Behaviors.Linkable"
 
 description: "Made possible link between two canvas objects"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1802,7 +1849,7 @@ provides: Behaviors.Linkable
 ...
 */
 
-LibCanvas.Behaviors.Linkable = atom.Class({
+var Linkable = LibCanvas.Behaviors.Linkable = Class({
 	links : null,
 	moveLinks : function (move) {
 		(this.links || []).forEach(function (elem) {
@@ -1837,7 +1884,9 @@ name: "Behaviors.Moveable"
 
 description: "Provides interface for moveable objects"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1850,7 +1899,7 @@ provides: Behaviors.Moveable
 
 ...
 */
-LibCanvas.Behaviors.Moveable = atom.Class({
+var Moveable = LibCanvas.Behaviors.Moveable = Class({
 	stopMoving : function () {
 		var anim = this['moveTo.animation'];
 		if (anim) anim.stop();
@@ -1858,7 +1907,7 @@ LibCanvas.Behaviors.Moveable = atom.Class({
 	},
 	moveTo    : function (point, speed, fn) { // speed == pixels per sec
 		this.stopMoving();
-		point = LibCanvas.Point(point);
+		point = Point(point);
 		var diff = this.getCoords().diff(point), shape = this.getShape();
 		if (!speed) {
 			shape.move(diff);
@@ -1867,7 +1916,7 @@ LibCanvas.Behaviors.Moveable = atom.Class({
 		}
 		var distance = Math.hypotenuse(diff.x, diff.y), prev = 0;
 
-		this['moveTo.animation'] = new LibCanvas.Behaviors.Animatable(function (change) {
+		this['moveTo.animation'] = new Animatable(function (change) {
 			shape.move({
 				x : diff.x * (change - prev),
 				y : diff.y * (change - prev)
@@ -1892,7 +1941,9 @@ name: "Utils.Trace"
 
 description: "Useful tool which provides windows with user-defined debug information"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -1905,9 +1956,7 @@ provides: Utils.Trace
 ...
 */
 
-new function () {
-
-var Trace = LibCanvas.Utils.Trace = atom.Class({
+var Trace = LibCanvas.Utils.Trace = Class({
 	Static: {
 		dumpRec : function (obj, level, plain) {
 			level  = parseInt(level) || 0;
@@ -2056,17 +2105,17 @@ var Trace = LibCanvas.Utils.Trace = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Utils.Trace]')
 });
 
-window.trace = function (msg) {
-	var L = arguments.length;
-	if (L > 0) {
-		if (L > 1) msg = atom.toArray(arguments);
-		return new Trace(msg);
-	} else {
-		return new Trace();
-	}
-};
-
-}();
+try {
+	window.trace = function (msg) {
+		var L = arguments.length;
+		if (L > 0) {
+			if (L > 1) msg = atom.toArray(arguments);
+			return new Trace(msg);
+		} else {
+			return new Trace();
+		}
+	};
+} catch (ignored) {}
 
 /*
 ---
@@ -2075,7 +2124,9 @@ name: "Inner.FrameRenderer"
 
 description: "Private class for inner usage in LibCanvas.Canvas2D"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -2090,7 +2141,7 @@ provides: Inner.FrameRenderer
 ...
 */
 
-LibCanvas.Inner.FrameRenderer = atom.Class({
+var FrameRenderer = LibCanvas.Inner.FrameRenderer = Class({
 	checkAutoDraw : function () {
 		if (!this._freezed && this.updateFrame) {
 			this.updateFrame = false;
@@ -2173,7 +2224,9 @@ name: "Utils.FpsMeter"
 
 description: "Provides FPS indicator"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -2187,9 +2240,9 @@ provides: Utils.FpsMeter
 ...
 */
 
-LibCanvas.Utils.FpsMeter = atom.Class({
+var FpsMeter = LibCanvas.Utils.FpsMeter = Class({
 	initialize : function (framesMax) {
-		this.trace = new LibCanvas.Utils.Trace();
+		this.trace = new Trace();
 		this.genTime   = [];
 		this.prevTime  = null;
 		this.framesMax = framesMax;
@@ -2225,7 +2278,9 @@ name: "Inner.FpsMeter"
 
 description: "Constantly calculates frames per seconds rate"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -2238,9 +2293,9 @@ provides: Inner.FpsMeter
 
 ...
 */
-LibCanvas.Inner.FpsMeter = atom.Class({
+LibCanvas.Inner.FpsMeter = Class({
 	fpsMeter : function (frames) {
-		var fpsMeter = new LibCanvas.Utils.FpsMeter(frames || (this.fps ? this.fps / 2 : 10));
+		var fpsMeter = new FpsMeter(frames || (this.fps ? this.fps / 2 : 10));
 		return this.addEvent('frameRenderStarted', function () {
 			fpsMeter.frame();
 		});
@@ -2254,7 +2309,9 @@ name: "Shape"
 
 description: "Abstract class LibCanvas.Shape defines interface for drawable canvas objects"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -2269,11 +2326,11 @@ provides: Shape
 ...
 */
 
-LibCanvas.Shape = atom.Class({
-	Extends : LibCanvas.Geometry,
-	set        : atom.Class.abstractMethod,
-	hasPoint   : atom.Class.abstractMethod,
-	processPath: atom.Class.abstractMethod,
+var Shape = LibCanvas.Shape = Class({
+	Extends    : Geometry,
+	set        : Class.abstractMethod,
+	hasPoint   : Class.abstractMethod,
+	processPath: Class.abstractMethod,
 	draw : function (ctx, type) {
 		this.processPath(ctx)[type]();
 		return this;
@@ -2295,13 +2352,13 @@ LibCanvas.Shape = atom.Class({
 		return this.move({ x : 0, y : y - this.y });
 	},
 	get bottomLeft () {
-		return new LibCanvas.Point(this.from.x, this.to.y);
+		return new Point(this.from.x, this.to.y);
 	},
 	get topRight () {
-		return new LibCanvas.Point(this.to.x, this.from.y);
+		return new Point(this.to.x, this.from.y);
 	},
 	get center () {
-		return new LibCanvas.Point(
+		return new Point(
 			(this.from.x + this.to.x) / 2,
 			(this.from.y + this.to.y) / 2
 		);
@@ -2340,7 +2397,9 @@ name: "Shapes.Rectangle"
 
 description: "Provides rectangle as canvas object"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -2355,14 +2414,12 @@ provides: Shapes.Rectangle
 ...
 */
 
-new function () {
+var Rectangle = LibCanvas.Shapes.Rectangle = new function () {
 
-var Point  = LibCanvas.Point,
-	math   = Math,
-	random = Number.random,
+var random = Number.random;
 
-Rectangle = LibCanvas.Shapes.Rectangle = atom.Class({
-	Extends: LibCanvas.Shape,
+return Class({
+	Extends: Shape,
 	set : function () {
 		var a = Array.pickFrom(arguments);
 
@@ -2444,11 +2501,11 @@ Rectangle = LibCanvas.Shapes.Rectangle = atom.Class({
 		point   = Point(arguments);
 		padding = padding || 0;
 		return point.x != null && point.y != null
-			&& point.x.between(math.min(this.from.x, this.to.x) + padding, math.max(this.from.x, this.to.x) - padding, 1)
-			&& point.y.between(math.min(this.from.y, this.to.y) + padding, math.max(this.from.y, this.to.y) - padding, 1);
+			&& point.x.between(Math.min(this.from.x, this.to.x) + padding, Math.max(this.from.x, this.to.x) - padding, 1)
+			&& point.y.between(Math.min(this.from.y, this.to.y) + padding, Math.max(this.from.y, this.to.y) - padding, 1);
 	},
 	moveTo: function (rect) {
-		if (rect instanceof LibCanvas.Point) {
+		if (rect instanceof Point) {
 			var diff = this.from.diff(rect);
 			this.from.move(diff);
 			this.  to.move(diff);
@@ -2462,8 +2519,8 @@ Rectangle = LibCanvas.Shapes.Rectangle = atom.Class({
 	draw : function (ctx, type) {
 		// fixed Opera bug - cant drawing rectangle with width or height below zero
 		ctx.original(type + 'Rect', [
-			math.min(this.from.x, this.to.x),
-			math.min(this.from.y, this.to.y),
+			Math.min(this.from.x, this.to.x),
+			Math.min(this.from.y, this.to.y),
 			this.width .abs(),
 			this.height.abs()
 		]);
@@ -2510,14 +2567,14 @@ Rectangle = LibCanvas.Shapes.Rectangle = atom.Class({
 		return this.parent('Rectangle');
 	},
 	toPolygon: function () {
-		return new LibCanvas.Shapes.Polygon(
+		return new Polygon(
 			this.from.clone(), this.topRight, this.to.clone(), this.bottomLeft
 		);
 	},
 	toString: Function.lambda('[object LibCanvas.Shapes.Rectangle]')
 });
 
-};
+}();
 
 /*
 ---
@@ -2526,7 +2583,9 @@ name: "Utils.ImagePreloader"
 
 description: "Provides images preloader"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -2540,8 +2599,8 @@ provides: Utils.ImagePreloader
 ...
 */
 
-LibCanvas.Utils.ImagePreloader = atom.Class({
-	Implements: [atom.Class.Events],
+var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
+	Implements: [Class.Events],
 	processed : 0,
 	number: 0,
 	initialize: function (images) {
@@ -2604,7 +2663,9 @@ name: "Shapes.Polygon"
 
 description: "Provides user-defined concave polygon as canvas object"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -2618,8 +2679,8 @@ provides: Shapes.Polygon
 
 ...
 */
-new function (){
 
+var Polygon = LibCanvas.Shapes.Polygon = function (){
 
 var linesIntersect = function (a,b,c,d) {
 	var x,y;
@@ -2640,15 +2701,13 @@ var linesIntersect = function (a,b,c,d) {
 		&& (y.between(c.y, d.y, 'LR') || y.between(d.y, c.y, 'LR'));
 };
 
-var Point = LibCanvas.Point;
-
-LibCanvas.Shapes.Polygon = atom.Class({
-	Extends: LibCanvas.Shape,
+return Class({
+	Extends: Shape,
 	initialize: function () {
 		this.points = [];
 		this.parent.apply(this, arguments);
 	},
-	set : function () {
+	set : function (poly) {
 		this.points.empty().append(
 			Array.pickFrom(arguments)
 				.map(function (elem) {
@@ -2730,7 +2789,7 @@ LibCanvas.Shapes.Polygon = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Shapes.Polygon]')
 });
 
-};
+}();
 
 /*
 ---
@@ -2739,7 +2798,9 @@ name: "Utils.ProgressBar"
 
 description: "Easy way to draw progress bar"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -2757,15 +2818,8 @@ provides: Utils.ProgressBar
 ...
 */
 
-(function (LibCanvas) {
-
-var Buffer    = LibCanvas.Buffer,
-	Rectangle = LibCanvas.Shapes.Rectangle,
-	Polygon   = LibCanvas.Shapes.Polygon,
-	Point     = LibCanvas.Point;
-
-LibCanvas.Utils.ProgressBar = atom.Class({
-	Implements: [LibCanvas.Behaviors.Animatable],
+var ProgressBar = LibCanvas.Utils.ProgressBar = Class({
+	Implements: [ Animatable ],
 	initialize : function () {
 		this.coord = new Point(0,0);
 		this.progress = 0;
@@ -2883,8 +2937,6 @@ LibCanvas.Utils.ProgressBar = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Utils.ProgressBar]')
 });
 
-})(LibCanvas);
-
 /*
 ---
 
@@ -2892,7 +2944,9 @@ name: "Inner.DownloadingProgress"
 
 description: "Counting assets downloading progress"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -2906,7 +2960,7 @@ provides: Inner.DownloadingProgress
 
 ...
 */
-LibCanvas.Inner.DownloadingProgress = atom.Class({
+var DownloadingProgress = LibCanvas.Inner.DownloadingProgress = Class({
 	getImage : function (name) {
 		if (this.parentLayer) return this.parentLayer.getImage(name);
 		
@@ -2929,7 +2983,7 @@ LibCanvas.Inner.DownloadingProgress = atom.Class({
 		if (this.parentLayer) return;
 		
 		if (this.options.progressBarStyle && !this.progressBar) {
-			this.progressBar = new LibCanvas.Utils.ProgressBar()
+			this.progressBar = new ProgressBar()
 				.setStyle(this.options.progressBarStyle);
 		}
 		if (this.progressBar) {
@@ -2951,13 +3005,13 @@ LibCanvas.Inner.DownloadingProgress = atom.Class({
 			}
 			
 			if (this.options.preloadAudio) {
-				this._audio = new LibCanvas.Utils.AudioContainer(this.options.preloadAudio);
+				this._audio = new AudioContainer(this.options.preloadAudio);
 			} else {
 				this._audio = null;
 			}
 
 			if (this.options.preloadImages) {
-				this.imagePreloader = new LibCanvas.Utils.ImagePreloader(this.options.preloadImages)
+				this.imagePreloader = new ImagePreloader(this.options.preloadImages)
 					.addEvent('ready', function (preloader) {
 						this.images = preloader.images;
 						atom.log(preloader.getInfo());
@@ -2989,7 +3043,9 @@ name: "Canvas2D"
 
 description: "LibCanvas.Canvas2D wraps around native <canvas>."
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -3006,14 +3062,11 @@ provides: Canvas2D
 ...
 */
 
-LibCanvas.Canvas2D = atom.Class({
+var Canvas2D = LibCanvas.Canvas2D = Class({
 	Extends: LibCanvas,
 	Implements: [
-		LibCanvas.Inner.FrameRenderer,
-		LibCanvas.Inner.FpsMeter,
-		LibCanvas.Inner.DownloadingProgress,
-		atom.Class.Events,
-		atom.Class.Options
+		FrameRenderer,Inner.FpsMeter, DownloadingProgress,
+		Class.Events, Class.Options
 	],
 
 	Generators: {
@@ -3047,7 +3100,7 @@ LibCanvas.Canvas2D = atom.Class({
 				.appendTo(this.wrapper);
 		},
 		invoker: function () {
-			return new LibCanvas.Invoker({
+			return new Invoker({
 				context: this,
 				defaultPriority: 10,
 				fpsLimit: this.options.fps
@@ -3166,7 +3219,7 @@ LibCanvas.Canvas2D = atom.Class({
 		return this;
 	},
 
-	createProjectBuffer: atom.Class.protectedMethod(function () {
+	createProjectBuffer: Class.protectedMethod(function () {
 		if (this.options.backBuffer == 'off') {
 			this.elem = this.origElem;
 			this.ctx  = this.origCtx;
@@ -3177,11 +3230,11 @@ LibCanvas.Canvas2D = atom.Class({
 		return this;
 	}),
 
-	addClearer: atom.Class.protectedMethod(function () {
+	addClearer: Class.protectedMethod(function () {
 		var clear = this.options.clear;
 		if (clear) {
 			this.addProcessor('pre',
-				new LibCanvas.Processors.Clearer(
+				new Processors.Clearer(
 					typeof clear === 'string' ? clear : null
 				)
 			);
@@ -3200,7 +3253,7 @@ LibCanvas.Canvas2D = atom.Class({
 	},
 	listenMouse : function (elem) {
 		this._mouse = LibCanvas.isLibCanvas(elem) ? elem.mouse
-			: new LibCanvas.Mouse(this, /* preventDefault */elem);
+			: new Mouse(this, /* preventDefault */elem);
 		return this;
 	},
 	getKey : function (key) {
@@ -3208,17 +3261,17 @@ LibCanvas.Canvas2D = atom.Class({
 	},
 	listenKeyboard : function (elem) {
 		this._keyboard = LibCanvas.isLibCanvas(elem) ? elem.keyboard
-			: new LibCanvas.Keyboard(/* preventDefault */elem);
+			: new Keyboard(/* preventDefault */elem);
 		return this;
 	},
 	createBuffer : function (width, height) {
-		return LibCanvas.Buffer.apply(LibCanvas,
+		return Buffer.apply(LibCanvas,
 			arguments.length ? arguments :
 				Array.collect(this.origElem, ['width', 'height'])
 		);
 	},
 	createShaper : function (options) {
-		var shaper = new LibCanvas.Ui.Shaper(this, options);
+		var shaper = new Shaper(this, options);
 		this.addElement(shaper);
 		return shaper;
 	},
@@ -3243,6 +3296,10 @@ LibCanvas.Canvas2D = atom.Class({
 	},
 	rmElement : function (elem) {
 		this.elems.erase(elem);
+		return this;
+	},
+	rmAllElements: function () {
+		this.elems.empty();
 		return this;
 	},
 
@@ -3309,7 +3366,7 @@ LibCanvas.Canvas2D = atom.Class({
 			z = null;
 		}
 		options = atom.extend({ name: name }, options || {});
-		var layer = this._layers[name] = new LibCanvas.Layer(this, this.options, options);
+		var layer = this._layers[name] = new Layer(this, this.options, options);
 		layer._layers = this._layers;
 		layer.zIndex  = z;
 		layer.origElem.atom.attr({ 'data-layer-name': name });
@@ -3387,7 +3444,9 @@ name: "Shapes.Circle"
 
 description: "Provides circle as canvas object"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -3402,12 +3461,8 @@ provides: Shapes.Circle
 ...
 */
 
-new function () {
-
-var Point = LibCanvas.Point;
-	
-LibCanvas.Shapes.Circle = atom.Class({
-	Extends: LibCanvas.Shape,
+var Circle = LibCanvas.Shapes.Circle = Class({
+	Extends: Shape,
 	set : function () {
 		var a = Array.pickFrom(arguments);
 
@@ -3488,8 +3543,6 @@ LibCanvas.Shapes.Circle = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Shapes.Circle]')
 });
 
-}();
-
 /*
 ---
 
@@ -3497,7 +3550,9 @@ name: "Utils.Canvas"
 
 description: "Provides some Canvas extensions"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -3551,7 +3606,9 @@ name: "Context2D"
 
 description: "LibCanvas.Context2D adds new canvas context '2d-libcanvas'"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -3568,13 +3625,7 @@ provides: Context2D
 ...
 */
 
-(function (LibCanvas) {
-
-var Point  = LibCanvas.Point,
-    Shapes = LibCanvas.namespace('Shapes'),
-    Circle = Shapes.Circle,
-    Rectangle = Shapes.Rectangle;
-
+var Context2D = LibCanvas.Context2D = function () {
 
 var office = {
 	all : function (type, style) {
@@ -3593,7 +3644,7 @@ var office = {
 		return args.length ? Rectangle(args) : this.rectangle;
 	},
 	fillStroke : function (type, args) {
-		if (args.length >= 1 && args[0] instanceof LibCanvas.Shape) {
+		if (args.length >= 1 && args[0] instanceof Shape) {
 			if (args[1]) this.save().set(type + 'Style', args[1]);
 			args[0].draw(this, type);
 			if (args[1]) this.restore();
@@ -3630,8 +3681,8 @@ var accessors = {};
 	})
 });
 	
-LibCanvas.Context2D = atom.Class({
-	Implements: [atom.Class(accessors)],
+var Context2D = Class({
+	Implements: [Class(accessors)],
 
 	initialize : function (canvas) {
 		if (canvas instanceof CanvasRenderingContext2D) {
@@ -3646,7 +3697,19 @@ LibCanvas.Context2D = atom.Class({
 	get height() { return this.canvas.height; },
 	set width (width)  { this.canvas.width  = width; },
 	set height(height) { this.canvas.height = height;},
-
+				 
+	get shadow () {
+		return [this.shadowOffsetX, this.shadowOffsetY, this.shadowBlur, this.shadowColor].join( ' ' );
+	},
+	
+	set shadow (value) {
+		value = value.join( ' ' );
+		this.shadowOffsetX = value[0];
+		this.shadowOffsetY = value[1];
+		this.shadowBlur    = value[2];
+		this.shadowColor   = value[3];
+	},
+	
 	_rectangle: null,
 	get rectangle () {
 		var rect = this._rectangle;
@@ -3679,7 +3742,7 @@ LibCanvas.Context2D = atom.Class({
 		var args = [canvas, 0, 0];
 		if (resize) args.push(width, height);
 
-		var clone = LibCanvas.Buffer(width, height, true);
+		var clone = Buffer(width, height, true);
 		clone.ctx.original('drawImage', args);
 		return clone;
 	},
@@ -3891,7 +3954,7 @@ LibCanvas.Context2D = atom.Class({
 	text : function (cfg) {
 		if (!this.ctx2d.fillText) return this;
 		
-		cfg = atom.extend({
+		cfg = atom.append({
 			text   : '',
 			color  : null, /* @color */
 			wrap   : 'normal', /* no|normal */
@@ -3905,6 +3968,7 @@ LibCanvas.Context2D = atom.Class({
 			overflow   : 'visible', /* hidden|visible */
 			padding : [0,0]
 		}, cfg);
+		
 		this.save();
 		if (atom.typeOf(cfg.padding) == 'number') {
 			cfg.padding = [cfg.padding, cfg.padding];
@@ -3919,7 +3983,7 @@ LibCanvas.Context2D = atom.Class({
 				family : cfg.family
 			})
 		);
-		if (cfg.color) this.set('fillStyle', cfg.color);
+		if (cfg.color) this.set({ fillStyle: cfg.color });
 		if (cfg.overflow == 'hidden') this.clip(to);
 		
 		var xGet = function (lineWidth) {
@@ -3929,18 +3993,22 @@ LibCanvas.Context2D = atom.Class({
 			           to.from.x + (to.width - lineWidth)/2;
 		};
 		var x, lines = String(cfg.text).split('\n');
-		var measure = function (text) {
-			return this.measureText(text).width;
-		}.context(this);
+		
+		var measure = function (text) { return this.measureText(text).width; }.bind(this);
 		if (cfg.wrap == 'no') {
 			lines.forEach(function (line, i) {
 				if (!line) return;
-				this.fillText(line, xGet(cfg.align == 'left' ? 0 : this.measureText(line).width), to.from.y + (i+1)*lh);
-			}.context(this));
+				
+				this.fillText(line, xGet(cfg.align == 'left' ? 0 : measure(line)), to.from.y + (i+1)*lh);
+			}.bind(this));
 		} else {
 			var lNum = 0;
 			lines.forEach(function (line) {
-				if (!line) return;
+				if (!line) {
+					lNum++;
+					return;
+				}
+				
 				var words = line.match(/.+?(\s|$)/g);
 				var L  = '';
 				var Lw = 0;
@@ -3949,7 +4017,7 @@ LibCanvas.Context2D = atom.Class({
 					if (!last) {
 						var text = words[i];
 						// @todo too slow. 2-4ms for 50words
-						var wordWidth = this.measureText(text).width;
+						var wordWidth = measure(text);
 						if (!Lw || Lw + wordWidth < to.width) {
 							Lw += wordWidth;
 							L  += text;
@@ -3972,7 +4040,7 @@ LibCanvas.Context2D = atom.Class({
 					L  = '';
 					Lw = 0;
 				}
-			}.context(this));
+			}.bind(this));
 			
 		}
 		return this.restore();
@@ -4060,12 +4128,13 @@ LibCanvas.Context2D = atom.Class({
 		}
 		return this.restore();
 	},
+
 	projectiveImage : function (arg) {
 		// test
-		new LibCanvas.Inner.ProjectiveTexture(arg.image)
+		new ProjectiveTexture(arg.image)
 			.setContext(this.ctx2d)
 			.setQuality(arg.patchSize, arg.limit)
-			.render(new Shapes.Polygon(Array.collect(arg, [0, 1, 3, 2])));
+			.render( arg.to );
 		return this;
 	},
 
@@ -4133,6 +4202,21 @@ LibCanvas.Context2D = atom.Class({
 		}
 		return result;
 	},
+	createGradient: function (from, to, colors) {
+		var gradient;
+		if ( from instanceof Rectangle ) {
+			colors   = to;
+			gradient = this.createLinearGradient( from );
+		} else if (from instanceof Circle) {
+			gradient = this.createRadialGradient( from, to );
+		} else if (from instanceof Point) {
+			gradient = this.createLinearGradient( from, to, colors );
+		} else {
+			throw new Error('Unknown arguments');
+		}
+		if (typeof colors == 'object') gradient.addColorStop( colors );
+		return gradient;
+	},
 	createLinearGradient : function (from, to) {
 		var a = arguments;
 		if (a.length != 4) {
@@ -4177,10 +4261,8 @@ LibCanvas.Context2D = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Context2D]')
 	// Such moz* methods wasn't duplicated:
 	// mozTextStyle, mozDrawText, mozMeasureText, mozPathText, mozTextAlongPath
-
-	// is this just properties , that can be used by set ?
-	// shadowOffsetX shadowOffsetY shadowBlur shadowColor
 });
+
 var addColorStop = function () {
 	var orig = document
 		.createElement('canvas')
@@ -4200,16 +4282,18 @@ var addColorStop = function () {
 	};
 }();
 
+
 var fixGradient = function (grad) {
 	grad.addColorStop = addColorStop;
 	return grad;
 };
 
-LibCanvas.Context2D.office = office;
+Context2D.office = office;
 
-HTMLCanvasElement.addContext('2d-libcanvas', LibCanvas.Context2D);
+HTMLCanvasElement.addContext('2d-libcanvas', Context2D);
 
-})(LibCanvas);
+return Context2D;
+}();
 
 /*
 ---
@@ -4218,7 +4302,9 @@ name: "EC"
 
 description: ""
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Artem Smirnov <art543484@ya.ru>"
@@ -4239,10 +4325,6 @@ new function () {
 /*
 	The following text contains bad code and due to it's code it should not be readed by ANYONE!
 */
-
-var Color = LibCanvas.Utils.Color, 
-	TimingFunctions = LibCanvas.Inner.TimingFunctions,
-	Point = LibCanvas.Point;
 
 var EC = {};
 EC.color = function (color) {
@@ -4362,31 +4444,26 @@ LibCanvas.Context2D.implement({
 			p = EC.getPoints(prevPos, pos, width, c);
 						
 			if (t >= step) {
-				if (Math.abs(p[2] - prevP[2]) > 0.3) {
-						this
-							.save()
-							
-							.beginPath()
-								.moveTo( prevP[0] )
-								.arc ( prevP[0].clone().scale(0.5, p[0]).x , prevP[0].clone().scale(0.5, p[0]).y , width, 0, Math.PI*2, false )
-								.lineTo( p[1] )
-								.arc ( prevP[1].clone().scale(0.5, p[1]).x , prevP[1].clone().scale(0.5, p[1]).y , width, 0, Math.PI*2, false )
-								.clip()
-							
-							.set('globalCompositeOperation', 'destination-over')
-							.set('lineWidth',width*2)
-							.beginPath(obj.from)
-								.curveTo(obj)
-								.stroke(color)
-						
-							.restore()
-						
-							.beginPath(prevP[0])
-								.lineTo(prevP[1])
-								.lineTo(p[0])
-								.lineTo(p[1])
-								.stroke(color);
-							
+				this.save();
+				if (Math.abs(p[2] - prevP[2]) > 0.3 && !obj.inverted) {
+					this
+						.beginPath( prevP[0] )
+							.arc ( prevP[0].clone().scale(0.5, p[0]).x , prevP[0].clone().scale(0.5, p[0]).y , width, 0, Math.PI*2, false )
+							.lineTo( p[1] )
+							.arc ( prevP[1].clone().scale(0.5, p[1]).x , prevP[1].clone().scale(0.5, p[1]).y , width, 0, Math.PI*2, false )
+							.clip()
+
+						.set('globalCompositeOperation', 'destination-over')
+						.set('lineWidth',width*2)
+						.beginPath(obj.from)
+							.curveTo(obj)
+							.stroke(color)
+
+						.beginPath(prevP[0])
+							.lineTo(prevP[1])
+							.lineTo(p[0])
+							.lineTo(p[1])
+							.stroke(color);
 				} else {
 					this.lineWidth = 1;
 					this
@@ -4397,8 +4474,7 @@ LibCanvas.Context2D.implement({
 						.fill(color)
 						.stroke(color);
 				}
-				this
-					
+				this.restore();
 			}
 			prevP   = p;
 			prevPos = pos;
@@ -4416,7 +4492,9 @@ name: "Keyboard"
 
 description: "A keyboard control abstraction class"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -4429,10 +4507,10 @@ provides: Keyboard
 ...
 */
 
-new function () {
+var Keyboard = LibCanvas.Keyboard = function () {
 
-var Keyboard = LibCanvas.Keyboard = atom.Class({
-	Implements: [atom.Class.Events],
+var Keyboard = Class({
+	Implements: [Class.Events],
 	Static: {
 		keyCodes : {
 			// Alphabet
@@ -4535,7 +4613,7 @@ var Keyboard = LibCanvas.Keyboard = atom.Class({
 		return this;
 	},
 	debug : function (on) {
-		this._debugTrace = on === false ? null : new LibCanvas.Utils.Trace();
+		this._debugTrace = on === false ? null : new Trace();
 		this.debugUpdate();
 		return this;
 	},
@@ -4544,7 +4622,8 @@ var Keyboard = LibCanvas.Keyboard = atom.Class({
 
 Keyboard.extend({ codeNames: Object.invert(Keyboard.keyCodes) });
 
-};
+return Keyboard;
+}();
 
 
 /*
@@ -4554,7 +4633,9 @@ name: "Layer"
 
 description: "Layer"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -4568,7 +4649,7 @@ provides: Layer
 ...
 */
 
-new function () {
+var Layer = LibCanvas.Layer = function () {
 	
 var callParent = function (method) {
 	return function () {
@@ -4577,8 +4658,8 @@ var callParent = function (method) {
 	};
 };
 
-LibCanvas.Layer = atom.Class({
-	Extends: LibCanvas.Canvas2D,
+return Class({
+	Extends: Canvas2D,
 
 	Generators: {
 		mouse: function () {
@@ -4612,7 +4693,7 @@ LibCanvas.Layer = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Layer]')
 });
 
-};
+}();
 
 /*
 ---
@@ -4621,7 +4702,9 @@ name: "Engines.Tile"
 
 description: "Helper for building tile maps (e.g. for Tetris or ur's favorite Dune II - http://en.wikipedia.org/wiki/Tile_engine)"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -4638,11 +4721,9 @@ provides: Engines.Tile
 ...
 */
 
-LibCanvas.Engines.Tile = atom.Class({
-	Implements: [
-		LibCanvas.Behaviors.Drawable,
-		atom.Class.Events
-	],
+LibCanvas.Engines.Tile = Class({
+	Implements: [ Drawable, Class.Events ],
+
 	first : true,
 
 	cellWidth  : 0,
@@ -4733,7 +4814,7 @@ LibCanvas.Engines.Tile = atom.Class({
 	getRect : function (cell) {
 		if (!this.rects['0.0']) this.each(function (cell) {
 			var index = cell.x + '.' + cell.y;
-			this.rects[index] = new LibCanvas.Shapes.Rectangle({
+			this.rects[index] = new Rectangle({
 				from : [
 					(this.cellWidth  + this.margin) * cell.x,
 					(this.cellHeight + this.margin) * cell.y
@@ -4744,7 +4825,7 @@ LibCanvas.Engines.Tile = atom.Class({
 		return this.rects[cell.x + '.' + cell.y];
 	},
 	getCell : function (point) {
-		point = LibCanvas.Point(arguments);
+		point = Point(arguments);
 		var x = parseInt(point.x / (this.cellWidth  + this.margin)),
 			y = parseInt(point.y / (this.cellHeight + this.margin)),
 			row = this.matrix[y];
@@ -4800,7 +4881,9 @@ name: "Inner.ProjectiveTexture"
 
 description: "Provides testing projective textures rendering (more info: http://acko.net/files/projective/index.html)"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -4810,12 +4893,15 @@ requires:
 
 provides: Inner.ProjectiveTexture
 
+source: "http://acko.net/blog/projective-texturing-with-canvas"
+
 ...
 */
 
-new function () {
+var ProjectiveTexture = LibCanvas.Inner.ProjectiveTexture = function () {
 
-LibCanvas.Inner.ProjectiveTexture = atom.Class({
+
+var ProjectiveTexture = Class({
 	initialize : function (image) {
 		if (typeof image == 'string') {
 			this.image = new Image;
@@ -4835,7 +4921,16 @@ LibCanvas.Inner.ProjectiveTexture = atom.Class({
 		this.ctx = ctx;
 		return this;
 	},
-	render : function (points) {
+	render : function (polygon) {
+
+		var points = polygon.points;
+		points = [
+			[points[0].x, points[0].y],
+			[points[1].x, points[1].y],
+			[points[3].x, points[3].y],
+			[points[2].x, points[2].y]
+		];
+		
 		var tr = getProjectiveTransform(points);
 
 		// Begin subdivision process.
@@ -4845,9 +4940,8 @@ LibCanvas.Inner.ProjectiveTexture = atom.Class({
 		var pbr = tr.transformProjectiveVector([1, 1, 1]);
 
 		this.transform = tr;
-
 		divide.call(this, 0, 0, 1, 1, ptl, ptr, pbl, pbr, this.limit);
-		
+
 		return this;
 	}
 });
@@ -5164,7 +5258,8 @@ Matrix.prototype = {
 	}
 };
 
-};
+return ProjectiveTexture;
+}();
 
 /*
 ---
@@ -5173,7 +5268,9 @@ name: "Processors.Clearer"
 
 description: "Сleans canvas with specified color"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
@@ -5187,7 +5284,7 @@ provides: Processors.Clearer
 ...
 */
 
-LibCanvas.Processors.Clearer = atom.Class({
+LibCanvas.Processors.Clearer = Class({
 	style : null,
 	initialize : function (style) {
 		this.style = style || null;
@@ -5209,7 +5306,9 @@ name: "Processors.Color"
 
 description: "Abstract class for works with color"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
@@ -5222,15 +5321,11 @@ provides: Processors.Color
 ...
 */
 
-new function () {
-
-var math = Math;
-
-LibCanvas.Processors.Color = atom.Class({
+LibCanvas.Processors.Color = Class({
 	rgbToHsb: function(red, green, blue){
 		var hue = 0,
-			max = math.max(red, green, blue),
-			delta = max - math.min(red, green, blue),
+			max = Math.max(red, green, blue),
+			delta = max - Math.min(red, green, blue),
 			brightness = max / 255,
 			saturation = (max != 0) ? delta / max : 0;
 		if (saturation) {
@@ -5244,18 +5339,18 @@ LibCanvas.Processors.Color = atom.Class({
 			
 			if (hue < 0) hue++;
 		}
-		return [math.round(hue * 360), math.round(saturation * 100), math.round(brightness * 100)];
+		return [Math.round(hue * 360), Math.round(saturation * 100), Math.round(brightness * 100)];
 	},
 
 	hsbToRgb: function(hue, sat, bri){
-		bri = math.round(bri / 100 * 255);
+		bri = Math.round(bri / 100 * 255);
 		if (!sat) return [bri, bri, bri];
 		hue = hue % 360;
 		
 		var f = hue % 60,
-			p = math.round((bri * (100  - sat)) / 10000 * 255),
-			q = math.round((bri * (6000 - sat * f)) / 600000 * 255),
-			t = math.round((bri * (6000 - sat * (60 - f))) / 600000 * 255);
+			p = Math.round((bri * (100  - sat)) / 10000 * 255),
+			q = Math.round((bri * (6000 - sat * f)) / 600000 * 255),
+			t = Math.round((bri * (6000 - sat * (60 - f))) / 600000 * 255);
 		switch (parseInt(hue / 60)){
 			case 0: return [bri, t, p];
 			case 1: return [q, bri, p];
@@ -5269,8 +5364,6 @@ LibCanvas.Processors.Color = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Processors.Color]')
 });
 
-}();
-
 /*
 ---
 
@@ -5278,7 +5371,9 @@ name: "Processors.Grayscale"
 
 description: "Grayscale canvas"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
@@ -5291,7 +5386,7 @@ provides: Processors.Grayscale
 ...
 */
 
-LibCanvas.Processors.Grayscale = atom.Class({
+LibCanvas.Processors.Grayscale = Class({
 	style : null,
 	initialize : function (type) {
 		// sepia, luminance, average, red, green, blue, default
@@ -5335,7 +5430,9 @@ name: "Processors.HsbShift"
 
 description: "Shift on of hue|saturation|bright value of all colors"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
@@ -5350,8 +5447,8 @@ provides: Processors.HsbShift
 */
 
 
-LibCanvas.Processors.HsbShift = atom.Class({
-	Extends: LibCanvas.Processors.Color,
+LibCanvas.Processors.HsbShift = Class({
+	Extends: Processors.Color,
 	shift : 0,
 	param : 'hue',
 	initialize : function (shift, param) {
@@ -5396,7 +5493,9 @@ name: "Processors.Invert"
 
 description: "Invert all canvas colors"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
@@ -5409,7 +5508,7 @@ provides: Processors.Invert
 ...
 */
 
-LibCanvas.Processors.Invert = atom.Class({
+LibCanvas.Processors.Invert = Class({
 	processPixels : function (data) {
 		var d = data.data, i = 0, l = d.length;
 		for (;i < l; i++) if (i % 4 != 3) d[i] = 255 - d[i];
@@ -5425,7 +5524,9 @@ name: "Processors.Mask"
 
 description: "Use canvas as mask for color (black will be transparent, white will be color)"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
@@ -5438,7 +5539,7 @@ provides: Processors.Mask
 ...
 */
 
-LibCanvas.Processors.Mask = atom.Class({
+LibCanvas.Processors.Mask = Class({
 	color : null,
 	initialize : function (color) { // [r,g,b]
 		this.color = color || [0,0,0];
@@ -5463,7 +5564,9 @@ name: "Shapes.Ellipse"
 
 description: "Provides ellipse as canvas object"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -5478,8 +5581,8 @@ provides: Shapes.Ellipse
 ...
 */
 
-LibCanvas.Shapes.Ellipse = atom.Class({
-	Extends: LibCanvas.Shapes.Rectangle,
+var Ellipse = LibCanvas.Shapes.Ellipse = Class({
+	Extends: Rectangle,
 	set : function () {
 		this.parent.apply(this, arguments);
 		var update = function () {
@@ -5496,11 +5599,11 @@ LibCanvas.Shapes.Ellipse = atom.Class({
 		return this;
 	},
 	getBufferCtx : function () {
-		return this.bufferCtx || (this.bufferCtx = LibCanvas.Buffer(1, 1, true).ctx);
+		return this.bufferCtx || (this.bufferCtx = Buffer(1, 1, true).ctx);
 	},
 	hasPoint : function () {
 		var ctx = this.processPath(this.getBufferCtx()); 
-		return ctx.isPointInPath(LibCanvas.Point(arguments));
+		return ctx.isPointInPath(Point(arguments));
 	},
 	cache : null,
 	updateCache : true,
@@ -5509,7 +5612,7 @@ LibCanvas.Shapes.Ellipse = atom.Class({
 			return this.cache;
 		}
 
-		var Point = LibCanvas.Point;
+		var Point = Point;
 		if (this.cache === null) {
 			this.cache = [];
 			for (var i = 12; i--;) this.cache.push(new Point());
@@ -5565,7 +5668,9 @@ name: "Shapes.Line"
 
 description: "Provides line as canvas object"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -5580,17 +5685,14 @@ provides: Shapes.Line
 ...
 */
 
-new function () {
+var Line = LibCanvas.Shapes.Line = function () {
 
-var Point = LibCanvas.Point,
-	math  = Math,
-	between = function (x, a, b) {
-		return x === a || x === b || (a < x && x < b) || (b < x && x < a);
-	};
+var between = function (x, a, b) {
+	return x === a || x === b || (a < x && x < b) || (b < x && x < a);
+};
 
-
-LibCanvas.Shapes.Line = atom.Class({
-	Extends: LibCanvas.Shape,
+return Class({
+	Extends: Shape,
 	set : function (from, to) {
 		var a = Array.pickFrom(arguments);
 
@@ -5612,8 +5714,8 @@ LibCanvas.Shapes.Line = atom.Class({
 			px = point.x,
 			py = point.y;
 
-		if (!( point.x.between(math.min(fx, tx), math.max(fx, tx))
-		    && point.y.between(math.min(fy, ty), math.max(fy, ty))
+		if (!( point.x.between(Math.min(fx, tx), Math.max(fx, tx))
+		    && point.y.between(Math.min(fy, ty), Math.max(fy, ty))
 		)) return false;
 
 		// if triangle square is zero - points are on one line
@@ -5653,12 +5755,12 @@ LibCanvas.Shapes.Line = atom.Class({
 		if (p instanceof Point) {
 			
 			if (!asInfiniteLine) {
-				degree = math.atan2(p.x - t.x, p.y - t.y).getDegree();
+				degree = Math.atan2(p.x - t.x, p.y - t.y).getDegree();
 				if ( degree.between(-90, 90) ) {
 					return t.distanceTo( p );
 				}
 
-				degree = math.atan2(f.x - p.x, f.y - p.y).getDegree();
+				degree = Math.atan2(f.x - p.x, f.y - p.y).getDegree();
 				if ( degree.between(-90, 90) ) {
 					return f.distanceTo( p );
 				}
@@ -5672,7 +5774,7 @@ LibCanvas.Shapes.Line = atom.Class({
 
 			x = f.x - t.x;
 			y = f.y - t.y;
-			return 2 * s / math.sqrt(x*x+y*y);
+			return 2 * s / Math.sqrt(x*x+y*y);
 		}
 		return null;
 	},
@@ -5694,7 +5796,7 @@ LibCanvas.Shapes.Line = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Shapes.Line]')
 });
 
-};
+}();
 
 
 /*
@@ -5704,7 +5806,9 @@ name: "Shapes.Path"
 
 description: "Provides Path as canvas object"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -5718,17 +5822,12 @@ provides: Shapes.Path
 
 ...
 */
-
-(function (LibCanvas) {
-
-var Point = LibCanvas.Point, Shapes = LibCanvas.Shapes;
-
-var Path = LibCanvas.Shapes.Path = atom.Class({
-	Extends: LibCanvas.Shape,
+var Path = LibCanvas.Shapes.Path = Class({
+	Extends: Shape,
 
 	Generators : {
 		buffer: function () {
-			return LibCanvas.Buffer(1, 1, true);
+			return Buffer(1, 1, true);
 		}
 	},
 
@@ -5786,7 +5885,7 @@ var Path = LibCanvas.Shapes.Path = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Shapes.Path]')
 });
 
-LibCanvas.Shapes.Path.Builder = atom.Class({
+Path.Builder = LibCanvas.Shapes.Path.Builder = Class({
 	initialize: function (str) {
 		this.update = this.update.bind( this );
 		this.parts  = [];
@@ -5938,8 +6037,6 @@ LibCanvas.Shapes.Path.Builder = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Shapes.Path]')
 });
 
-})(LibCanvas);
-
 /*
 ---
 
@@ -5947,7 +6044,9 @@ name: "Shapes.RoundedRectangle"
 
 description: "Provides rounded rectangle as canvas object"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -5961,8 +6060,8 @@ provides: Shapes.RoundedRectangle
 ...
 */
 
-LibCanvas.Shapes.RoundedRectangle = atom.Class({
-	Extends: LibCanvas.Shapes.Rectangle,
+var RoundedRectangle = LibCanvas.Shapes.RoundedRectangle = Class({
+	Extends: Rectangle,
 
 	radius: 0,
 
@@ -5970,7 +6069,7 @@ LibCanvas.Shapes.RoundedRectangle = atom.Class({
 		this.radius = value;
 		return this;
 	},
-	draw : LibCanvas.Shape.prototype.draw,
+	draw : Shape.prototype.draw,
 	processPath : function (ctx, noWrap) {
 		var from = this.from, to = this.to, radius = this.radius;
 		if (!noWrap) ctx.beginPath();
@@ -6001,7 +6100,9 @@ name: "Ui.Shaper"
 
 description: "Provides base ui object"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -6021,24 +6122,15 @@ provides: Ui.Shaper
 ...
 */
 
-
-new function () {
-
-var Beh = LibCanvas.Behaviors,
-	Sh  = LibCanvas.Shapes;
-
-LibCanvas.Ui.Shaper = atom.Class({
-	Extends: atom.Class.Options,
+var Shaper = LibCanvas.Ui.Shaper = Class({
+	Extends: Class.Options,
 	Implements: [
-		Beh.Drawable,
-		Beh.Animatable,
-		Beh.Clickable,
-		Beh.Draggable,
-		Beh.Droppable,
-		Beh.Linkable,
-		Beh.MouseListener,
-		Beh.Moveable
+		Drawable, Animatable, Clickable, MouseListener,
+		Linkable, Draggable , Droppable, Moveable
 	],
+
+	active: false,
+	hover : false,
 
 	initialize : function (libcanvas, options) {
 		this.update = libcanvas.update;
@@ -6106,13 +6198,13 @@ LibCanvas.Ui.Shaper = atom.Class({
 	},
 
 	get radius () {
-		if (!Sh.Circle.isInstance(this.shape)) {
+		if (!Circle.isInstance(this.shape)) {
 			throw new TypeError('Shape is not circle');
 		}
 		return this.shape.radius;
 	},
 	set radius (value) {
-		if (!Sh.Circle.isInstance(this.shape)) {
+		if (!Circle.isInstance(this.shape)) {
 			throw new TypeError('Shape is not circle');
 		}
 		this.shape.radius = value;
@@ -6124,8 +6216,6 @@ LibCanvas.Ui.Shaper = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Ui.Shaper]')
 });
 
-};
-
 /*
 ---
 
@@ -6133,7 +6223,9 @@ name: "Utils.AudioContainer"
 
 description: "Provides audio preloader"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -6146,14 +6238,14 @@ provides: Utils.AudioContainer
 ...
 */
 
-LibCanvas.Utils.AudioContainer = atom.Class({
+var AudioContainer = LibCanvas.Utils.AudioContainer = Class({
 	support : false,
 	initialize: function (files) {
 		this.allAudios = [];
 		this.checkSupport();
 		var audio = {};
 		for (var i in files) {
-			audio[i] = new LibCanvas.Utils.AudioElement(this, files[i]);
+			audio[i] = new AudioElement(this, files[i]);
 		}
 		this.audio = audio;
 	},
@@ -6191,7 +6283,9 @@ name: "Utils.AudioElement"
 
 description: "Provides audio container"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -6206,8 +6300,8 @@ provides: Utils.AudioElement
 ...
 */
 
-LibCanvas.Utils.AudioElement = atom.Class({
-	Implements: [LibCanvas.Behaviors.Animatable],
+var AudioElement = LibCanvas.Utils.AudioElement = Class({
+	Implements: [Animatable],
 	stub   : true,
 	initialize : function (container, file) {
 		this.events = [];
@@ -6352,7 +6446,9 @@ name: "Utils.Image"
 
 description: "Provides some Image extensions"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -6365,15 +6461,6 @@ provides: Utils.Image
 
 ...
 */
-
-(function (LibCanvas) {
-
-var Point     = LibCanvas.Point,
-	Buffer    = LibCanvas.Buffer,
-	Rectangle = LibCanvas.Shapes.Rectangle,
-	ImgProto  = HTMLImageElement.prototype,
-	math      = Math;
-
 // <image> tag
 atom.implement(HTMLImageElement, {
 	// наверное, лучше использовать createPattern
@@ -6461,13 +6548,11 @@ atom.implement(HTMLImageElement, {
 });
 	// mixin from image
 atom.implement(HTMLCanvasElement, {
-	createSprite : ImgProto.createSprite,
-	sprite   : ImgProto.sprite,
+	createSprite : HTMLImageElement.prototype.createSprite,
+	sprite   : HTMLImageElement.prototype.sprite,
 	isLoaded : function () { return true; },
 	toCanvas : function () { return this; }
 });
-	
-})(LibCanvas);
 
 /*
 ---
@@ -6476,7 +6561,9 @@ name: "Utils.StopWatch"
 
 description: "StopWatch"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -6489,7 +6576,7 @@ provides: Utils.StopWatch
 ...
 */
 
-LibCanvas.Utils.StopWatch = atom.Class({
+var StopWatch = LibCanvas.Utils.StopWatch = Class({
 	startTime : 0,
 	initialize : function (autoStart) {
 		autoStart && this.start();
@@ -6532,7 +6619,9 @@ name: "Utils.TimeLogger"
 
 description: "TimeLogger"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -6546,19 +6635,16 @@ provides: Utils.TimeLogger
 
 ...
 */
-new function () {
 
-var Utils = LibCanvas.Utils;
-
-LibCanvas.Utils.TimeLogger = atom.Class({
+var TimeLogger = LibCanvas.Utils.TimeLogger = Class({
 	last : 10,
 	sw   : null,
 	trace: null,
 	initialize : function (last) {
 		this.time = [];
 		if (last) this.last = last;
-		this.sw    = new Utils.StopWatch();
-		this.trace = new Utils.Trace();
+		this.sw    = new StopWatch();
+		this.trace = new Trace();
 	},
 	from : function () {
 		this.sw.start();
@@ -6573,8 +6659,6 @@ LibCanvas.Utils.TimeLogger = atom.Class({
 	toString: Function.lambda('[object LibCanvas.Utils.TimeLogger]')
 });
 
-}();
-
 /*
 ---
 
@@ -6582,7 +6666,9 @@ name: "Utils.Translator"
 
 description: "Unstable: translate shapes (i.e. zoom)"
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
 
 authors:
 	- "Shock <shocksilien@gmail.com>"
@@ -6596,11 +6682,8 @@ provides: Utils.Translator
 ...
 */
 
-new function () {
-
-var Point = LibCanvas.Point;
-
-LibCanvas.Utils.Translator = atom.Class({
+// @testing
+var Translator = LibCanvas.Utils.Translator = Class({
 	initialize : function (rectTo) {
 		this.shapes = [];
 		this.rectTo = rectTo;
@@ -6635,4 +6718,4 @@ LibCanvas.Utils.Translator = atom.Class({
 
 });
 
-}();
+})(atom, Math);
