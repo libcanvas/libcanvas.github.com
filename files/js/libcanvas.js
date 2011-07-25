@@ -587,9 +587,7 @@ var Color = LibCanvas.Utils.Color = Class({
 			var type = atom.typeOf(value);
 			if (type == 'arguments') {
 				rgb = Array.from(rgb);
-			} else if (type != 'string') {
-				throw new TypeError('Unknown value type: ' + type);
-			} else {
+			} else if (type == 'string') {
 				value = value.toLowerCase();
 
 				value = Color.colorNames[value] || value;
@@ -605,6 +603,10 @@ var Color = LibCanvas.Utils.Color = Class({
 						throw new TypeError('Wrong value format: ' + atom.toArray(arguments));
 					}
 				}
+			} else if (type == 'object' && 'r' in value && 'g' in value && 'b' in value) {
+				rgb = [value.r, value.g, value.b, value.a];
+			} else {
+				throw new TypeError('Unknown value type: ' + type);
 			}
 		}
 		this.r = rgb[0];
@@ -4205,6 +4207,17 @@ var Context2D = Class({
 			}
 		}
 		return result;
+	},
+	getPixel: function (point) {
+		point = Point( arguments );
+		var data = this.getImageData(new Rectangle({ from: point, size: [1,1] })).data;
+
+		return {
+			r: data[0],
+			g: data[1],
+			b: data[2],
+			a: data[3] / 255
+		};
 	},
 	createGradient: function (from, to, colors) {
 		var gradient;
