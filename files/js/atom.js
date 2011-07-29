@@ -87,11 +87,7 @@ provides: atom
 
 		if (item && type == 'object') {
 			if (atom.Class && item instanceof atom.Class) return 'class';
-			try {
-				if ('length' in item && typeof item.length == 'number') return 'arguments';
-			} catch (e) {
-				debugger;
-			}
+			if (atom.isEnumerable(item)) return 'arguments';
 		}
 		
 		return type;
@@ -134,6 +130,9 @@ provides: atom
 		log: function () {
 			// ie9 bug, typeof console.log == 'object'
 			if (atom.global.console) FuncProto[apply].call(console.log, console, arguments);
+		},
+		isEnumerable: function(item){
+			return item != null && toString.call(item) != '[object Function]' && typeof item.length == 'number';
 		},
 		append: function (target, source) {
 			for (var i = 1, l = arguments.length; i < l; i++){
@@ -853,6 +852,316 @@ atom.extend({ uri: uri });
 /*
 ---
 
+name: "Number"
+
+description: "Contains Number Prototypes like limit, round, times, and ceil."
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+requires:
+	- atom
+
+provides: Number
+
+...
+*/
+
+new function () {
+	
+atom.extend(Number, {
+	random : function (min, max) {
+		return Math.floor(Math.random() * (max - min + 1) + min);
+	}
+});
+
+atom.implement(Number, {
+	between: function (n1, n2, equals) {
+		return (n1 <= n2) && (
+			(equals == 'L' && this == n1) ||
+			(equals == 'R' && this == n2) ||
+			(  this  > n1  && this  < n2) ||
+			([true,'LR','RL'].indexOf(equals) != -1 && (n1 == this || n2 == this))
+		);
+	},
+	equals : function (to, accuracy) {
+		if (arguments.length == 1) accuracy = 8;
+		return this.toFixed(accuracy) == to.toFixed(accuracy);
+	},
+	limit: function(min, max){
+		var bottom = Math.max(min, this);
+		return arguments.length == 2 ?
+			Math.min(max, bottom) : bottom;
+	},
+	round: function(precision){
+		precision = Math.pow(10, precision || 0).toFixed(precision < 0 ? -precision : 0);
+		return Math.round(this * precision) / precision;
+	},
+	toFloat: function(){
+		return parseFloat(this);
+	},
+	toInt: function(base){
+		return parseInt(this, base || 10);
+	},
+	stop: function() {
+		var num = Number(this);
+		if (num) {
+			clearInterval(num);
+			clearTimeout (num);
+		}
+		return this;
+	}
+});
+
+['abs','acos','asin','atan','atan2','ceil','cos','exp','floor','log','max','min','pow','sin','sqrt','tan']
+	.forEach(function(method) {
+		if (Number[method]) return;
+		
+		Number.prototype[method] = function() {
+			return Math[method].apply(null, [this].append(arguments));
+		};
+	});
+
+};
+
+/*
+---
+
+name: "Array"
+
+description: "Contains Array Prototypes like include, contains, and erase."
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+requires:
+	- atom
+	- Number
+
+provides: Array
+
+...
+*/
+
+new function (undefined) {
+var slice = [].slice;
+
+atom.extend(Array, {
+	range: function (from, to, step) {
+		step = (step * 1).limit(0) || 1;
+		var result = [];
+		do {
+			result.push(from);
+			from += step;
+		} while (from <= to);
+		return result;
+	},
+	from: function (item) {
+		if (item == null) return [];
+		return (!atom.isEnumerable(item) || typeof item == 'string') ? [item] :
+			(atom.typeOf(item) == 'array') ? item : slice.call(item);
+	},
+	pickFrom: function (args) {
+		return Array.from(
+			   args
+			&& args.length == 1
+			&& ['array', 'arguments'].contains(atom.typeOf(args[0])) ?
+				args[0] : args
+		);
+	},
+	fill: function (array, fill) {
+		array = Array.isArray(array) ? array : new Array(array * 1);
+		for (var i = array.length; i--;) array[i] = fill;
+		return array;
+	},
+	fillMatrix: function (width, height, fill) {
+		var array = new Array(height);
+		while (height--) {
+			array[height] = Array.fill(width, fill);
+		}
+		return array;
+	},
+	collect: function (obj, props, Default) {
+		var array = [];
+		for (var i = 0, l = props.length; i < l; i++) {
+			array.push(props[i] in obj ? obj[props[i]] : Default);
+		}
+		return array;
+	},
+	create: function (length, fn) {
+		var array = new Array(length);
+		for (var i = 0; i < length; i++) array[i] = fn(i, array);
+		return array;
+	},
+	toHash: function () {
+		for (var hash = {}, i = 0, l = this.length; i < l; i++) hash[i] = this[i];
+		return hash;
+	}
+});
+
+atom.implement(Array, {
+	get last(){
+		return this.length ? this[this.length - 1] : null;
+	},
+	get random(){
+		return this.length ? this[Number.random(0, this.length - 1)] : null;
+	},
+	popRandom: function () {
+		if (this.length == 0) return null;
+		var index = Number.random(0, this.length - 1), elem = this[index];
+		this.splice(index, 1);
+		return elem;
+	},
+	// Correctly works with `new Array(10).fullMap(fn)`
+	fullMap: function (fn, bind) {
+		var mapped = new Array(this.length);
+		for (var i = 0, l = mapped.length; i < l; i++) {
+			mapped[i] = fn.call(bind, this[i], i, this);
+		}
+		return mapped;
+	},
+	contains: function (elem, fromIndex) {
+		return this.indexOf(elem, fromIndex) != -1;
+	},
+	include: function(item){
+		if (!this.contains(item)) this.push(item);
+		return this;
+	},
+	append: function (array) {
+		for (var i = 0, l = arguments.length; i < l; i++) {
+			this.push.apply(this, arguments[i]);
+		}
+		return this;
+	},
+	erase: function(item){
+		for (var i = this.length; i--;) {
+			if (this[i] === item) this.splice(i, 1);
+		}
+		return this;
+	},
+	toKeys: function (value) {
+		var useValue = arguments.length == 1, obj = {};
+		for (var i = 0, l = this.length; i < l; i++)
+			obj[this[i]] = useValue ? value : i;
+		return obj;
+	},
+	combine: function(array){
+		for (var i = 0, l = array.length; i < l; i++) this.include(array[i]);
+		return this;
+	},
+	pick: function(){
+		for (var i = 0, l = this.length; i < l; i++) {
+			if (this[i] != null) return this[i];
+		}
+		return null;
+	},
+	invoke: function(context){
+		var args = slice.call(arguments, 1);
+		if (typeof context == 'string') {
+			var methodName = context;
+			context = null;
+		}
+		return this.map(function(item){
+			return item && (methodName ? item[methodName] : item).apply(methodName ? item : context, args);
+		});
+	},
+	shuffle : function () {
+		for(var j, x, i = this.length; i; j = parseInt(Math.random() * i), x = this[--i], this[i] = this[j], this[j] = x);
+		return this;
+	},
+	sortBy : function (method, reverse) {
+		var get = function (elem) {
+			return typeof elem[method] == 'function' ? elem[method]() : (elem[method] || 0);
+		};
+		var multi = reverse ? -1 : 1;
+		return this.sort(function ($0, $1) {
+			var diff = get($1) - get($0);
+			return diff ? (diff < 0 ? -1 : 1) * multi : 0;
+		});
+	},
+	min: function(){
+		return Math.min.apply(null, this);
+	},
+	max: function(){
+		return Math.max.apply(null, this);
+	},
+	mul: function (factor) {
+		for (var i = this.length; i--;) this[i] *= factor;
+		return this;
+	},
+	add: function (number) {
+		for (var i = this.length; i--;) this[i] += number;
+		return this;
+	},
+	average: function(){
+		return this.length ? this.sum() / this.length : 0;
+	},
+	sum: function(){
+		for (var result = 0, i = this.length; i--;) result += this[i];
+		return result;
+	},
+	unique: function(){
+		return [].combine(this);
+	},
+	associate: function(keys){
+		var obj = {}, length = this.length, i, isFn = atom.typeOf(keys) == 'function';
+		if (!isFn) length = Math.min(length, keys.length);
+		for (i = 0; i < length; i++) {
+			obj[(isFn ? this : keys)[i]] = isFn ? keys(this[i], i) : this[i];
+		}
+		return obj;
+	},
+	clean: function (){
+		return this.filter(function (item) { return item != null; });
+	},
+	empty: function () {
+		this.length = 0;
+		return this;
+	},
+	clone: function () {
+		return atom.clone(this);
+	},
+	hexToRgb: function(array){
+		if (this.length != 3) return null;
+		var rgb = this.map(function(value){
+			if (value.length == 1) value += value;
+			return parseInt(value, 16);
+		});
+		return (array) ? rgb : 'rgb(' + rgb + ')';
+	},
+	rgbToHex: function(array) {
+		if (this.length < 3) return null;
+		if (this.length == 4 && this[3] == 0 && !array) return 'transparent';
+		var hex = [];
+		for (var i = 0; i < 3; i++){
+			var bit = (this[i] - 0).toString(16);
+			hex.push((bit.length == 1) ? '0' + bit : bit);
+		}
+		return (array) ? hex : '#' + hex.join('');
+	},
+
+	reduce: [].reduce || function(fn, value){
+		for (var i = 0, l = this.length; i < l; i++){
+			if (i in this) value = value === undefined ? this[i] : fn.call(null, value, this[i], i, this);
+		}
+		return value;
+	},
+
+	reduceRight: [].reduceRight || function(fn, value){
+		for (var i = this.length; i--;){
+			if (i in this) value = value === undefined ? this[i] : fn.call(null, value, this[i], i, this);
+		}
+		return value;
+	}
+});
+
+};
+
+/*
+---
+
 name: "Class"
 
 description: "Contains the Class Function for easily creating, extending, and implementing reusable Classes."
@@ -864,6 +1173,7 @@ license:
 requires:
 	- atom
 	- accessors
+	- Array
 
 inspiration:
   - "[MooTools](http://mootools.net)"
@@ -880,16 +1190,17 @@ var typeOf = atom.typeOf,
 	extend = atom.extend,
 	accessors = atom.accessors.inherit,
 	prototype = 'prototype',
-	lambda    = function (value) { return function () { return value; }};
+	lambda    = function (value) { return function () { return value; }},
+	prototyping = false;
 
 var Class = function (params) {
-	if (Class.$prototyping) return this;
+	if (prototyping) return this;
 
 	if (typeof params == 'function' && typeOf(params) == 'function') params = { initialize: params };
 
 	var Constructor = function(){
 		if (this instanceof Constructor) {
-			if (Constructor.$prototyping) return this;
+			if (prototyping) return this;
 			return this.initialize ? this.initialize.apply(this, arguments) : this;
 		} else {
 			return Constructor.invoke.apply(Constructor, arguments);
@@ -897,6 +1208,7 @@ var Class = function (params) {
 	};
 	extend(Constructor, Class);
 	Constructor[prototype] = getInstance(Class);
+
 	Constructor
 		.implement(params, false)
 		.reserved(true, {
@@ -904,11 +1216,11 @@ var Class = function (params) {
 			self  : Constructor
 		})
 		.reserved({
-			factory : new function() {
+			factory : function() {
 				function Factory(args) { return Constructor.apply(this, args); }
 				Factory[prototype] = Constructor[prototype];
 				return function(args) { return new Factory(args || []); }
-			}
+			}()
 		});
 
 	return Constructor;
@@ -943,9 +1255,9 @@ var wrap = function(self, key, method){
 };
 
 var getInstance = function(Class){
-	Class.$prototyping = true;
+	prototyping = true;
 	var proto = new Class;
-	delete Class.$prototyping;
+	prototyping = false;
 	return proto;
 };
 
@@ -998,7 +1310,7 @@ Class.extend({
 		return this;
 	},
 	mixin: function () {
-		atom.toArray(arguments).forEach(function (item) {
+		Array.from(arguments).forEach(function (item) {
 			this.implement(getInstance(item));
 		}.bind(this));
 		return this;
@@ -1028,7 +1340,7 @@ Class.extend({
 		},
 
 		Implements: function(items){
-			this.mixin.apply(this, items);
+			this.mixin.apply(this, Array.from(items));
 		},
 
 		Static: function(properties) {
@@ -1049,6 +1361,46 @@ Class.extend({
 extend({ Class: Class });
 
 })(atom);
+
+/*
+---
+
+name: "Class.BindAll"
+
+description: ""
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+requires:
+	- atom
+	- Class
+
+inspiration:
+  - "[MooTools](http://mootools.net)"
+
+provides: Class.BindAll
+
+...
+*/
+
+atom.Class.bindAll = function (object, methods) {
+	if (typeof methods == 'string') {
+		if (
+			methods != '$caller' &&
+			!atom.accessors.has(object, methods) &&
+			atom.typeOf(object[methods]) == 'function'
+		) {
+			object[methods] = object[methods].bind( object );
+		}
+	} else if (methods) {
+		for (i = methods.length; i--;) atom.Class.bindAll( object, methods[i] );
+	} else {
+		for (var i in object) atom.Class.bindAll( object, i );
+	}
+	return object;
+};
 
 /*
 ---
@@ -1252,312 +1604,6 @@ atom.Class.Options = atom.Class({
 /*
 ---
 
-name: "Number"
-
-description: "Contains Number Prototypes like limit, round, times, and ceil."
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-requires:
-	- atom
-
-provides: Number
-
-...
-*/
-
-new function () {
-	
-atom.extend(Number, {
-	random : function (min, max) {
-		return Math.floor(Math.random() * (max - min + 1) + min);
-	}
-});
-
-atom.implement(Number, {
-	between: function (n1, n2, equals) {
-		return (n1 <= n2) && (
-			(equals == 'L' && this == n1) ||
-			(equals == 'R' && this == n2) ||
-			(  this  > n1  && this  < n2) ||
-			([true,'LR','RL'].indexOf(equals) != -1 && (n1 == this || n2 == this))
-		);
-	},
-	equals : function (to, accuracy) {
-		if (arguments.length == 1) accuracy = 8;
-		return this.toFixed(accuracy) == to.toFixed(accuracy);
-	},
-	limit: function(min, max){
-		var bottom = Math.max(min, this);
-		return arguments.length == 2 ?
-			Math.min(max, bottom) : bottom;
-	},
-	round: function(precision){
-		precision = Math.pow(10, precision || 0).toFixed(precision < 0 ? -precision : 0);
-		return Math.round(this * precision) / precision;
-	},
-	toFloat: function(){
-		return parseFloat(this);
-	},
-	toInt: function(base){
-		return parseInt(this, base || 10);
-	},
-	stop: function() {
-		var num = Number(this);
-		if (num) {
-			clearInterval(num);
-			clearTimeout (num);
-		}
-		return this;
-	}
-});
-
-['abs','acos','asin','atan','atan2','ceil','cos','exp','floor','log','max','min','pow','sin','sqrt','tan']
-	.forEach(function(method) {
-		if (Number[method]) return;
-		
-		Number.prototype[method] = function() {
-			return Math[method].apply(null, [this].append(arguments));
-		};
-	});
-
-};
-
-/*
----
-
-name: "Array"
-
-description: "Contains Array Prototypes like include, contains, and erase."
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-requires:
-	- atom
-	- Number
-
-provides: Array
-
-...
-*/
-
-new function (undefined) {
-var slice = [].slice;
-
-atom.extend(Array, {
-	range: function (from, to, step) {
-		step = (step * 1).limit(0) || 1;
-		var result = [];
-		do {
-			result.push(from);
-			from += step;
-		} while (from <= to);
-		return result;
-	},
-	from: atom.toArray,
-	pickFrom: function (args) {
-		return Array.from(
-			   args
-			&& args.length == 1
-			&& ['array', 'arguments'].contains(atom.typeOf(args[0])) ?
-				args[0] : args
-		);
-	},
-	fill: function (array, fill) {
-		array = Array.isArray(array) ? array : new Array(array * 1);
-		for (var i = array.length; i--;) array[i] = fill;
-		return array;
-	},
-	fillMatrix: function (width, height, fill) {
-		var array = new Array(height);
-		while (height--) {
-			array[height] = Array.fill(width, fill);
-		}
-		return array;
-	},
-	collect: function (obj, props, Default) {
-		var array = [];
-		for (var i = 0, l = props.length; i < l; i++) {
-			array.push(props[i] in obj ? obj[props[i]] : Default);
-		}
-		return array;
-	},
-	create: function (length, fn) {
-		var array = new Array(length);
-		for (var i = 0; i < length; i++) array[i] = fn(i, array);
-		return array;
-	},
-	toHash: function () {
-		for (var hash = {}, i = 0, l = this.length; i < l; i++) hash[i] = this[i];
-		return hash;
-	}
-});
-
-atom.implement(Array, {
-	get last(){
-		return this.length ? this[this.length - 1] : null;
-	},
-	get random(){
-		return this.length ? this[Number.random(0, this.length - 1)] : null;
-	},
-	popRandom: function () {
-		if (this.length == 0) return null;
-		var index = Number.random(0, this.length - 1), elem = this[index];
-		this.splice(index, 1);
-		return elem;
-	},
-	// Correctly works with `new Array(10).fullMap(fn)`
-	fullMap: function (fn, bind) {
-		var mapped = new Array(this.length);
-		for (var i = 0, l = mapped.length; i < l; i++) {
-			mapped[i] = fn.call(bind, this[i], i, this);
-		}
-		return mapped;
-	},
-	contains: function (elem, fromIndex) {
-		return this.indexOf(elem, fromIndex) != -1;
-	},
-	include: function(item){
-		if (!this.contains(item)) this.push(item);
-		return this;
-	},
-	append: function (array) {
-		for (var i = 0, l = arguments.length; i < l; i++) {
-			this.push.apply(this, arguments[i]);
-		}
-		return this;
-	},
-	erase: function(item){
-		for (var i = this.length; i--;) {
-			if (this[i] === item) this.splice(i, 1);
-		}
-		return this;
-	},
-	toKeys: function (value) {
-		var useValue = arguments.length == 1, obj = {};
-		for (var i = 0, l = this.length; i < l; i++)
-			obj[this[i]] = useValue ? value : i;
-		return obj;
-	},
-	combine: function(array){
-		for (var i = 0, l = array.length; i < l; i++) this.include(array[i]);
-		return this;
-	},
-	pick: function(){
-		for (var i = 0, l = this.length; i < l; i++) {
-			if (this[i] != null) return this[i];
-		}
-		return null;
-	},
-	invoke: function(context){
-		var args = slice.call(arguments, 1);
-		if (typeof context == 'string') {
-			var methodName = context;
-			context = null;
-		}
-		return this.map(function(item){
-			return item && (methodName ? item[methodName] : item).apply(methodName ? item : context, args);
-		});
-	},
-	shuffle : function () {
-		for(var j, x, i = this.length; i; j = parseInt(Math.random() * i), x = this[--i], this[i] = this[j], this[j] = x);
-		return this;
-	},
-	sortBy : function (method, reverse) {
-		var get = function (elem) {
-			return typeof elem[method] == 'function' ? elem[method]() : (elem[method] || 0);
-		};
-		var multi = reverse ? -1 : 1;
-		return this.sort(function ($0, $1) {
-			var diff = get($1) - get($0);
-			return diff ? (diff < 0 ? -1 : 1) * multi : 0;
-		});
-	},
-	min: function(){
-		return Math.min.apply(null, this);
-	},
-	max: function(){
-		return Math.max.apply(null, this);
-	},
-	mul: function (factor) {
-		for (var i = this.length; i--;) this[i] *= factor;
-		return this;
-	},
-	add: function (number) {
-		for (var i = this.length; i--;) this[i] += number;
-		return this;
-	},
-	average: function(){
-		return this.length ? this.sum() / this.length : 0;
-	},
-	sum: function(){
-		for (var result = 0, i = this.length; i--;) result += this[i];
-		return result;
-	},
-	unique: function(){
-		return [].combine(this);
-	},
-	associate: function(keys){
-		var obj = {}, length = this.length, i, isFn = atom.typeOf(keys) == 'function';
-		if (!isFn) length = Math.min(length, keys.length);
-		for (i = 0; i < length; i++) {
-			obj[(isFn ? this : keys)[i]] = isFn ? keys(this[i], i) : this[i];
-		}
-		return obj;
-	},
-	clean: function (){
-		return this.filter(function (item) { return item != null; });
-	},
-	empty: function () {
-		this.length = 0;
-		return this;
-	},
-	clone: function () {
-		return atom.clone(this);
-	},
-	hexToRgb: function(array){
-		if (this.length != 3) return null;
-		var rgb = this.map(function(value){
-			if (value.length == 1) value += value;
-			return parseInt(value, 16);
-		});
-		return (array) ? rgb : 'rgb(' + rgb + ')';
-	},
-	rgbToHex: function(array) {
-		if (this.length < 3) return null;
-		if (this.length == 4 && this[3] == 0 && !array) return 'transparent';
-		var hex = [];
-		for (var i = 0; i < 3; i++){
-			var bit = (this[i] - 0).toString(16);
-			hex.push((bit.length == 1) ? '0' + bit : bit);
-		}
-		return (array) ? hex : '#' + hex.join('');
-	},
-
-	reduce: [].reduce || function(fn, value){
-		for (var i = 0, l = this.length; i < l; i++){
-			if (i in this) value = value === undefined ? this[i] : fn.call(null, value, this[i], i, this);
-		}
-		return value;
-	},
-
-	reduceRight: [].reduceRight || function(fn, value){
-		for (var i = this.length; i--;){
-			if (i in this) value = value === undefined ? this[i] : fn.call(null, value, this[i], i, this);
-		}
-		return value;
-	}
-});
-
-};
-
-/*
----
-
 name: "Function"
 
 description: "Contains Function Prototypes like context, periodical and delay."
@@ -1604,7 +1650,7 @@ new function () {
 	atom.implement(Function, {
 		context: function(bind, args){
 			var fn = this;
-			args = args ? atom.toArray(args) : [];
+			args = Array.from(args);
 			return function(){
 				return fn.apply(getContext(bind, this), [].append(args, arguments));
 			};
