@@ -4286,6 +4286,8 @@ LibCanvas.Engines.Tile = Class({
 	},
 	getCell : function (point) {
 		point = Point(arguments);
+		if (point.x < 0 || point.y < 0) return null;
+		
 		var x = parseInt(point.x / (this.cellWidth  + this.margin)),
 			y = parseInt(point.y / (this.cellHeight + this.margin)),
 			row = this.matrix[y];
@@ -5306,9 +5308,20 @@ var Path = LibCanvas.Shapes.Path = Class({
 	},
 	each: function (fn) {
 		this.builder.parts.forEach(function (part) {
-			fn( part.method, part.args );
-		});
+			fn.call( this, part.method, part.args );
+		}.bind(this));
 		return this;
+	},
+	get allPoints () {
+		var points = [];
+		this.each(function (method, args) {
+			if (method == 'arc') {
+				points.include(args[0].circle.center);
+			} else for (var i = 0, l = args.length; i < l; i++) {
+				points.include(args[i]);
+			}
+		});
+		return points;
 	},
 	hasPoint : function (point) {
 		var ctx = this.buffer.ctx;
@@ -5322,23 +5335,30 @@ var Path = LibCanvas.Shapes.Path = Class({
 		this.processPath(ctx)[type]();
 		return this;
 	},
-	move : function (distance) {
+	move : function (distance, reverse) {
 		this.builder.changed = true;
 
-		var moved = [], move = function (a) {
-			if (!moved.contains(a)) {
-				a.move(distance);
-				moved.push(a);
+		this.allPoints.invoke( 'move', distance, reverse );
+		return this;
+	},
+	scale: function (power, pivot) {
+		this.builder.changed = true;
+
+		this.allPoints.invoke( 'scale', power, pivot );
+		return this;
+	},
+	rotate: function (angle, pivot) {
+		this.builder.changed = true;
+
+		this.allPoints.invoke( 'rotate', angle, pivot );
+
+		this.each(function (method, args) {
+			if (method == 'arc') {
+				var a = args[0].angle;
+				a.start = (a.start + angle).normalizeAngle();
+				a.end   = (a.end   + angle).normalizeAngle();
 			}
-		};
-		this.builder.parts.forEach(function (part) {
-			var a = part.args;
-			if (part.method == 'arc') {
-				move(a[0].circle);
-			} else {
-				a.map(move);
-			}
-		});
+		}.bind(this));
 		return this;
 	},
 	toString: Function.lambda('[object LibCanvas.Shapes.Path]')

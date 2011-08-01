@@ -11,6 +11,8 @@
 		<button>Save</button>
 		<canvas></canvas>
 		<p><a href="/">Return to index</a></p>
+		<p>Mouse Wheel - rotating</p>
+		<p>Shift + Mouse Wheel - scaling</p>
 		<script src="/files/js/ui-core.js"></script>
 		<script>
 new function () {
@@ -117,6 +119,15 @@ new function () {
 
 	atom.dom('button').bind('click', function () {
 		window.location = '#' + path.builder.stringify('|');
+	});
+
+	libcanvas.mouse.addEvent( 'wheel' , function (e) {
+		if (e.shiftKey) {
+			path.scale ( e.delta < 0 ? 1.3 : 0.7 , e.offset );
+		} else {
+			path.rotate( (6).degree() * e.delta, e.offset );
+		}
+		libcanvas.update();
 	});
 }
 		</script>
