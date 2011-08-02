@@ -879,8 +879,7 @@ provides: Utils.Math
 // Number
 (function () {
 
-
-	var degreesCache = {};
+	var degreesCache = {}, d360;
 
 	atom.implement(Number, {
 		/**
@@ -934,10 +933,11 @@ provides: Utils.Math
 
 	});
 
-	for (var degree in [0, 45, 90, 135, 180, 225, 270, 315, 360].toKeys()) {
-		degreesCache[degree] = (degree * 1).degree();
-	}
-	var d360 = degreesCache[360];
+	degreesCache = [0, 45, 90, 135, 180, 225, 270, 315, 360]
+		.associate(function (num) {
+			return num.degree();
+		});
+	d360 = degreesCache[360];
 
 })();
 
@@ -993,6 +993,9 @@ var shifts = {
 
 return Class({
 	Extends: Geometry,
+
+	Static: { shifts: shifts },
+
 	set : function (x, y) {
 		var args = arguments;
 		if (atom.typeOf(x) == 'arguments') {
@@ -1104,8 +1107,8 @@ return Class({
 		};
 	},
 	snapToPixel: function () {
-		this.x += 1 - (this.x - this.x.floor()) - 0.5;
-		this.y += 1 - (this.y - this.y.floor()) - 0.5;
+		this.x += 0.5 - (this.x - this.x.floor());
+		this.y += 0.5 - (this.y - this.y.floor());
 		return this;
 	},
 	clone : function () {
@@ -2610,6 +2613,8 @@ provides: Shape
 
 ...
 */
+
+var shapeTestBuffer = Buffer(1, 1, true);
 
 var Shape = LibCanvas.Shape = Class({
 	Extends    : Geometry,
@@ -4181,7 +4186,7 @@ provides: Engines.Tile
 ...
 */
 
-LibCanvas.Engines.Tile = Class({
+var Tile = LibCanvas.Engines.Tile = Class({
 	Implements: [ Drawable, Class.Events ],
 
 	first : true,
@@ -4217,16 +4222,31 @@ LibCanvas.Engines.Tile = Class({
 			width  = width.width;
 		}
 
-		var matrix = new Array(height);
-		for (var y = height; y--;) matrix[y] = Array.fill(width, fill);
-		this.setMatrix(matrix);
+		this.setMatrix( Array.fillMatrix( width, height, fill ) );
+		return this;
+	},
+	createPoints: function () {
+		this.points = new Array(this.height);
+		var y, x, p, ps = this.points, h = this.height, w = this.width;
+
+		for (y = 0, h; y < h; y++) {
+			ps[y] = new Array(w);
+			for (x = 0, w; x < w; x++) {
+				p = ps[y][x] = new Tile.Point(x, y);
+				p.engine = this;
+			}
+		}
+
 		return this;
 	},
 	setMatrix : function (matrix) {
+		var w = this.width, h = this.height;
 		this.first = true;
 		this.checkMatrix(matrix);
+
 		this.matrix    = matrix;
 		this.oldMatrix = matrix.clone();
+		if (w != this.width || h != this.height) this.createPoints();
 		return this;
 	},
 	addTile : function (index, fn) {
@@ -4258,7 +4278,7 @@ LibCanvas.Engines.Tile = Class({
 	update : function () {
 		var changed = false, old = this.oldMatrix;
 		this.each(function (cell) {
-			if (this.first || old[cell.y][cell.x] != cell.t) {
+			if (this.first || old[cell.y][cell.x] != cell.value) {
 				changed = true;
 				this.drawCell(cell);
 				old[cell.y][cell.x] = cell.t;
@@ -4290,51 +4310,91 @@ LibCanvas.Engines.Tile = Class({
 		
 		var x = parseInt(point.x / (this.cellWidth  + this.margin)),
 			y = parseInt(point.y / (this.cellHeight + this.margin)),
-			row = this.matrix[y];
-		return (row && x in row) ? {
-			t : row[x],
-			x : x,
-			y : y
-		} : null;
+			row = this.points[y];
+		return row ? row[x] : null;
 	},
 	drawCell : function (cell /*{t,x,y}*/) {
-		var rect = this.getRect(cell), fn = this.tiles[cell.t];
+		var rect = this.getRect(cell), fn = this.tiles[cell.value];
 		if (!fn && fn !== 0 && 'default' in this.tiles) fn = this.tiles['default'];
 		this.ctx.clearRect(rect);
 		if (atom.dom.isElement(fn)) {
-			this.ctx.drawImage({
-				image : fn,
-				draw  : rect
-			});
+			this.ctx.drawImage( fn, rect );
 		} else if (typeof fn == 'function') {
-			fn(this.ctx, rect, cell);
+			fn.call( this, this.ctx, rect, cell );
 		} else if (fn != null) {
-			this.ctx.fill(rect, fn);
+			this.ctx.fill( rect, fn );
 		}
 		return this;
 	},
 	each : function (fn) {
-		var m = this.matrix, height = this.height, width = this.width, x, y;
+		var p = this.points, height = this.height, width = this.width, x, y;
 		for (y = 0; y < height; y++) for (x = 0; x < width; x++) {
-			fn.call(this, {
-				t : m[y][x],
-				x : x,
-				y : y
-			});
+			fn.call(this, p[y][x]);
 		}
 		return this;
 	},
 	get width () {
-		return (this.matrix[0] && this.matrix[0].length) || 0;
+		return (this.matrix && this.matrix[0] && this.matrix[0].length) || 0;
 	},
 	get height () {
-		return this.matrix.length || 0;
+		return this.matrix && this.matrix.length || 0;
 	},
 	draw: function () {
 		this.update();
 	},
 	toString: Function.lambda('[object LibCanvas.Engines.Tile]')
 });
+
+Tile.Point = Class({
+	Extends: Point,
+
+	engine: null,
+
+	get value () {
+		return this.engine.matrix[this.y][this.x];
+	},
+
+	set value (value) {
+		this.engine.matrix[this.y][this.x] = value;
+	},
+
+	get exists() {
+		var row = this.engine.matrix[this.y];
+		return row != null && row[this.x] != null;
+	},
+
+	// @deprecated
+	get t () {
+		return this.value;
+	},
+
+	getNeighbour : function (dir) {
+		var shift = this.self.shifts[dir];
+		if (shift) {
+			var row = this.engine.points[this.y + shift.y];
+			if (row) return row[this.x + shift.x] || null;
+		}
+		return null;
+	},
+
+	getNeighbours: function (corners, asObject) {
+		var nb = this.parent.apply( this, arguments );
+
+		if (Array.isArray( nb )) {
+			return nb.clean();
+		} else {
+			for (var i in nb) if (nb[i] == null) delete nb[i];
+		}
+		return nb;
+	},
+
+	clone: function () {
+		var clone = this.parent();
+		clone.engine = this.engine;
+		return clone;
+	}
+});
+
 
 /*
 ---
@@ -5053,18 +5113,22 @@ var Ellipse = LibCanvas.Shapes.Ellipse = Class({
 		this.from.addEvent('move', update);
 		this. to .addEvent('move', update);
 	},
-	rotateAngle : 0,
+	_angle : 0,
+	get angle () {
+		return this._angle;
+	},
+	set angle (a) {
+		if (this._angle != a) {
+			this._angle = a.normalizeAngle();
+			this.updateCache = true;
+		}
+	},
 	rotate : function (degree) {
-		this.rotateAngle = (this.rotateAngle + degree)
-			.normalizeAngle();
-		this.updateCache = true;
+		this.angle += degree;
 		return this;
 	},
-	getBufferCtx : function () {
-		return this.bufferCtx || (this.bufferCtx = Buffer(1, 1, true).ctx);
-	},
 	hasPoint : function () {
-		var ctx = this.processPath(this.getBufferCtx()); 
+		var ctx = this.processPath( shapeTestBuffer.ctx );
 		return ctx.isPointInPath(Point(arguments));
 	},
 	cache : null,
@@ -5079,7 +5143,7 @@ var Ellipse = LibCanvas.Shapes.Ellipse = Class({
 			for (var i = 12; i--;) this.cache.push(new Point());
 		}
 		var c = this.cache,
-			angle = this.rotateAngle,
+			angle = this._angle,
 			kappa = .5522848,
 			x  = this.from.x,
 			y  = this.from.y,
@@ -5286,12 +5350,6 @@ provides: Shapes.Path
 var Path = LibCanvas.Shapes.Path = Class({
 	Extends: Shape,
 
-	Generators : {
-		buffer: function () {
-			return Buffer(1, 1, true);
-		}
-	},
-
 	getCoords: null,
 	set : function (builder) {
 		this.builder = builder;
@@ -5324,7 +5382,7 @@ var Path = LibCanvas.Shapes.Path = Class({
 		return points;
 	},
 	hasPoint : function (point) {
-		var ctx = this.buffer.ctx;
+		var ctx = shapeTestBuffer.ctx;
 		if (this.builder.changed) {
 			this.builder.changed = false;
 			this.processPath(ctx);
@@ -5485,9 +5543,9 @@ Path.Builder = LibCanvas.Shapes.Path.Builder = Class({
 				case 'moveTo' : return 'M' + p(a);
 				case 'lineTo' : return 'L' + p(a);
 				case 'curveTo': return 'C' + part.args.map(p).join('');
-				case 'arc': return 'A'
-					+ p( a.circle.center ) + sep + a.circle.radius.round(2) + sep
-					+ a.angle.start.round(2) + sep + a.angle.end.round(2) + sep + (a.acw ? 1 : 0);
+				case 'arc'    : return 'A' +
+					p( a.circle.center ) + sep + a.circle.radius.round(2) + sep +
+					a.angle.start.round(2) + sep + a.angle.end.round(2) + sep + (a.acw ? 1 : 0);
 			}
 		}).join(sep);
 	},
@@ -5534,37 +5592,18 @@ requires:
 	- LibCanvas
 	- Point
 	- Shape
+	- Shapes.Line
 
 provides: Shapes.Polygon
 
 ...
 */
 
-var Polygon = LibCanvas.Shapes.Polygon = function (){
-
-var linesIntersect = function (a,b,c,d) {
-	var x,y;
-	if (d.x == c.x) { // DC == vertical line
-		if (b.x == a.x) {
-			return a.x == d.x && (a.y.between(c.y, d.y) || b.x.between(c.y, d.y));
-		}
-		x = d.x;
-		y = b.y + (x-b.x)*(a.y-b.y)/(a.x-b.x);
-	} else {
-		x = ((a.x*b.y - b.x*a.y)*(d.x-c.x)-(c.x*d.y - d.x*c.y)*(b.x-a.x))/((a.y-b.y)*(d.x-c.x)-(c.y-d.y)*(b.x-a.x));
-		y = ((c.y-d.y)*x-(c.x*d.y-d.x*c.y))/(d.x-c.x);
-		x *= -1;
-	}
-	return (x.between(a.x, b.x, 'LR') || x.between(b.x, a.x, 'LR'))
-		&& (y.between(a.y, b.y, 'LR') || y.between(b.y, a.y, 'LR'))
-		&& (x.between(c.x, d.x, 'LR') || x.between(d.x, c.x, 'LR'))
-		&& (y.between(c.y, d.y, 'LR') || y.between(d.y, c.y, 'LR'));
-};
-
-return Class({
+var Polygon = LibCanvas.Shapes.Polygon = Class({
 	Extends: Shape,
 	initialize: function () {
 		this.points = [];
+		this._lines = [];
 		this.parent.apply(this, arguments);
 	},
 	set : function (poly) {
@@ -5575,10 +5614,18 @@ return Class({
 				})
 				.clean()
 		);
+		this._lines.empty();
 		return this;
 	},
 	get length () {
 		return this.points.length;
+	},
+	get lines () {
+		var lines = this._lines, p = this.points, l = p.length, i = 0;
+		if (lines.length != l) for (;i < l; i++) {
+			lines.push( new Line( p[i], i+1 == l ? p[0] : p[i+1] ) );
+		}
+		return this._lines;
 	},
 	get: function (index) {
 		return this.points[index];
@@ -5621,18 +5668,14 @@ return Class({
 		this.points.invoke('rotate', angle, pivot);
 		return this;
 	},
-	scale : function (x, y) {
-		this.points.invoke('scale', x, y);
+	scale : function (power, pivot) {
+		this.points.invoke('scale', power, pivot);
 		return this;
 	},
 	intersect : function (poly) {
-		var pp = poly.points, tp = this.points, ppL = pp.length, tpL = tp.length;
-		for (var i = 0; i < ppL; i++) for (var k = 0; k < tpL; k++) {
-			var a = tp[k],
-				b = tp[k+1 == tpL ? 0 : k+1],
-				c = pp[i],
-				d = pp[i+1 == ppL ? 0 : i+1];
-			if (linesIntersect(a,b,c,d)) return true;
+		var tL = this.lines, pL = poly.lines, i = tL.length, k = pL.length;
+		while (i-- > 0) for (k = pL.length; k-- > 0;) {
+			if (tL[i].intersect(pL[k])) return true;
 		}
 		return false;
 	},
@@ -5648,8 +5691,6 @@ return Class({
 	},
 	toString: Function.lambda('[object LibCanvas.Shapes.Polygon]')
 });
-
-}();
 
 /*
 ---

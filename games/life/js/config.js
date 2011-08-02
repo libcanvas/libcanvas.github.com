@@ -1,6 +1,6 @@
 
 window.config = {
-	updateTime: 300,
+	updateTime: 60,
 	field: {
 		width : 80,
 		height: 50
