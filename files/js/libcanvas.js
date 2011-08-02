@@ -19,8 +19,7 @@ authors:
 
 'use strict';
 
-var undefined,
-	Class = atom.Class;
+var undefined, Class = atom.Class;
 /*
 ---
 
@@ -1105,6 +1104,14 @@ return Class({
 			x: this.x,
 			y: this.y
 		};
+	},
+	mean: function (points) {
+		var l = points.length, i = l, x = 0, y = 0;
+		while (i--) {
+			x += points[i].x;
+			y += points[i].y;
+		}
+		return this.set(x/l, y/l);
 	},
 	snapToPixel: function () {
 		this.x += 0.5 - (this.x - this.x.floor());
@@ -2664,7 +2671,9 @@ var Shape = LibCanvas.Shape = Class({
 		return this.parent(distance);
 	},
 	equals : function (shape, accuracy) {
-		return shape.from.equals(this.from, accuracy) && shape.to.equals(this.to, accuracy);
+		return shape instanceof this.self &&
+			shape.from.equals(this.from, accuracy) &&
+			shape.to  .equals(this.to  , accuracy);
 	},
 	clone : function () {
 		return new this.self(this.from.clone(), this.to.clone());
@@ -2704,11 +2713,7 @@ provides: Shapes.Rectangle
 ...
 */
 
-var Rectangle = LibCanvas.Shapes.Rectangle = new function () {
-
-var random = Number.random;
-
-return Class({
+var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 	Extends: Shape,
 	set : function () {
 		var a = Array.pickFrom(arguments);
@@ -2855,8 +2860,8 @@ return Class({
 	getRandomPoint : function (margin) {
 		margin = margin || 0;
 		return new Point(
-			random(margin, this.width  - margin),
-			random(margin, this.height - margin)
+			Number.random(margin, this.width  - margin),
+			Number.random(margin, this.height - margin)
 		);
 	},
 	translate : function (point, fromRect) {
@@ -2871,8 +2876,8 @@ return Class({
 		this.to.snapToPixel();
 		return this;
 	},
-	dump: function () {
-		return this.parent('Rectangle');
+	dump: function (name) {
+		return this.parent(name || 'Rectangle');
 	},
 	toPolygon: function () {
 		return new Polygon(
@@ -2881,8 +2886,6 @@ return Class({
 	},
 	toString: Function.lambda('[object LibCanvas.Shapes.Rectangle]')
 });
-
-}();
 
 /*
 ---
@@ -2936,20 +2939,18 @@ var Circle = LibCanvas.Shapes.Circle = Class({
 		if (this.center == null) throw new TypeError('center is null');
 		if (this.radius == null) throw new TypeError('radius is null');
 	},
-	get center () {
-		return this._center;
-	},
-	set center (center) {
-		this._center = center;
-	},
+	// we need accessors to redefine parent "get center"
+	get center ( ) { return this._center; },
+	set center (c) { this._center = c; },
 	getCoords : function () {
 		return this.center;
 	},
 	hasPoint : function (point) {
 		return this.center.distanceTo(point) <= this.radius;
 	},
-	scale : function (factor) {
-		this.center.scale(factor);
+	scale : function (factor, pivot) {
+		if (pivot) this.center.scale(factor, pivot);
+		this.radius *= factor;
 		return this;
 	},
 	getCenter: function () {
@@ -2983,6 +2984,11 @@ var Circle = LibCanvas.Shapes.Circle = Class({
 	},
 	getPoints : function () {
 		return { center : this.center };
+	},
+	equals : function (shape, accuracy) {
+		return shape instanceof this.shape &&
+			shape.radius == this.radius    &&
+			shape.center.equals(this.center, accuracy);
 	},
 	dump: function () {
 		return '[shape Circle(center['+this.center.x+', '+this.center.y+'], '+this.radius+')]';
@@ -5176,12 +5182,15 @@ var Ellipse = LibCanvas.Shapes.Ellipse = Class({
 		if (!noWrap) ctx.closePath();
 		return ctx;
 	},
+	equals : function (shape, accuracy) {
+		return this.parent( shape, accuracy ) && shape.angle == this.angle;
+	},
 	draw : function (ctx, type) {
 		this.processPath(ctx)[type]();
 		return this;
 	},
-	dump: function () {
-		return this.parent('Ellipse');
+	dump: function (name) {
+		return this.parent(name || 'Ellipse');
 	},
 	toString: Function.lambda('[object LibCanvas.Shapes.Ellipse]')
 });
@@ -5276,32 +5285,30 @@ return Class({
 		            (point ? new Point(x, y) : true) : FALSE;
 	},
 	distanceTo: function (p, asInfiniteLine) {
-		var f = this.from, t = this.t, degree, s, x, y;
-		if (p instanceof Point) {
+		p = Point(p);
+		var f = this.from, t = this.to, degree, s, x, y;
 			
-			if (!asInfiniteLine) {
-				degree = Math.atan2(p.x - t.x, p.y - t.y).getDegree();
-				if ( degree.between(-90, 90) ) {
-					return t.distanceTo( p );
-				}
-
-				degree = Math.atan2(f.x - p.x, f.y - p.y).getDegree();
-				if ( degree.between(-90, 90) ) {
-					return f.distanceTo( p );
-				}
+		if (!asInfiniteLine) {
+			degree = Math.atan2(p.x - t.x, p.y - t.y).getDegree();
+			if ( degree.between(-90, 90) ) {
+				return t.distanceTo( p );
 			}
 
-			s = (
-				f.x * (t.y - p.y) +
-				t.x * (p.y - f.y) +
-				p.x * (f.y - t.y)
-			).abs() / 2;
-
-			x = f.x - t.x;
-			y = f.y - t.y;
-			return 2 * s / Math.sqrt(x*x+y*y);
+			degree = Math.atan2(f.x - p.x, f.y - p.y).getDegree();
+			if ( degree.between(-90, 90) ) {
+				return f.distanceTo( p );
+			}
 		}
-		return null;
+
+		s = (
+			f.x * (t.y - p.y) +
+			t.x * (p.y - f.y) +
+			p.x * (f.y - t.y)
+		).abs() / 2;
+
+		x = f.x - t.x;
+		y = f.y - t.y;
+		return 2 * s / Math.sqrt(x*x+y*y);
 	},
 	get length () {
 		return this.to.distanceTo(this.from);
@@ -5380,6 +5387,9 @@ var Path = LibCanvas.Shapes.Path = Class({
 			}
 		});
 		return points;
+	},
+	get center () {
+		return new Point().mean(this.allPoints);
 	},
 	hasPoint : function (point) {
 		var ctx = shapeTestBuffer.ctx;
@@ -5627,6 +5637,9 @@ var Polygon = LibCanvas.Shapes.Polygon = Class({
 		}
 		return this._lines;
 	},
+	get center () {
+		return new Point().mean(this.points);
+	},
 	get: function (index) {
 		return this.points[index];
 	},
@@ -5741,6 +5754,11 @@ var RoundedRectangle = LibCanvas.Shapes.RoundedRectangle = Class({
 		if (!noWrap) ctx.closePath();
 		return ctx;
 	},
+
+	equals: function (shape, accuracy) {
+		return this.parent( shape, accuracy ) && shape.radius == this.radius;
+	},
+
 	dump: function () {
 		var p = function (p) { return '[' + p.x + ', ' + p.y + ']'; };
 		return '[shape RoundedRectangle(from'+p(this.from)+', to'+p(this.to)+', radius='+this.radius+')]';

@@ -11,7 +11,7 @@
 		<canvas></canvas>
 		<p><a href="/">Return to index</a></p>
 		<p>Mouse Wheel - rotating</p>
-		<p>Shift + Mouse Wheel - scaling</p>
+		<p>Z + Mouse Wheel - scaling</p>
 		<script src="/files/js/ui-core.js"></script>
 		<script>
 new function () {
@@ -19,6 +19,7 @@ new function () {
 
 	UiCore.libcanvas = new LibCanvas('canvas')
 		.listenMouse()
+		.listenKeyboard()
 		.size(600, 300, true)
 		.start();
 
@@ -78,7 +79,7 @@ new function () {
 	UiCore.libcanvas.mouse.addEvent('wheel', function (e) {
 		var poly = first.shaper.hover ? first : second.shaper.hover ? second : null;
 		if (poly) {
-			if (e.shiftKey) {
+			if (UiCore.libcanvas.getKey('z')) {
 				poly.scale( e.down ? 1.3 : 0.7, e.offset );
 			} else {
 				poly.rotate( e.delta * (6).degree(), e.offset );
