@@ -22,6 +22,8 @@ new function () {
 	var LinearGradient = atom.Class({
 		Implements: [ Drawable, Draggable ],
 
+		method: 'createLinearGradient',
+
 		initialize: function (shape) {
 			this.shape = shape;
 
@@ -33,16 +35,22 @@ new function () {
 		draw: function () {
 			var ctx = this.libcanvas.ctx;
 			ctx.fill(this.shape, ctx
-				.createLinearGradient( this.shape )
+				[this.method]( this.shape )
 				.addColorStop({
-					'0.0' : 'black',
+					'0.0' : 'white',
 					'0.3' : 'blue',
+					'0.5' : 'yellow',
 					'0.7' : 'green',
 					'1.0' : 'red'
 				})
 			);
 
 		}
+	});
+
+	var RectangleGradient = atom.Class({
+		Extends: LinearGradient,
+		method: 'createRectangleGradient'
 	});
 
 	var RadialGradient = atom.Class({
@@ -75,7 +83,8 @@ new function () {
 	});
 
 	[
-		new LinearGradient( new Rectangle(20, 20, 100, 100) ),
+		new LinearGradient( new Rectangle(20, 20, 200, 100) ),
+		new RectangleGradient( new Rectangle(120, 120, 200, 100) ),
 		new RadialGradient(
 			new Circle(200, 160, 50),
 			new Circle(200, 160, 10)

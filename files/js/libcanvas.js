@@ -3696,6 +3696,13 @@ var Context2D = Class({
 		if (typeof colors == 'object') gradient.addColorStop( colors );
 		return gradient;
 	},
+	createRectangleGradient: function (rectangle, colors) {
+		rectangle = Rectangle( rectangle );
+
+		var from = rectangle.from, line = new Line( rectangle.bottomLeft, rectangle.topRight );
+
+		return this.createGradient( from, line.perpendicular(from).scale(2, from), colors );
+	},
 	createLinearGradient : function (from, to) {
 		var a = arguments;
 		if (a.length != 4) {
@@ -5288,6 +5295,22 @@ return Class({
 		return between(x, a.x, b.x) && between (y, a.y, b.y) &&
 		       between(x, c.x, d.x) && between (y, c.y, d.y) ?
 		            (point ? new Point(x, y) : true) : FALSE;
+	},
+	perpendicular: function (point) {
+		point = Point( point );
+		var
+			fX = this.from.x,
+			fY = this.from.y,
+			tX = this.to.x,
+			tY = this.to.y,
+			pX = point.x,
+			pY = point.y,
+			dX = (tX-fX) * (tX-fX),
+			dY = (tY-fY) * (tY-fY),
+			rX = ((tX-fX)*(tY-fY)*(pY-fY)+fX*dY+pX*dX) / (dX+dY),
+			rY = (tY-fY)*(rX-fX)/(tX-fX)+fY;
+
+		return new Point( rX, rY );
 	},
 	distanceTo: function (p, asInfiniteLine) {
 		p = Point(p);

@@ -44,8 +44,7 @@ provides: atom
 	var prototype = 'prototype',
 	    apply     = 'apply',
 		toString  = Object[prototype].toString,
-		slice     = [].slice,
-		FuncProto = Function[prototype];
+		slice     = [].slice;
 
 	var atom = this.atom = function () {
 		if (atom.initialize) return atom.initialize[apply](this, arguments);
@@ -129,7 +128,7 @@ provides: atom
 		},
 		log: function () {
 			// ie9 bug, typeof console.log == 'object'
-			if (atom.global.console) FuncProto[apply].call(console.log, console, arguments);
+			if (atom.global.console) Function.prototype.apply.call(console.log, console, arguments);
 		},
 		isEnumerable: function(item){
 			return item != null && toString.call(item) != '[object Function]' && typeof item.length == 'number';
@@ -148,22 +147,23 @@ provides: atom
 	});
 
 	// JavaScript 1.8.5 Compatiblity
-
 	// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind
-	if (!FuncProto.bind) {
-		FuncProto.bind = function(context /*, arg1, arg2... */) {
-			var args  = slice.call(arguments, 1),
-				self  = this,
-				nop   = function () {},
-				bound = function () {
-					return self[apply](
-						this instanceof nop ? this : ( context || {} ),
+	if (!Function.prototype.bind) {
+		Function.prototype.bind = function(context /*, arg1, arg2... */) {
+			if (typeof this !== "function") throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+
+			var args   = slice.call(arguments, 1),
+				toBind = this,
+				Nop    = function () {},
+				Bound  = function () {
+					return toBind.apply(
+						this instanceof Nop ? this : ( context || {} ),
 						args.concat( slice.call(arguments) )
 					);
 				};
-			nop[prototype]   = self[prototype];
-			bound[prototype] = new nop();
-			return bound;
+			Nop.prototype   = toBind.prototype;
+			Bound.prototype = new Nop();
+			return Bound;
 		};
 	}
 
@@ -911,6 +911,9 @@ atom.implement(Number, {
 			clearTimeout (num);
 		}
 		return this;
+	},
+	xor: function (x) {
+		return Boolean.xor( this, x );
 	}
 });
 
@@ -1610,6 +1613,37 @@ atom.Class.Options = atom.Class({
 /*
 ---
 
+name: "Boolean"
+
+description: "Contains Boolean Prototypes like xor."
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+requires:
+	- atom
+
+provides: Boolean
+
+...
+*/
+
+atom.extend(Boolean, {
+	xor: function (a, b) {
+		return !a != !b;
+	}
+});
+
+atom.implement(Boolean, {
+	xor: function (x) {
+		return Boolean.xor( this, x );
+	}
+});
+
+/*
+---
+
 name: "Function"
 
 description: "Contains Function Prototypes like context, periodical and delay."
@@ -1666,6 +1700,22 @@ new function () {
 			return function() {
 				return fn.apply(getContext(bind, this), slice.call(arguments, 0, numberOfArgs))
 			};
+		},
+		after: function (fnName) {
+			var onReady = this, after = {}, ready = {};
+			var checkReady = function () {
+				for (var i in after) if (!(i in ready)) return;
+				onReady(ready);
+			};
+			for (var i = 0, l = arguments.length; i < l; i++) {
+				(function (key) {
+					after[key] = function () {
+						ready[key] = arguments;
+						checkReady();
+					};
+				})(arguments[i]);
+			}
+			return after;
 		}
 	});
 
