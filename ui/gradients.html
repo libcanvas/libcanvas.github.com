@@ -83,19 +83,30 @@ new function () {
 	});
 
 	[
-		new LinearGradient( new Rectangle(20, 20, 200, 100) ),
-		new RectangleGradient( new Rectangle(120, 120, 200, 100) ),
 		new RadialGradient(
-			new Circle(200, 160, 50),
-			new Circle(200, 160, 10)
+			new Circle(340, 170, 50),
+			new Circle(340, 170, 10)
 		),
 		new RadialGradient(
-			new Circle(270, 60, 50),
-			new Circle(270, 60, 10)
-		).fixed()
+			new Circle(320, 55, 50),
+			new Circle(320, 55, 10)
+		).fixed(),
+		new LinearGradient( new Rectangle(20, 20, 200, 100) ),
+		new RectangleGradient( new Rectangle(80, 140, 200, 100) )
 	].forEach(function (gradient, z) {
 		gradient.zIndex = z;
 		libcanvas.addElement( gradient );
+		if (gradient.shape instanceof Rectangle) {
+			[gradient.shape.from, gradient.shape.to].forEach(function (point) {
+				libcanvas.createShaper({
+					shape: new Circle(point, 4),
+					stroke: 'white',
+					lineWidth: 2
+				})
+				.setZIndex(z+0.5)
+				.draggable();
+			});
+		}
 	});
 }
 		</script>
