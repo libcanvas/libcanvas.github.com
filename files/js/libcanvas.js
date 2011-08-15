@@ -3571,6 +3571,8 @@ var Context2D = Class({
 					y : from.y + a.image.height/2
 				};
 				this.rotate(a.angle, center);
+			} else if (a.optimize) {
+				from = { x: from.x.round(), y: from.y.round() }
 			}
 			this.original('drawImage', [
 				a.image, from.x, from.y
@@ -3587,9 +3589,24 @@ var Context2D = Class({
 					draw.from.x, draw.from.y, draw.width, draw.height
 				]);
 			} else {
-				this.original('drawImage', [
-					a.image, draw.from.x, draw.from.y, draw.width, draw.height
-				]);
+				if (a.optimize) {
+					var size = draw.size, dSize = {
+						x: (size.width  - a.image.width ).abs(),
+						y: (size.height - a.image.height).abs()
+					};
+					from = { x: draw.from.x.round(), y: draw.from.y.round() };
+					if (dSize.x <= 1.1 && dSize.y <= 1.1 ) {
+						this.original('drawImage', [ a.image, from.x, from.y ]);
+					} else {
+						this.original('drawImage', [
+							a.image, from.x, from.y, size.width.round(), size.height.round()
+						]);
+					}
+				} else {
+					this.original('drawImage', [
+						a.image, draw.from.x, draw.from.y, draw.width, draw.height
+					]);
+				}
 			}
 		} else {
 			throw new TypeError('Wrong Args in Context.drawImage');
@@ -5457,6 +5474,11 @@ var Path = LibCanvas.Shapes.Path = Class({
 		}.bind(this));
 		return this;
 	},
+	clone: function () {
+		var builder = new Path.Builder;
+		builder.parts.append( this.builder.parts.clone() );
+		return builder.build();
+	},
 	toString: Function.lambda('[object LibCanvas.Shapes.Path]')
 });
 
@@ -6482,7 +6504,7 @@ atom.implement(HTMLImageElement, {
 	},
 	isLoaded : function () {
 		if (!this.complete)  return false;
-		return this.naturalWidth == null || this.naturalWidth;
+		return (this.naturalWidth == null) || !!this.naturalWidth;
 	}
 });
 	// mixin from image
@@ -6530,12 +6552,24 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 		if (Array.isArray(images)) images = Object.map(images[1], function (src) {
 			return images[0] + src;
 		});
-		this.images = this.createImages(images);
+		this.usrImages = images;
+		this.domImages = this.createDomImages(images);
+		this.images    = {};
+	},
+	cutImages: function () {
+		var i, parts, img;
+		for (i in this.usrImages) {
+			parts = this.splitUrl( this.usrImages[i] );
+			img   = this.domImages[ parts.url ];
+			if (parts.coords) img = img.sprite(Rectangle( parts.coords ));
+			this.images[i] = img;
+		}
+		return this;
 	},
 	onProcessed : function (type) {
 		this.count[type]++;
 		this.processed++;
-		if (this.isReady()) this.readyEvent('ready', [this]);
+		if (this.isReady()) this.cutImages().readyEvent('ready', [this]);
 		return this;
 	},
 	get info () {
@@ -6556,7 +6590,7 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 	isReady : function () {
 		return (this.number == this.processed);
 	},
-	createImage : function (src, key) {
+	createDomImage : function (src) {
 		this.number++;
 		return atom.dom
 			.create('img', { src : src })
@@ -6567,10 +6601,23 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 			})
 			.first;
 	},
-	createImages : function (images) {
-		var imgs = {};
-		for (var i in images) imgs[i] = this.createImage(images[i], i);
-		return imgs;
+	splitUrl: function (str) {
+		var url = str, coords = str.match(/ \[[\d\.:]+\]$/);
+		if (coords) {
+			coords = coords[0];
+			url    = str.substr(0, str.lastIndexOf(coords));
+		}
+		return { url: url,
+			coords: coords ? Array.from( coords.match(/[\d\.]+/g) ) : null
+		};
+	},
+	createDomImages: function (images) {
+		var i, result = {}, url;
+		for (i in images) {
+			url = this.splitUrl( images[i] ).url;
+			if (!result[url]) result[url] = this.createDomImage( url );
+		}
+		return result;
 	},
 	ready : function (fn) {
 		this.addEvent('ready', fn);
