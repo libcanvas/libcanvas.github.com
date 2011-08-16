@@ -10,7 +10,7 @@ Isometric.Controller = atom.Class(
 			cell : 32
 		},
 		box: {
-			coords: new Isometric.Point3D( 6, 1, 0.1 ),
+			coords: new Isometric.Point3D( 6, 1, 0.12 ),
 			colors: [ '#eaa', '#a66', '#733' ]
 		}
 	},

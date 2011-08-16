@@ -16,7 +16,7 @@ Isometric.Box = atom.Class(
 	colors: ['white', 'white', 'white'],
 
 	/** @property {number} */
-	speed: 100,
+	speed: 200,
 
 	/**
 	 * @constructs
@@ -83,7 +83,7 @@ Isometric.Box = atom.Class(
 	move: function (shift, onProcess, onFinish) {
 		shift = Isometric.Point3D( shift );
 		var newCoords = this.coords.clone().move( shift );
-		if (newCoords.z < 0) newCoords.z = 0;
+		if (newCoords.z < 0.02) newCoords.z = 0.02;
 
 		if ( this.map.hasPoint( newCoords )) {
 			var time = this.getTime( shift );
@@ -117,11 +117,12 @@ Isometric.Box = atom.Class(
 	 * @returns {number}
 	 */
 	getTime: function (distance) {
-		return this.speed * Math.sqrt(
+		var time = this.speed * Math.sqrt(
 			distance.x.pow(2) +
 			distance.y.pow(2) +
 			distance.z.pow(2)
 		);
+		return Math.max( time, this.speed );
 	},
 
 	/** @returns {Isometric.Box} */

@@ -109,9 +109,9 @@ Isometric.Map = atom.Class(
 	 * @returns {boolean}
 	 */
 	hasPoint: function (coord) {
-		return coord.x.between(0, this.size.x, 'L') &&
-		       coord.y.between(0, this.size.y, 'L') &&
-		       coord.z.between(0, this.size.z, 'L')
+		return coord.x.ceil().between(0, this.size.x, 'L') &&
+		       coord.y.ceil().between(0, this.size.y, 'L') &&
+		       coord.z.ceil().between(0, this.size.z, 'L')
 	},
 
 	/**
