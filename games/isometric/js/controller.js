@@ -88,7 +88,7 @@ Isometric.Controller = atom.Class(
 				elem.move( [0,0,e.delta], this.libcanvas.update );
 				this.removeGhost();
 				e.preventDefault();
-			}
+			}.bind(this)
 		});
 
 		return elem;
