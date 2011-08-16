@@ -4,7 +4,7 @@ Isometric.Controller = atom.Class(
 {
 	Static: {
 		map: {
-			proj : new Isometric.Projection([ 0.866, 0.5, 0.866 ]),
+			proj : new Isometric.Projection([ 0.866, 0.5, 1 ]),
 			size : new Isometric.Point3D( 13, 13, 7 ),
 			shift: new Point( 40 , 380 ),
 			cell : 32
