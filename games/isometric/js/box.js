@@ -83,6 +83,7 @@ Isometric.Box = atom.Class(
 	move: function (shift, onProcess, onFinish) {
 		shift = Isometric.Point3D( shift );
 		var newCoords = this.coords.clone().move( shift );
+		if (newCoords.z < 0) newCoords.z = 0;
 
 		if ( this.map.hasPoint( newCoords )) {
 			var time = this.getTime( shift );
