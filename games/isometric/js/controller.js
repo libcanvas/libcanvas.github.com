@@ -70,6 +70,11 @@ Isometric.Controller = atom.Class(
 		return this;
 	},
 
+	/**
+	 * @private
+	 * @param {Isometric.Box} elem
+	 * @returns {Isometric.Box}
+	 */
 	addMouseControls: function (elem) {
 		this.libcanvas.mouse.addEvent({
 			click: function (e) {
