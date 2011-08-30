@@ -42,18 +42,20 @@ atom.dom(function () {
 	})
 	.size(800, 500, true)
 	.listenMouse()
-	.start();
+	.start()
+	.addEvent( 'ready', function () {
 
-	var proj = new Projective;
+		var proj = new Projective;
 
-	libcanvas.addElement( proj );
+		libcanvas.addElement( proj ).update();
 
-	proj.shape.points.forEach(function (p) {
-		libcanvas.createShaper({
-			shape: new Circle(p, 5),
-			fill: 'red'
-		})
-		.draggable();
+		proj.shape.points.forEach(function (p) {
+			libcanvas.createShaper({
+				shape: new Circle(p, 5),
+				fill: 'red'
+			})
+			.draggable();
+		});
 	});
 });
 		</script>
