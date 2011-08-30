@@ -15,7 +15,7 @@ authors:
 ...
 */
 
-(function (atom, Math) { // LibCanvas
+(function (atom, Math, HTMLCanvasElement) { // LibCanvas
 
 'use strict';
 
@@ -39,7 +39,9 @@ provides: LibCanvas
 ...
 */
 
-var LibCanvas = this.LibCanvas = Class({
+var LibCanvas = this.LibCanvas = Class(
+/** @lends LibCanvas.prototype */
+{
 	Static: {
 		Buffer: function (width, height, withCtx) {
 			var a = Array.pickFrom(arguments), zero = (width == null || width === true);
@@ -84,7 +86,7 @@ var LibCanvas = this.LibCanvas = Class({
 					to[k] = LibCanvas[i][k];
 				}
 			}
-			for (i in {Point: 1, Animation: 1, Processors: 1}) {
+			for (i in {Point: 1, Animation: 1, Processors: 1, Context2D: 1}) {
 				to[i] = LibCanvas[i];
 			}
 			return to;
@@ -97,6 +99,10 @@ var LibCanvas = this.LibCanvas = Class({
 			return this._invoker;
 		}
 	},
+	/**
+	 * @constructs
+	 * @returns {LibCanvas.Canvas2D}
+	 */
 	initialize: function() {
 		return Canvas2D.factory(arguments);
 	}
@@ -295,7 +301,13 @@ provides: Invoker
 ...
 */
 
-var Invoker = LibCanvas.Invoker = Class({
+var Invoker = LibCanvas.Invoker = Class(
+/**
+ * @lends LibCanvas.Invoker.prototype
+ * @augments Class.Options.prototype
+ * @augments Class.Events.prototype
+ */
+{
 	Static: {
 		AutoChoose: Class({
 			get invoker () {
@@ -828,12 +840,19 @@ provides: Geometry
 ...
 */
 
-var Geometry = LibCanvas.Geometry = Class({
+var Geometry = LibCanvas.Geometry = Class(
+/**
+ * @lends LibCanvas.Geometry.prototype
+ * @augments Class.Events.prototype
+ */
+{
 	Implements: Class.Events,
 	Static: {
 		invoke: function (obj) {
-			return (typeof obj == 'object' && obj[0] instanceof this) ? obj[0]
-					: (obj instanceof this ? obj : new this(obj));
+			if (obj == null) throw new TypeError( 'element is not geometry' );
+
+			return (typeof obj == 'object' && obj[0] instanceof this) ?
+				obj[0] : (obj instanceof this ? obj : new this(obj));
 		},
 		from : function (obj) {
 			return this(obj);
@@ -990,11 +1009,22 @@ var shifts = {
 	br     : {x: 1, y: 1}
 };
 
-return Class({
+return Class(
+/**
+ * @lends LibCanvas.Point.prototype
+ * @augments LibCanvas.Geometry.prototype
+ */
+{
 	Extends: Geometry,
 
 	Static: { shifts: shifts },
 
+	/**
+	 * @constructs
+	 * @param {Number} x
+	 * @param {Number} y
+	 * @returns {LibCanvas.Point}
+	 */
 	set : function (x, y) {
 		var args = arguments;
 		if (atom.typeOf(x) == 'arguments') {
@@ -1018,6 +1048,7 @@ return Class({
 		this.y = y == null ? null : Number(y);
 		return this;
 	},
+	/** @returns {LibCanvas.Point} */
 	move: function (distance, reverse) {
 		distance = this.invertDirection(Point(distance), reverse);
 		this.x += distance.x;
@@ -1025,20 +1056,25 @@ return Class({
 
 		return this.parent(distance, false);
 	},
+	/** @returns {LibCanvas.Point} */
 	moveTo : function (newCoord) {
 		return this.move(this.diff(Point(arguments)));
 	},
+	/** @returns {Number} */
 	angleTo : function (point) {
 		var diff = Point(arguments).diff(this);
 		return Math.atan2(diff.y, diff.x).normalizeAngle();
 	},
+	/** @returns {Number} */
 	distanceTo : function (point) {
 		var diff = Point(arguments).diff(this);
 		return Math.hypotenuse(diff.x, diff.y);
 	},
+	/** @returns {LibCanvas.Point} */
 	diff : function (point) {
 		return new Point(arguments).move(this, true);
 	},
+	/** @returns {LibCanvas.Point} */
 	rotate : function (angle, pivot) {
 		pivot = Point(pivot || {x: 0, y: 0});
 		if (this.equals(pivot)) return this;
@@ -1053,6 +1089,7 @@ return Class({
 			y : newAngle.cos() * radius + pivot.y
 		});
 	},
+	/** @returns {LibCanvas.Point} */
 	scale : function (power, pivot) {
 		pivot = Point(pivot || {x: 0, y: 0});
 		var diff = this.diff(pivot), isObject = typeof power == 'object';
@@ -1061,23 +1098,28 @@ return Class({
 			y : pivot.y - diff.y  * (isObject ? power.y : power)
 		});
 	},
+	/** @returns {LibCanvas.Point} */
 	alterPos : function (arg, fn) {
 		return this.moveTo({
 			x: fn(this.x, typeof arg == 'object' ? arg.x : arg),
 			y: fn(this.y, typeof arg == 'object' ? arg.y : arg)
 		});
 	},
+	/** @returns {LibCanvas.Point} */
 	mul : function (arg) {
 		return this.alterPos(arg, function(a, b) {
 			return a * b;
 		});
 	},
+	/** @returns {LibCanvas.Point} */
 	getNeighbour : function (dir) {
 		return this.clone().move(shifts[dir]);
 	},
+	/** @returns {LibCanvas.Point[]} */
 	get neighbours () {
 		return this.getNeighbours( true );
 	},
+	/** @returns {LibCanvas.Point[]} */
 	getNeighbours: function (corners, asObject) {
 		var shifts = ['t', 'l', 'r', 'b'], result, i, dir;
 
@@ -1094,17 +1136,20 @@ return Class({
 			return shifts.map(this.getNeighbour.bind(this));
 		}
 	},
+	/** @returns {boolean} */
 	equals : function (to, accuracy) {
 		to = Point(to);
 		return accuracy == null ? (to.x == this.x && to.y == this.y) :
 			(this.x.equals(to.x, accuracy) && this.y.equals(to.y, accuracy));
 	},
+	/** @returns {object} */
 	toObject: function () {
 		return {
 			x: this.x,
 			y: this.y
 		};
 	},
+	/** @returns {LibCanvas.Point} */
 	mean: function (points) {
 		var l = points.length, i = l, x = 0, y = 0;
 		while (i--) {
@@ -1113,14 +1158,17 @@ return Class({
 		}
 		return this.set(x/l, y/l);
 	},
+	/** @returns {LibCanvas.Point} */
 	snapToPixel: function () {
 		this.x += 0.5 - (this.x - this.x.floor());
 		this.y += 0.5 - (this.y - this.y.floor());
 		return this;
 	},
+	/** @returns {LibCanvas.Point} */
 	clone : function () {
 		return new this.self(this);
 	},
+	/** @returns {string} */
 	dump: function () {
 		return '[Point(' + this.x + ', ' + this.y + ')]';
 	},
@@ -1266,7 +1314,12 @@ provides: Mouse
 */
 
 
-var Mouse = LibCanvas.Mouse = Class({
+var Mouse = LibCanvas.Mouse = Class(
+/**
+ * @lends LibCanvas.Mouse.prototype
+ * @augments Class.Events.prototype
+ */
+{
 	Implements: Class.Events,
 	
 	Static: {
@@ -1523,11 +1576,19 @@ events:
 
 // Should extends LibCanvas.Behaviors.Drawable
 var MouseListener = LibCanvas.Behaviors.MouseListener = Class({
+	'listenMouse.start': function () {
+		this.libcanvas.mouse.subscribe(this);
+	},
+	'listenMouse.stop': function () {
+		this.libcanvas.mouse.unsubscribe(this);
+	},
+
 	listenMouse : function (stopListen) {
-		return this.addEvent('libcanvasSet', function () {
-			var command = stopListen ? "unsubscribe" : "subscribe";
-			this.libcanvas.mouse[command](this);
-		}.bind(this));
+		var method = this[ 'listenMouse.' + (stopListen ? 'stop' : 'start') ];
+
+		this.libcanvas ? method.call( this ) :
+			this.addEvent('libcanvasSet', method );
+		return this;
 	}
 });
 
@@ -1655,7 +1716,11 @@ return Class({
 
 	draggable : function (stopDrag) {
 		if (! ('draggable.isDraggable' in this) ) {
-			this.addEvent('libcanvasSet', initDraggable);
+			if (this.libcanvas) {
+				initDraggable.call( this );
+			} else {
+				this.addEvent('libcanvasSet', initDraggable);
+			}
 		}
 		this['draggable.isDraggable'] = !stopDrag;
 		return this;
@@ -2079,7 +2144,7 @@ provides: Inner.FpsMeter
 
 ...
 */
-LibCanvas.Inner.FpsMeter = Class({
+var InnerFpsMeter = LibCanvas.Inner.FpsMeter = Class({
 	fpsMeter : function (frames) {
 		if (typeof FpsMeter == 'undefined') {
 			throw new Error('LibCanvas.Utils.FpsMeter is not loaded');
@@ -2223,23 +2288,36 @@ provides: Canvas2D
 ...
 */
 
-var Canvas2D = LibCanvas.Canvas2D = Class({
+var Canvas2D = LibCanvas.Canvas2D = Class(
+/**
+ * @lends LibCanvas.Canvas2D.prototype
+ * @augments LibCanvas.prototype
+ * @augments FrameRenderer.prototype
+ * @augments InnerFpsMeter.prototype
+ * @augments DownloadingProgress.prototype
+ * @augments Class.Events.prototype
+ * @augments Class.Options.prototype
+ */
+{
 	Extends: LibCanvas,
 	Implements: [
 		FrameRenderer,
-		Inner.FpsMeter,
+		InnerFpsMeter,
 		DownloadingProgress,
 		Class.Events,
 		Class.Options
 	],
 
 	Generators: {
+		/** @private */
 		mouse: function () {
 			throw new Error('Mouse is not listened by libcanvas');
 		},
+		/** @private */
 		keyboard: function () {
 			throw new Error('Keyboard is not listened by libcanvas');
 		},
+		/** @private */
 		wrapper: function () {
 			var wrapper = atom.dom.create('div').css({
 				width   : '100%',
@@ -2251,6 +2329,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 			return wrapper.appendTo(wrapper.parent);
 		},
 		// Needs for right mouse behaviour
+		/** @private */
 		cover: function () {
 			if (this.parentLayer) return this.parentLayer.cover;
 			return atom.dom
@@ -2263,6 +2342,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 				.addClass('libcanvas-layers-cover')
 				.appendTo(this.wrapper);
 		},
+		/** @private */
 		invoker: function () {
 			return new Invoker({
 				context: this,
@@ -2272,15 +2352,15 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		}
 	},
 
-	// @deprecated
-	set fps (value) {
-		this.options.fps = value;
-	},
-	get fps () {
-		return this.options.fps;
-	},
+	/** @deprecated */
+	set fps (f) { this.options.fps = f; },
+	/** @deprecated */
+	get fps ( ) { return this.options.fps; },
+
+	/** @private */
 	interval: null,
-	name: null,
+	/** @private */
+	name    : null,
 
 	options: {
 		name: 'main',
@@ -2291,6 +2371,12 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		fps: 30
 	},
 
+	/**
+	 * @constructs
+	 * @param {atom.dom} elem
+	 * @param {object} options
+	 * @returns {LibCanvas.Canvas2D}
+	 */
 	initialize : function (elem, options) {
 		Class.bindAll( this, 'update' );
 
@@ -2340,17 +2426,25 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 			.css('position', 'absolute');
 		this.zIndex = Infinity;
 	},
-	
+
+	/** @returns {LibCanvas.Canvas2D} */
 	show: function () {
 		this.origElem.atom.css('display', 'block');
 		return this;
 	},
-	
+
+	/** @returns {LibCanvas.Canvas2D} */
 	hide: function () {
 		this.origElem.atom.css('display', 'none');
 		return this;
 	},
 
+	/**
+	 * @param {number} size
+	 * @param {number} height
+	 * @param {number} wrapper
+	 * @returns {LibCanvas.Canvas2D}
+	 */
 	size: function (size, height, wrapper) {
 		if (typeof size == 'object') {
 			wrapper = height;
@@ -2370,7 +2464,11 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		}
 		return this;
 	},
-	
+
+	/**
+	 * @param {object} shift
+	 * @returns {LibCanvas.Canvas2D}
+	 */
 	shift: function (shift, left) {
 		if (left != null) {
 			shift = { top: shift, left: left };
@@ -2382,7 +2480,8 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		return this;
 	},
 
-	createProjectBuffer: Class.protectedMethod(function () {
+	/** @private */
+	createProjectBuffer: function () {
 		if (this.options.backBuffer == 'off') {
 			this.elem = this.origElem;
 			this.ctx  = this.origCtx;
@@ -2391,9 +2490,10 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 			this.ctx  = this.elem.getContext('2d-libcanvas');
 		}
 		return this;
-	}),
+	},
 
-	addClearer: Class.protectedMethod(function () {
+	/** @private */
+	addClearer: function () {
 		var clear = this.options.clear;
 		if (clear) {
 			this.addProcessor('pre',
@@ -2403,36 +2503,51 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 			);
 		}
 		return this;
-	}),
+	},
 
+	/** @private */
 	updateFrame : false,
+	/** @returns {LibCanvas.Canvas2D} */
 	update : function () {
 		this.updateFrame = true;
 		return this;
 	},
+	/** @private */
 	_freezed: false,
+	/** @returns {LibCanvas.Canvas2D} */
 	freeze: function (unfreeze) {
 		this._freezed = !unfreeze;
+		return this;
 	},
+
+	/** @returns {LibCanvas.Canvas2D} */
 	listenMouse : function (elem) {
 		this._mouse = LibCanvas.isLibCanvas(elem) ? elem.mouse
 			: new Mouse(this, /* preventDefault */elem);
 		return this;
 	},
+
+	/**
+	 * @param {string} key
+	 * @returns {boolean}
+	 */
 	getKey : function (key) {
 		return this.keyboard.keyState(key);
 	},
+	/** @returns {LibCanvas.Canvas2D} */
 	listenKeyboard : function (elem) {
 		this._keyboard = LibCanvas.isLibCanvas(elem) ? elem.keyboard
 			: new Keyboard(/* preventDefault */elem);
 		return this;
 	},
+	/** @returns {HTMLCanvasElement} */
 	createBuffer : function (width, height) {
 		return Buffer.apply(LibCanvas,
 			arguments.length ? arguments :
 				Array.collect(this.origElem, ['width', 'height'])
 		);
 	},
+	/** @returns {Shaper} */
 	createShaper : function (options) {
 		var shaper = new Shaper(this, options);
 		this.addElement(shaper);
@@ -2440,16 +2555,19 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 	},
 
 	// post-/pre- procesing
+	/** @returns {Canvas2D} */
 	addProcessor : function (type, processor) {
 		this.processors[type].push(processor);
 		return this;
 	},
+	/** @returns {LibCanvas.Canvas2D} */
 	rmProcessor : function (type, processor) {
 		this.processors[type].erase(processor);
 		return this;
 	},
 
 	// Element : add, rm
+	/** @returns {LibCanvas.Canvas2D} */
 	addElement : function (elem) {
 		this.elems.include(elem);
 		if (elem.libcanvas != this) {
@@ -2457,10 +2575,12 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		}
 		return this;
 	},
+	/** @returns {LibCanvas.Canvas2D} */
 	rmElement : function (elem) {
 		this.elems.erase(elem);
 		return this;
 	},
+	/** @returns {LibCanvas.Canvas2D} */
 	rmAllElements: function () {
 		this.elems.empty();
 		return this;
@@ -2468,6 +2588,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 
 	// Each frame funcs
 
+	/** @returns {LibCanvas.Canvas2D} */
 	addFunc: function (priority, fn, isRender) {
 		if (fn == null) {
 			fn = priority;
@@ -2479,9 +2600,11 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		}
 		return this;
 	},
+	/** @returns {LibCanvas.Canvas2D} */
 	addRender: function (priority, fn) {
 		return this.addFunc(priority, fn, true);
 	},
+	/** @returns {Canvas2D} */
 	rmFunc : function (fn) {
 		var f = this.funcs;
 		f.plain.erase(fn);
@@ -2490,6 +2613,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 	},
 
 	// Start, pause, stop
+	/** @returns {LibCanvas.Canvas2D} */
 	start : function (fn) {
 		fn && this.addRender(10, fn);
 		if (this.invoker.timeoutId == 0) {
@@ -2501,27 +2625,36 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		this.invoker.invoke();
 		return this;
 	},
+	/** @returns {LibCanvas.Canvas2D} */
 	stop: function () {
 		this.invoker.stop();
 		return this;
 	},
 
+	/** @property {LibCanvas.Canvas2D} */
 	parentLayer: null,
+	/** @returns {LibCanvas.Canvas2D} */
 	layer: function (name) {
 		if (!name) {
 			// gettin master layer
 			return this.parentLayer == null ? this : this.parentLayer.layer();
 		}
 		
-		if (name in this._layers) {
+		if (this.layerExists(name)) {
 			return this._layers[name];
 		} else {
 			throw new Error('No layer «' + name + '»');
 		}
 	},
-	
+
+	/** @returns {boolean} */
+	layerExists: function (name) {
+		return name in this._layers;
+	},
+
+	/** @returns {LibCanvas.Canvas2D} */
 	createLayer: function (name, z, options) {
-		if (name in this._layers) {
+		if (this.layerExists(name)) {
 			throw new Error('Layer «' + name + '» already exists');
 		}
 		if (typeof z == 'object') {
@@ -2535,7 +2668,8 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		layer.origElem.atom.attr({ 'data-layer-name': name });
 		return layer;
 	},
-	
+
+	/** @returns {LibCanvas.Canvas2D} */
 	get topLayer () {
 		var max = 0, layers = this._layers, nameMax = null, layer = null;
 		for (var name in layers) {
@@ -2546,12 +2680,14 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		}
 		return layer;
 	},
-	
+
+	/** @returns {number} */
 	get maxZIndex () {
 		var top = this.topLayer;
 		return top ? top.zIndex : 1;
 	},
-	
+
+	/** @private */
 	_zIndex: null,
 	
 	set zIndex (value) {
@@ -2584,10 +2720,14 @@ var Canvas2D = LibCanvas.Canvas2D = Class({
 		return this._zIndex;
 	},
 
-	// not clonable
+	/**
+	 * not clonable
+	 * @returns {LibCanvas.Canvas2D}
+	 */
 	get clone () {
 		return this;
 	},
+	/** @returns {string} */
 	dump: function () {
 		var el = this.elem, 
 			pr = [
@@ -2631,7 +2771,12 @@ var shapeTestBuffer = function () {
 	return shapeTestBuffer.buffer;
 };
 
-var Shape = LibCanvas.Shape = Class({
+var Shape = LibCanvas.Shape = Class(
+/**
+ * @lends LibCanvas.Shape.prototype
+ * @augments LibCanvas.Geometry.prototype
+ */
+{
 	Extends    : Geometry,
 	set        : Class.abstractMethod,
 	hasPoint   : Class.abstractMethod,
@@ -2721,8 +2866,22 @@ provides: Shapes.Rectangle
 ...
 */
 
-var Rectangle = LibCanvas.Shapes.Rectangle = Class({
+/** @name Rectangle */
+var Rectangle = LibCanvas.Shapes.Rectangle = Class(
+/**
+ * @lends LibCanvas.Shapes.Rectangle.prototype
+ * @augments LibCanvas.Shape.prototype
+ */
+{
 	Extends: Shape,
+	/**
+	 * @constructs
+	 * @param {number} fromX
+	 * @param {number} fromY
+	 * @param {number} width
+	 * @param {number} height
+	 * @returns {LibCanvas.Shapes.Rectangle}
+	 */
 	set : function () {
 		var a = Array.pickFrom(arguments);
 
@@ -2800,6 +2959,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 		this.height = height;
 		return this;
 	},
+	/** @returns {boolean} */
 	hasPoint : function (point, padding) {
 		point   = Point(arguments);
 		padding = padding || 0;
@@ -2807,6 +2967,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 			&& point.x.between(Math.min(this.from.x, this.to.x) + padding, Math.max(this.from.x, this.to.x) - padding, 1)
 			&& point.y.between(Math.min(this.from.y, this.to.y) + padding, Math.max(this.from.y, this.to.y) - padding, 1);
 	},
+	/** @returns {LibCanvas.Shapes.Rectangle} */
 	align: function (rect, sides) {
 		var moveTo = this.from.clone();
 		if (sides.indexOf('left') != -1) {
@@ -2827,6 +2988,21 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 
 		return this.moveTo( moveTo );
 	},
+	/** @returns {LibCanvas.Shapes.Rectangle} */
+	grow: function (size) {
+		if (typeof size == 'number') {
+			size = new Point(size/2, size/2);
+		} else {
+			size = new Point(size);
+			size.x /= 2;
+			size.y /= 2;
+		}
+
+		this.from.move(size, true);
+		this. to .move(size);
+		return this;
+	},
+	/** @returns {LibCanvas.Shapes.Rectangle} */
 	moveTo: function (rect) {
 		if (rect instanceof Point) {
 			this.move( this.from.diff(rect) );
@@ -2837,6 +3013,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 		}
 		return this;
 	},
+	/** @returns {LibCanvas.Shapes.Rectangle} */
 	draw : function (ctx, type) {
 		// fixed Opera bug - cant drawing rectangle with width or height below zero
 		ctx.original(type + 'Rect', [
@@ -2847,6 +3024,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 		]);
 		return this;
 	},
+	/** @returns {LibCanvas.Context2D} */
 	processPath : function (ctx, noWrap) {
 		if (!noWrap) ctx.beginPath();
 		ctx
@@ -2858,6 +3036,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 		if (!noWrap) ctx.closePath();
 		return ctx;
 	},
+	/** @returns {boolean} */
 	intersect : function (obj) {
 		if (obj instanceof this.self) {
 			return this.from.x < obj.to.x && this.to.x > obj.from.x
@@ -2865,6 +3044,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 		}
 		return false;
 	},
+	/** @returns {LibCanvas.Point} */
 	getRandomPoint : function (margin) {
 		margin = margin || 0;
 		return new Point(
@@ -2872,6 +3052,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 			Number.random(margin, this.height - margin)
 		);
 	},
+	/** @returns {LibCanvas.Shapes.Rectangle} */
 	translate : function (point, fromRect) {
 		var diff = fromRect.from.diff(point);
 		return new Point({
@@ -2879,19 +3060,23 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class({
 			y : (diff.y / fromRect.height) * this.height
 		});
 	},
+	/** @returns {LibCanvas.Shapes.Rectangle} */
 	snapToPixel: function () {
 		this.from.snapToPixel();
 		this.to.snapToPixel();
 		return this;
 	},
+	/** @returns {string} */
 	dump: function (name) {
 		return this.parent(name || 'Rectangle');
 	},
+	/** @returns {LibCanvas.Shapes.Polygon} */
 	toPolygon: function () {
 		return new Polygon(
 			this.from.clone(), this.topRight, this.to.clone(), this.bottomLeft
 		);
 	},
+	/** @returns {string} */
 	toString: Function.lambda('[object LibCanvas.Shapes.Rectangle]')
 });
 
@@ -2919,7 +3104,9 @@ provides: Shapes.Circle
 ...
 */
 
-var Circle = LibCanvas.Shapes.Circle = Class({
+var Circle = LibCanvas.Shapes.Circle = Class(
+/** @lends {LibCanvas.Shapes.Circle.prototype} */
+{
 	Extends: Shape,
 	set : function () {
 		var a = Array.pickFrom(arguments);
@@ -3026,19 +3213,27 @@ provides: Utils.Canvas
 ...
 */
 
-atom.extend(HTMLCanvasElement, {
+atom.extend(HTMLCanvasElement,
+/** @lends HTMLCanvasElement */
+{
+	/** @private */
 	_newContexts: {},
+	/** @returns {HTMLCanvasElement} */
 	addContext: function (name, ctx) {
 		this._newContexts[name] = ctx;
 		return this;
 	},
+	/** @returns {Context2D} */
 	getContext: function (name) {
 		return this._newContexts[name] || null;
 	}
 });
 
-atom.implement(HTMLCanvasElement, {
+atom.implement(HTMLCanvasElement,
+/** @lends HTMLCanvasElement.prototype */
+{
 	getOriginalContext: HTMLCanvasElement.prototype.getContext,
+	/** @returns {Context2D} */
 	getContext: function (type) {
 		if (!this.contextsList) {
 			this.contextsList = {};
@@ -3141,8 +3336,80 @@ var accessors = {};
 		}
 	})
 });
-	
-var Context2D = Class({
+
+var constants =
+/** @lends LibCanvas.Context2D */
+{
+	COMPOSITE: {
+		SOURCE_OVER: 'source-over',
+		SOURCE_IN  : 'source-in',
+		SOURCE_OUT : 'source-out',
+		SOURCE_ATOP: 'source-atop',
+
+		DESTINATION_OVER: 'destination-over',
+		DESTINATION_IN  : 'destination-in',
+		DESTINATION_OUT : 'destination-out',
+		DESTINATION_ATOP: 'destination-atop',
+
+		LIGHTER: 'lighter',
+		DARKER : 'darker',
+		COPY   : 'copy',
+		XOR    : 'xor'
+	},
+
+	LINE_CAP: {
+		BUTT  : 'butt',
+		ROUND : 'round',
+		SQUARE: 'square'
+	},
+
+	LINE_JOIN: {
+		ROUND: 'round',
+		BEVEL: 'bevel',
+		MITER: 'miter'
+	},
+
+	TEXT_ALIGN: {
+		LEFT  : 'left',
+		RIGHT : 'right',
+		CENTER: 'center',
+		START : 'start',
+		END   : 'end'
+	},
+
+	TEXT_BASELINE: {
+		TOP        : 'top',
+		HANGING    : 'hanging',
+		MIDDLE     : 'middle',
+		ALPHABETIC : 'alphabetic',
+		IDEOGRAPHIC: 'ideographic',
+		BOTTOM     : 'bottom'
+	}
+
+};
+
+var Context2D = Class(
+/**
+ * @lends LibCanvas.Context2D.prototype
+ * @property {string} fillStyle
+ * @property {string} font
+ * @property {number} globalAlpha
+ * @property {string} globalCompositeOperation
+ * @property {string} lineCap
+ * @property {string} lineJoin
+ * @property {number} lineWidth
+ * @property {number} miterLimit
+ * @property {number} shadowOffsetX
+ * @property {number} shadowOffsetY
+ * @property {number} shadowBlur
+ * @property {string} shadowColor
+ * @property {string} strokeStyle
+ * @property {string} textAlign
+ * @property {string} textBaseline
+ */
+{
+	Static: constants,
+
 	Implements: Class(accessors),
 
 	initialize : function (canvas) {
@@ -3172,6 +3439,7 @@ var Context2D = Class({
 	},
 	
 	_rectangle: null,
+	/** @returns {Rectangle} */
 	get rectangle () {
 		var rect = this._rectangle;
 		if (!rect) {
@@ -3181,9 +3449,11 @@ var Context2D = Class({
 		}
 		return rect;
 	},
+	/** @deprecated */
 	getFullRectangle : function () {
 		return this.rectangle;
 	},
+	/** @returns {Context2D} */
 	original : function (method, args, returnResult) {
 		try {
 			var result = this.ctx2d[method].apply(this.ctx2d, args || []);
@@ -3194,6 +3464,7 @@ var Context2D = Class({
 		}
 		return this;
 	},
+	/** @returns {HTMLCanvasElement} */
 	getClone : function (width, height) {
 		var resize = !!(width || height), canvas = this.canvas;
 		width  = width  || canvas.width;
@@ -3208,42 +3479,52 @@ var Context2D = Class({
 	},
 
 	// Values
+	/** @returns {Context2D} */
 	set : function (name, value) {
 		if (typeof name == 'object') {
 			for (var i in name) this[i] = name[i];
 		} else this[name] = value;
 		return this;
 	},
+	/** @returns {string} */
 	get : function (name) {
 		return this[name];
 	},
 
 	// All
+	/** @returns {Context2D} */
 	fillAll : function (style) {
 		return office.all.call(this, 'fill', style);
 	},
+	/** @returns {Context2D} */
 	strokeAll : function (style) {
 		return office.all.call(this, 'stroke', style);
 	},
+	/** @returns {Context2D} */
 	clearAll : function (style) {
 		return office.all.call(this, 'clear', style);
 	},
 
 	// Save/Restore
+	/** @returns {Context2D} */
 	save : function () {
 		return this.original('save');
 	},
+	/** @returns {Context2D} */
 	restore : function () {
 		return this.original('restore');
 	},
 
 	// Fill/Stroke
+	/** @returns {Context2D} */
 	fill : function (shape) {
 		return office.fillStroke.call(this, 'fill', arguments);
 	},
+	/** @returns {Context2D} */
 	stroke : function (shape) {
 		return office.fillStroke.call(this, 'stroke', arguments);
 	},
+	/** @returns {Context2D} */
 	clear: function (shape) {
 		return shape instanceof Shape && shape.self != Rectangle ?
 			this
@@ -3255,22 +3536,27 @@ var Context2D = Class({
 	},
 
 	// Path
+	/** @returns {Context2D} */
 	beginPath : function (moveTo) {
 		var ret = this.original('beginPath');
 		arguments.length && this.moveTo.apply(this, arguments);
 		return ret;
 	},
+	/** @returns {Context2D} */
 	closePath : function () {
 		arguments.length && this.lineTo.apply(this, arguments);
 		return this.original('closePath');
 	},
+	/** @returns {Context2D} */
 	moveTo : function (point) {
 		return office.originalPoint.call(this, 'moveTo', arguments);
 	},
+	/** @returns {Context2D} */
 	lineTo : function (point) {
 		return office.originalPoint.call(this, 'lineTo', arguments);
 	},
 
+	/** @returns {Context2D} */
 	arc : function (x, y, r, startAngle, endAngle, anticlockwise) {
 		var a = Array.pickFrom(arguments), circle, angle, acw;
 		if (a.length > 1) {
@@ -3298,10 +3584,12 @@ var Context2D = Class({
 		]);
 	},
 
+	/** @returns {Context2D} */
 	arcTo : function () {
 		// @todo Beauty arguments
 		return this.original('arcTo', arguments);
 	},
+	/** @returns {Context2D} */
 	curveTo: function (curve) {
 		var p, l, to;
 
@@ -3334,6 +3622,7 @@ var Context2D = Class({
 		}
 		return this;
 	},
+	/** @returns {Context2D} */
 	quadraticCurveTo : function () {
 		var a = arguments;
 		if (a.length == 4) {
@@ -3346,6 +3635,7 @@ var Context2D = Class({
 			});
 		}
 	},
+	/** @returns {Context2D} */
 	bezierCurveTo : function () {
 		var a = arguments;
 		if (a.length == 6) {
@@ -3358,10 +3648,12 @@ var Context2D = Class({
 			});
 		}
 	},
+	/** @returns {boolean} */
 	isPointInPath : function (x, y) {
 		var point = Point(arguments);
 		return this.original('isPointInPath', [point.x, point.y], true);
 	},
+	/** @returns {Context2D} */
 	clip : function (shape) {
 		if (shape && typeof shape.processPath == 'function') {
 			shape.processPath(this);
@@ -3370,6 +3662,7 @@ var Context2D = Class({
 	},
 
 	// transformation
+	/** @returns {Context2D} */
 	rotate : function (angle, pivot) {
 		if (angle) {
 			if (pivot) this.translate(pivot);
@@ -3378,6 +3671,7 @@ var Context2D = Class({
 		}
 		return this;
 	},
+	/** @returns {Context2D} */
 	translate : function (point, reverse) {
 		point = Point(
 			(arguments.length === 1 || typeof reverse === 'boolean')
@@ -3387,39 +3681,49 @@ var Context2D = Class({
 		this.original('translate', [point.x * multi, point.y * multi]);
 		return this;
 	},
+	/** @returns {Context2D} */
 	scale : function () {
 		return office.originalPoint.call(this, 'scale', arguments);
 	},
+	/** @returns {Context2D} */
 	transform : function () {
 		// @todo Beauty arguments
 		return this.original('transform', arguments);
 	},
+	/** @returns {Context2D} */
 	setTransform : function () {
 		// @todo Beauty arguments
 		return this.original('setTransform', arguments);
 	},
 
 	// Rectangle
+	/** @returns {Context2D} */
 	fillRect : function (rectangle) {
 		return office.rect.call(this, 'fillRect', arguments);
 	},
+	/** @returns {Context2D} */
 	strokeRect : function (rectangle) {
 		return office.rect.call(this, 'strokeRect', arguments);
 	},
+	/** @returns {Context2D} */
 	clearRect : function (rectangle) {
 		return office.rect.call(this, 'clearRect', arguments);
 	},
 
 	// text
+	/** @returns {Context2D} */
 	fillText : function (text, x, y, maxWidth) {
 		return this.original('fillText', arguments);
 	},
+	/** @returns {Context2D} */
 	strokeText : function (text, x, y, maxWidth) {
 		return this.original('strokeText', arguments);
 	},
+	/** @returns {object} */
 	measureText : function (textToMeasure) {
 		return this.original('measureText', arguments, true);
 	},
+	/** @returns {Context2D} */
 	text : function (cfg) {
 		if (!this.ctx2d.fillText) return this;
 		
@@ -3518,38 +3822,7 @@ var Context2D = Class({
 	},
 
 	// image
-	createImageData : function () {
-		var w, h;
-
-		var args = Array.pickFrom(arguments);
-		switch (args.length) {
-			case 0:{
-				w = this.canvas.width;
-				h = this.canvas.height;
-			} break;
-
-			case 1: {
-				var obj = args[0];
-				if (atom.typeOf(obj) == 'object' && ('width' in obj) && ('height' in obj)) {
-					w = obj.width;
-					h = obj.height;
-				}
-				else {
-					throw new TypeError('Wrong argument in the Context.createImageData');
-				}
-			} break;
-
-			case 2: {
-				w = args[0];
-				h = args[1];
-			} break;
-
-			default: throw new TypeError('Wrong args number in the Context.createImageData');
-		}
-
-		return this.original('createImageData', [w, h], true);
-	},
-
+	/** @returns {Context2D} */
 	drawImage : function (a) {
 		if (arguments.length > 2) return this.original('drawImage', arguments);
 		if (arguments.length == 2) {
@@ -3617,6 +3890,7 @@ var Context2D = Class({
 		return this.restore();
 	},
 
+	/** @returns {Context2D} */
 	projectiveImage : function (arg) {
 		// test
 		new ProjectiveTexture(arg.image)
@@ -3626,6 +3900,41 @@ var Context2D = Class({
 		return this;
 	},
 
+	// image data
+	/** @returns {CanvasPixelArray} */
+	createImageData : function () {
+		var w, h;
+
+		var args = Array.pickFrom(arguments);
+		switch (args.length) {
+			case 0:{
+				w = this.canvas.width;
+				h = this.canvas.height;
+			} break;
+
+			case 1: {
+				var obj = args[0];
+				if (atom.typeOf(obj) == 'object' && ('width' in obj) && ('height' in obj)) {
+					w = obj.width;
+					h = obj.height;
+				}
+				else {
+					throw new TypeError('Wrong argument in the Context.createImageData');
+				}
+			} break;
+
+			case 2: {
+				w = args[0];
+				h = args[1];
+			} break;
+
+			default: throw new TypeError('Wrong args number in the Context.createImageData');
+		}
+
+		return this.original('createImageData', [w, h], true);
+	},
+
+	/** @returns {Context2D} */
 	putImageData : function () {
 		var a = arguments, put = {}, args, rect;
 
@@ -3665,7 +3974,7 @@ var Context2D = Class({
 
 		return this.original('putImageData', args);
 	},
-
+	/** @returns {CanvasPixelArray} */
 	getImageData : function (rectangle) {
 		var rect = office.makeRect.call(this, arguments);
 
@@ -3701,6 +4010,9 @@ var Context2D = Class({
 			a: data[3] / 255
 		};
 	},
+
+
+	/** @returns {CanvasGradient} */
 	createGradient: function (from, to, colors) {
 		var gradient;
 		if ( from instanceof Rectangle ) {
@@ -3716,6 +4028,7 @@ var Context2D = Class({
 		if (typeof colors == 'object') gradient.addColorStop( colors );
 		return gradient;
 	},
+	/** @returns {CanvasGradient} */
 	createRectangleGradient: function (rectangle, colors) {
 		rectangle = Rectangle( rectangle );
 
@@ -3723,6 +4036,7 @@ var Context2D = Class({
 
 		return this.createGradient( from, line.perpendicular(from).scale(2, from), colors );
 	},
+	/** @returns {CanvasGradient} */
 	createLinearGradient : function (from, to) {
 		var a = arguments;
 		if (a.length != 4) {
@@ -3738,6 +4052,7 @@ var Context2D = Class({
 		}
 		return fixGradient( this.original('createLinearGradient', a, true) );
 	},
+	/** @returns {CanvasGradient} */
 	createRadialGradient: function () {
 		var points, c1, c2, a = arguments;
 		if (a.length == 1 || a.length == 2) {
@@ -3758,12 +4073,15 @@ var Context2D = Class({
 		return fixGradient( this.original('createRadialGradient', points, true) );
 	},
 
+	/** @returns {CanvasPattern} */
 	createPattern : function () {
 		return this.original('createPattern', arguments, true);
 	},
+	/** @returns {CanvasGradient} */
 	drawWindow : function () {
 		return this.original('drawWindow', arguments);
 	},
+	/** @returns {string} */
 	toString: Function.lambda('[object LibCanvas.Context2D]')
 	// Such moz* methods wasn't duplicated:
 	// mozTextStyle, mozDrawText, mozMeasureText, mozPathText, mozTextAlongPath
@@ -4012,7 +4330,12 @@ provides: Keyboard
 
 var Keyboard = LibCanvas.Keyboard = function () {
 
-var Keyboard = Class({
+var Keyboard = Class(
+/**
+ * @lends LibCanvas.Keyboard.prototype
+ * @augments Class.Events.prototype
+ */
+{
 	Implements: Class.Events,
 	Static: {
 		keyCodes : {
@@ -4161,7 +4484,12 @@ var callParent = function (method) {
 	};
 };
 
-return Class({
+return Class(
+/**
+ * @lends LibCanvas.Layer.prototype
+ * @augments LibCanvas.Canvas2D.prototype
+ */
+{
 	Extends: Canvas2D,
 
 	Generators: {
@@ -5141,7 +5469,9 @@ provides: Shapes.Ellipse
 ...
 */
 
-var Ellipse = LibCanvas.Shapes.Ellipse = Class({
+var Ellipse = LibCanvas.Shapes.Ellipse = Class(
+/** @lends {LibCanvas.Shapes.Ellipse.prototype} */
+{
 	Extends: Rectangle,
 	set : function () {
 		this.parent.apply(this, arguments);
@@ -5257,7 +5587,9 @@ var between = function (x, a, b) {
 	return x === a || x === b || (a < x && x < b) || (b < x && x < a);
 };
 
-return Class({
+return Class(
+/** @lends {LibCanvas.Shapes.Line.prototype} */
+{
 	Extends: Shape,
 	set : function (from, to) {
 		var a = Array.pickFrom(arguments);
@@ -5402,7 +5734,9 @@ provides: Shapes.Path
 
 ...
 */
-var Path = LibCanvas.Shapes.Path = Class({
+var Path = LibCanvas.Shapes.Path = Class(
+/** @lends {LibCanvas.Shapes.Path.prototype} */
+{
 	Extends: Shape,
 
 	getCoords: null,
@@ -5662,7 +5996,9 @@ provides: Shapes.Polygon
 ...
 */
 
-var Polygon = LibCanvas.Shapes.Polygon = Class({
+var Polygon = LibCanvas.Shapes.Polygon = Class(
+/** @lends {LibCanvas.Shapes.Polygon.prototype} */
+{
 	Extends: Shape,
 	initialize: function () {
 		this.points = [];
@@ -5781,7 +6117,12 @@ provides: Shapes.RoundedRectangle
 ...
 */
 
-var RoundedRectangle = LibCanvas.Shapes.RoundedRectangle = Class({
+var RoundedRectangle = LibCanvas.Shapes.RoundedRectangle = Class(
+/**
+ * @lends {LibCanvas.Shapes.RoundedRectangle.prototype}
+ * @augments {LibCanvas.Shapes.Rectangle.prototype}
+ */
+{
 	Extends: Rectangle,
 
 	radius: 0,
@@ -6939,4 +7280,4 @@ var Translator = LibCanvas.Utils.Translator = Class({
 
 });
 
-}).call(typeof window == 'undefined' ? exports : window, atom, Math);
+}).call(typeof window == 'undefined' ? exports : window, atom, Math, HTMLCanvasElement);

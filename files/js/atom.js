@@ -1070,7 +1070,7 @@ atom.implement(Array, {
 		return this;
 	},
 	append: function (array) {
-		for (var i = 0, l = arguments.length; i < l; i++) {
+		for (var i = 0, l = arguments.length; i < l; i++) if (arguments[i]) {
 			this.push.apply(this, arguments[i]);
 		}
 		return this;
@@ -1404,6 +1404,8 @@ Class.extend({
 	}
 });
 
+Class.abstractMethod.$abstract = true;
+
 extend({ Class: Class });
 
 })(atom);
@@ -1478,7 +1480,7 @@ var Class = atom.Class;
 var fire = function (name, fn, args, onfinish) {
 	var result = fn.apply(this, Array.from(args || []));
 	if (typeof result == 'string' && result.toLowerCase() == 'removeevent') {
-		onfinish.push(this.removeEvent.context(this, [name, fn]));
+		onfinish.push(this.removeEvent.bind(this, name, fn));
 	}
 };
 
@@ -1591,7 +1593,7 @@ atom.extend(Class, {
 				name = removeOn(name);
 				this._events.$ready[name] = args || [];
 				this.fireEvent(name, args || []);
-			}.context(this));
+			}.bind(this));
 			return this;
 		}
 	})
@@ -1725,6 +1727,7 @@ new function () {
 	});
 
 	atom.implement(Function, {
+		/** @deprecated */
 		context: function(bind, args){
 			var fn = this;
 			args = Array.from(args);
@@ -1763,7 +1766,7 @@ new function () {
 		}[name];
 
 		return function (time, bind, args) {
-			return set.call(window, this.context(bind, args), time);
+			return set.call(window, this.bind.apply(this, [bind].append(args)), time);
 		};
 	};
 	
