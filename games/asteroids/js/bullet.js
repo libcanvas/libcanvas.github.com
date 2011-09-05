@@ -79,7 +79,7 @@ Asteroids.Bullet = atom.Class({
 	draw : function () {
 		if (this.hidden) return;
 
-		this.libcanvas.ctx.drawImage({
+		this.animation && this.libcanvas.ctx.drawImage({
 			image : this.animation.sprite,
 			center: this.position,
 			angle : this.angle - (90).degree()
