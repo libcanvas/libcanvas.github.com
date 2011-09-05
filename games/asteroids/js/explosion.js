@@ -46,7 +46,7 @@ Asteroids.Explosion = atom.Class({
 	},
 
 	draw : function () {
-		this.libcanvas.ctx.drawImage({
+		this.animation && this.libcanvas.ctx.drawImage({
 			image : this.animation.sprite,
 			center: this.position
 		});
