@@ -74,7 +74,7 @@ Asteroids.Asteroid = atom.Class({
 		return this;
 	},
 	draw: function () {
-		this.libcanvas.ctx.drawImage({
+		this.image && this.libcanvas.ctx.drawImage({
 			image : this.image,
 			center: this.position,
 			angle : this.angle
