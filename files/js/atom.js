@@ -156,8 +156,20 @@ provides: atom
 				toBind = this,
 				Nop    = function () {},
 				Bound  = function () {
+					var isInstance;
+					if (window.opera) {
+						// Opera bug fixed. I dont wanna use try-catch for other browsers
+						// TypeError: Second argument to 'instanceof' does not implement [[HasInstance]]
+						try {
+							isInstance = this instanceof Nop;
+						} catch (ignored) {
+							isInstance = false;
+						}
+					} else {
+						isInstance = this instanceof Nop;
+					}
 					return toBind.apply(
-						this instanceof Nop ? this : ( context || {} ),
+						isInstance ? this : ( context || {} ),
 						args.concat( slice.call(arguments) )
 					);
 				};
@@ -1053,6 +1065,11 @@ atom.implement(Array, {
 		var index = Number.random(0, this.length - 1), elem = this[index];
 		this.splice(index, 1);
 		return elem;
+	},
+	property: function (prop) {
+		return this.map(function (elem) {
+			return elem != null ? elem[ prop ] : null;
+		});
 	},
 	// Correctly works with `new Array(10).fullMap(fn)`
 	fullMap: function (fn, bind) {
