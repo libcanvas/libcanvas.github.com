@@ -19,24 +19,37 @@ new function () {
 		.listenMouse()
 		.start();
 
-	lc.createShaper({
-		shape: lc.ctx.rectangle.clone().grow( -100 ),
-		fill : '#009966',
-		hover: { fill: '#669900' }
-	})
-	.clickable()
-	.addEvent( 'click', function (e) {
-		new Trace( e.offset );
+	var shapers = [
+		new Circle(100, 100, 50),
+		new Rectangle(175, 50, 150, 75).snapToPixel(),
+		new Polygon([
+			[ 250, 150 ],
+			[ 275, 225 ],
+			[ 150, 200 ]
+		])
+	].map(function (shape) {
+		return lc.createShaper({
+			shape: shape,
+			stroke : '#096',
+			hover: { stroke: '#9c0' },
+			active: { stroke: '#90c' }
+		})
+		.clickable();
 	});
 
 	var drag = false;
 
 	lc.mouse.addEvent({
-		'down': function () { drag = true  },
+		'down': function () {
+			for (var i = shapers.length; i--;) {
+				if ( lc.mouse.isOver( shapers[i] )) return;
+			}
+			drag = true;
+		},
 		'up'  : function () { drag = false },
 		'out' : function () { drag = false },
 		'move': function (e) {
-			if (drag) lc.addShift( e.deltaOffset );
+			if (drag) lc.addShift( e.deltaOffset, true );
 		}
 	});
 };
