@@ -1167,6 +1167,12 @@ return Class(
 		return this;
 	},
 	/** @returns {LibCanvas.Point} */
+	reverse: function () {
+		this.x *= -1;
+		this.y *= -1;
+		return this;
+	},
+	/** @returns {LibCanvas.Point} */
 	clone : function () {
 		return new this.self(this);
 	},
@@ -1210,6 +1216,7 @@ var MouseEvents = LibCanvas.Inner.MouseEvents = Class({
 
 		this.mouse = mouse;
 		this.point = mouse.point;
+		this.prev  = mouse.point.clone();
 	},
 	subscribe : function (elem) {
 		this.subscribers.include(elem);
@@ -1220,7 +1227,7 @@ var MouseEvents = LibCanvas.Inner.MouseEvents = Class({
 		return this;
 	},
 	overElem : function (elem) {
-		return this.mouse.inCanvas && elem.getShape().hasPoint(this.point);
+		return this.mouse.inCanvas && elem.shape.hasPoint( this.point );
 	},
 	getOverSubscribers : function () {
 		var elements = {
@@ -1255,7 +1262,9 @@ var MouseEvents = LibCanvas.Inner.MouseEvents = Class({
 		elem.fireEvent(eventName, [e, eventName]);
 	},
 	event : function (type, e) {
-		var mouse = this, subscribers = this.getOverSubscribers();
+		var mouse = this,
+			isMove = ['mousemove', 'mouseout'].contains(type),
+			subscribers = this.getOverSubscribers();
 
 		if (type == 'mousedown') mouse.lastMouseDown.empty();
 		
@@ -1266,7 +1275,7 @@ var MouseEvents = LibCanvas.Inner.MouseEvents = Class({
 				mouse.lastMouseMove.push(elem);
 			} else if (type == 'mousedown') {
 				mouse.lastMouseDown.push(elem);
-			// If mousepe on this elem and last mousedown was on this elem - click
+			// If mouseup on this elem and last mousedown was on this elem - click
 			} else if (type == 'mouseup' && mouse.lastMouseDown.contains(elem)) {
 				mouse.fireEvent(elem, 'click', e);
 			}
@@ -1274,15 +1283,12 @@ var MouseEvents = LibCanvas.Inner.MouseEvents = Class({
 		});
 
 		subscribers.out.forEach(function (elem) {
-			// if (this.isOut) mouse.fireEvent(elem, 'away:mouseover', e);
 			var mouseout = false;
-			if (['mousemove', 'mouseout'].contains(type)) {
-				if (mouse.lastMouseMove.contains(elem)) {
-					mouse.fireEvent(elem, 'mouseout', e);
-					if (type == 'mouseout') mouse.fireEvent(elem, 'away:mouseout', e);
-					mouse.lastMouseMove.erase(elem);
-					mouseout = true;
-				}
+			if (isMove && mouse.lastMouseMove.contains(elem)) {
+				mouse.fireEvent(elem, 'mouseout', e);
+				if (type == 'mouseout') mouse.fireEvent(elem, 'away:mouseout', e);
+				mouse.lastMouseMove.erase(elem);
+				mouseout = true;
 			}
 			if (!mouseout) mouse.fireEvent(elem, 'away:' + type, e);
 		});
@@ -1355,6 +1361,10 @@ var Mouse = LibCanvas.Mouse = Class(
 	initialize : function (libcanvas) {
 		this.inCanvas = false;
 		this.point = new Point(null, null);
+		/** @private */
+		this.prev  = new Point(null, null);
+		/** @private */
+		this.diff  = new Point(null, null);
 
 		this.libcanvas = libcanvas;
 		this.elem      = libcanvas.wrapper;
@@ -1366,13 +1376,11 @@ var Mouse = LibCanvas.Mouse = Class(
 	button: function (key) {
 		return this.self.buttons[key || 'left'];
 	},
-	setCoords : function (point) {
-		if (point == null) {
-			this.inCanvas = false;
-		} else {
-			this.point.moveTo(point);
-			this.inCanvas = true;
-		}
+	setCoords : function (point, inCanvas) {
+		this.prev.set( this.point );
+		this.diff = this.prev.diff( point );
+		this.inCanvas = inCanvas;
+		this.point.move( this.diff );
 		this.debugUpdate();
 		return this;
 	},
@@ -1433,6 +1441,9 @@ var Mouse = LibCanvas.Mouse = Class(
 		return e;
 	},
 	setEvents : function () {
+
+		// e.previousOffset = prev.clone();
+		// e.deltaOffset    = prev.diff( this.point );
 		var mouse = this,
 		waitEvent = function (event, isOffice) {
 			if (event.match(/^mouse/)) {
@@ -1440,18 +1451,24 @@ var Mouse = LibCanvas.Mouse = Class(
 			}
 
 			return function (e) {
-				var wait = mouse.isEventAdded(event);
-				if (isOffice || wait) mouse.getOffset(e);
-				if (isOffice) mouse.events.event(event, e);
-				if (wait) {
-					mouse.fireEvent(event, [e]);
-					if (shortE) mouse.fireEvent(shortE, [e]);
-				}
-				if (isOffice) e.preventDefault();
+				prepare( e );
+				var wait      = mouse.isEventAdded(event),
+					waitShort = ( shortE && mouse.isEventAdded(shortE) );
+				if (isOffice || wait || waitShort) mouse.getOffset(e);
+
+				if (isOffice ) mouse.events.event(event, e);
+				if (wait     ) mouse.fireEvent(event, [e]);
+				if (waitShort) mouse.fireEvent(shortE, [e]);
+				if (isOffice ) e.preventDefault();
+
 				return !isOffice;
 			};
 		},
 		waitWheel = waitEvent('wheel', false),
+		prepare = function (e) {
+			e.previousOffset = mouse.prev;
+			e.deltaOffset = mouse.diff;
+		},
 		wheel = function (e) {
 			e.delta =
 				// IE, Opera, Chrome - multiplicity is 120
@@ -1464,9 +1481,10 @@ var Mouse = LibCanvas.Mouse = Class(
 		},
 		down = waitEvent('mousedown', true),
 		up   = waitEvent('mouseup'  , true),
-		move = function ( e) {
+		move = function ( e ) {
 			var offset = mouse.getOffset(e);
-			mouse.setCoords(offset);
+			mouse.setCoords(offset, true);
+			prepare( e );
 			mouse.events.event('mousemove', e);
 			mouse.fireEvent('move', [e]);
 			mouse.isOut = false;
@@ -1474,8 +1492,9 @@ var Mouse = LibCanvas.Mouse = Class(
 			return false;
 		},
 		out = function (e) {
-			mouse.getOffset(e);
-			mouse.setCoords(null);
+			var offset = mouse.getOffset(e);
+			mouse.setCoords(offset, false);
+			prepare( e );
 			mouse.events.event('mouseout', e);
 			mouse.fireEvent('mouseout', [e]);
 			mouse.fireEvent('out', [e]);
@@ -1671,46 +1690,36 @@ provides: Behaviors.Draggable
 
 var Draggable = LibCanvas.Behaviors.Draggable = function () {
 
-var isDraggable = function (elem, started) {
-	return elem['draggable.isDraggable'] && (!started || elem['draggable.mouse']);
-};
-
-var moveListener = function () {
-	if (!isDraggable(this, true)) return;
-
-	var mouse = this.libcanvas.mouse.point;
-	var move  = this['draggable.mouse'].diff(mouse);
-	this.shape.move(move);
-	this.fireEvent('moveDrag', [move]);
-	this['draggable.mouse'].set(mouse)
-};
 
 var initDraggable = function () {
-	var dragFn = moveListener.bind(this);
+	var draggable = this,
+		mouse = draggable.libcanvas.mouse,
+		dragFn = function ( e ) {
+			draggable.shape.move( e.deltaOffset );
+			draggable.fireEvent('moveDrag', [e.deltaOffset]);
+		},
+		stopDrag  = ['up', 'out'],
+		onStopDrag = function () {
+			draggable.fireEvent('stopDrag');
+			mouse
+				.removeEvent( 'move', dragFn)
+				.removeEvent(stopDrag, onStopDrag);
+		};
 
-	this.listenMouse();
+	draggable.listenMouse();
 
-	var startDrag = ['mousedown'];
-	var dragging  = ['mousemove', 'away:mousemove'];
-	var stopDrag  = ['mouseup', 'away:mouseup', 'away:mouseout'];
+	draggable.addEvent( 'mousedown' , function () {
+		if (!draggable['draggable.isDraggable']) return;
 
-	return this
-		.addEvent(startDrag, function () {
-			if (!isDraggable(this, false)) return;
+		draggable.fireEvent('startDrag');
 
-			this['draggable.mouse'] = this.libcanvas.mouse.point.clone();
-			this
-				.fireEvent('startDrag')
-				.addEvent(dragging, dragFn);
-		})
-		.addEvent(stopDrag, function () {
-			if (!isDraggable(this, true)) return;
+		mouse
+			.addEvent( 'move', dragFn )
+			.addEvent( stopDrag, onStopDrag );
+	});
 
-			this
-				.fireEvent('stopDrag')
-				.removeEvent(dragging, dragFn);
-			delete this['draggable.mouse'];
-		});
+
+	return this;
 };
 
 return Class({
@@ -2382,6 +2391,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 	initialize : function (elem, options) {
 		Class.bindAll( this, 'update' );
 
+		this._shift = new Point( 0, 0 );
 		this.funcs = {
 			plain : [],
 			render: []
@@ -2427,6 +2437,8 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 			.attr('data-layer-name', this.name)
 			.css('position', 'absolute');
 		this.zIndex = Infinity;
+
+		return this;
 	},
 
 	/** @returns {LibCanvas.Canvas2D} */
@@ -2468,6 +2480,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 	},
 
 	/**
+	 * @deprecated - use `setShift` or `addShift` instead
 	 * @param {object} shift
 	 * @returns {LibCanvas.Canvas2D}
 	 */
@@ -2480,6 +2493,41 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 			'margin-left': shift.left
 		});
 		return this;
+	},
+
+	/**
+	 * @private
+	 * @property {LibCanvas.Point}
+	 */
+	_shift: null,
+
+	/**
+	 * @param {LibCanvas.Point} shift
+	 * @returns {LibCanvas.Canvas2D}
+	 */
+	addShift: function ( shift ) {
+		shift = Point( shift );
+		shift = this._shift.move( shift );
+		this.origElem.atom.css({
+			'margin-left': shift.x,
+			'margin-top' : shift.y
+		});
+		return this;
+	},
+
+	/**
+	 * @param {LibCanvas.Point} shift
+	 * @returns {LibCanvas.Canvas2D}
+	 */
+	setShift: function (shift) {
+		return this.addShift( this._shift.diff(shift) );
+	},
+
+	/**
+	 * @returns {LibCanvas.Point}
+	 */
+	getShift: function () {
+		return this._shift;
 	},
 
 	/** @private */
@@ -3715,10 +3763,24 @@ var Context2D = Class(
 	// text
 	/** @returns {Context2D} */
 	fillText : function (text, x, y, maxWidth) {
+		var type = typeof x;
+		if (type != 'number' && type != 'string') {
+			maxWidth = y;
+			x = Point( x );
+			y = x.y;
+			x = x.x;
+		}
 		return this.original('fillText', arguments);
 	},
 	/** @returns {Context2D} */
 	strokeText : function (text, x, y, maxWidth) {
+		var type = typeof x;
+		if (type != 'number' && type != 'string') {
+			maxWidth = y;
+			x = Point( x );
+			y = x.y;
+			x = x.x;
+		}
 		return this.original('strokeText', arguments);
 	},
 	/** @returns {object} */
