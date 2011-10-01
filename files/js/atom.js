@@ -126,6 +126,10 @@ provides: atom
 		toArray: function (elem) {
 			return slice.call(elem);
 		},
+		/**
+		 * @deprecated - use console-cap instead:
+		 * @see https://github.com/theshock/console-cap/
+		 */
 		log: function () {
 			// ie9 bug, typeof console.log == 'object'
 			if (atom.global.console) Function.prototype.apply.call(console.log, console, arguments);
@@ -148,6 +152,7 @@ provides: atom
 
 	// JavaScript 1.8.5 Compatiblity
 	// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind
+
 	if (!Function.prototype.bind) {
 		Function.prototype.bind = function(context /*, arg1, arg2... */) {
 			if (typeof this !== "function") throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
@@ -157,16 +162,13 @@ provides: atom
 				Nop    = function () {},
 				Bound  = function () {
 					var isInstance;
-					if (window.opera) {
-						// Opera bug fixed. I dont wanna use try-catch for other browsers
-						// TypeError: Second argument to 'instanceof' does not implement [[HasInstance]]
-						try {
-							isInstance = this instanceof Nop;
-						} catch (ignored) {
-							isInstance = false;
-						}
-					} else {
+					// Opera & Safari bug fixed. I must fix it in right way
+					// TypeError: Second argument to 'instanceof' does not implement [[HasInstance]]
+					try {
 						isInstance = this instanceof Nop;
+					} catch (ignored) {
+						// console.log( 'bind error', Nop.prototype );
+						isInstance = false;
 					}
 					return toBind.apply(
 						isInstance ? this : ( context || {} ),
@@ -194,6 +196,18 @@ provides: atom
 	if (!Array.isArray) {
 		Array.isArray = function(o) {
 			return o && toString.call(o) === '[object Array]';
+		};
+	}
+
+	// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/create
+	if (!Object.create) {
+		Object.create = function (o) {
+			if (arguments.length > 1) {
+				throw new Error('Object.create implementation only accepts the first parameter.');
+			}
+			function F() {}
+			F.prototype = o;
+			return new F();
 		};
 	}
 }).call(typeof exports == 'undefined' ? window : exports, Object, Array);
@@ -711,31 +725,63 @@ provides: ajax
 */
 
 (function () {
-	var extend = atom.extend, emptyFn = function () { return function(){}; };
-	var ajax = function (userConfig) {
-		var config     = extend(extend({}, ajax.defaultProps  ), userConfig);
-		config.headers = extend(extend({}, ajax.defaultHeaders), userConfig.headers);
+	var extend = atom.extend, emptyFn = function () {};
 
-		var req = new XMLHttpRequest();
-		for (var i in config.headers) req.setRequestHeader(i, config.headers[i]);
+	var ajax = function (userConfig) {
+		var data, config, method, req, url;
+		config = {};
+		extend(config, ajax.defaultProps);
+		extend(config, userConfig);
+		config.headers = {};
+		extend(config.headers, ajax.defaultHeaders);
+		extend(config.headers, userConfig.headers);
+
+		data = ajax.stringify( config.data );
+		req  = new XMLHttpRequest();
+		url  = config.url;
+		method = config.method.toUpperCase();
+		if (method == 'GET' && data) {
+			url += (url.indexOf( '?' ) == -1 ? '?' : '&') + data;
+		}
+		if (!config.cache) {
+			url += (url.indexOf( '?' ) == -1 ? '?' : '&') + '_no_cache=' + Date.now();
+		}
 		req.onreadystatechange = ajax.onready(req, config);
-		req.open(config.method.toUpperCase(), config.url, true);
-		req.send(null);
+		req.open(method, url, true);
+		for (var i in config.headers) {
+			req.setRequestHeader(i, config.headers[i]);
+		}
+		req.send( method == 'POST' && data ? data : null );
+	};
+
+	ajax.stringify = function (object) {
+		if (!object) return '';
+		if (typeof object == 'string' || typeof object == 'number') return String( object );
+
+		var array = [], e = encodeURIComponent;
+		for (var i in object) if (object.hasOwnProperty(i)) {
+			array.push( e(i) + '=' + e(object[i]) );
+		}
+		return array.join('&');
 	};
 
 	ajax.defaultProps = {
 		interval: 0,
 		type    : 'plain',
 		method  : 'post',
+		data    : {},
+		headers : {},
+		cache   : false,
 		url     : location.href,
-		onLoad  : emptyFn(),
-		onError : emptyFn()
+		onLoad  : emptyFn,
+		onError : emptyFn
 	};
 
 	ajax.defaultHeaders = {
 		'X-Requested-With': 'XMLHttpRequest',
 		'Accept': 'text/javascript, text/html, application/xml, text/xml, */*'
 	};
+	/** @type {function} */
 	ajax.onready = function (req, config) {
 		return function (e) {
 			if (req.readyState == 4) {
@@ -831,7 +877,7 @@ atom.extend({
 				if (exp.toUTCString) {
 					exp = exp.toUTCString();
 				} else if (typeof exp == 'number') {
-					exp = exp * 1000 * Date.now();
+					exp = exp * 1000 + Date.now();
 				}
 				options.expires = exp;
 			}
@@ -845,7 +891,7 @@ atom.extend({
 			return atom.cookie;
 		},
 		del: function (name) {
-			return atom.cookie.set(name, null, { expires: -1 });
+			return atom.cookie.set(name, '', { expires: -1 });
 		}
 	}
 });

@@ -109,7 +109,7 @@ var LibCanvas = this.LibCanvas = Class(
 	}
 });
 
-LibCanvas.namespace( 'Animation', 'Behaviors', 'Engines', 'Inner', 'Processors', 'Shapes', 'Ui', 'Utils' );
+LibCanvas.namespace( 'Animation', 'Behaviors', 'Engines', 'Inner', 'Processors', 'Scene', 'Shapes', 'Ui', 'Utils' );
 
 var
 	Inner      = LibCanvas.Inner,
@@ -731,6 +731,8 @@ return Class({
 			params: [],
 			time  : 500
 		}, args);
+
+		if (window.opera) args.time = (args.time / 2).round();
 
 		if (typeof args.props == 'function') {
 			elem = args.props;
@@ -1486,6 +1488,7 @@ var Mouse = LibCanvas.Mouse = Class(
 			e.up   = e.delta > 0;
 			e.down = e.delta < 0;
 			waitWheel(e);
+			mouse.events.event('wheel', e);
 		},
 		down = waitEvent('mousedown', true),
 		up   = waitEvent('mouseup'  , true),
@@ -1589,11 +1592,13 @@ provides: Behaviors.MouseListener
 
 events:
 	- click
+	- wheel
 	- mouseover
 	- mousemove
 	- mouseout
 	- mouseup
 	- mousedown
+	- away:wheel
 	- away:mouseover
 	- away:mousemove
 	- away:mouseout
@@ -3097,12 +3102,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class(
 	/** @returns {LibCanvas.Context2D} */
 	processPath : function (ctx, noWrap) {
 		if (!noWrap) ctx.beginPath();
-		ctx
-			.moveTo(this.from.x, this.from.y)
-			.lineTo(this.to.x, this.from.y)
-			.lineTo(this.to.x, this.to.y)
-			.lineTo(this.from.x, this.to.y)
-			.lineTo(this.from.x, this.from.y);
+		ctx.ctx2d.rect( this.from.x, this.from.y, this.width, this.height );
 		if (!noWrap) ctx.closePath();
 		return ctx;
 	},
@@ -3790,7 +3790,9 @@ var Context2D = Class(
 			y = x.y;
 			x = x.x;
 		}
-		return this.original('fillText', arguments);
+		var args = [text, x, y];
+		if (maxWidth) args.push( maxWidth );
+		return this.original('fillText', args);
 	},
 	/** @returns {Context2D} */
 	strokeText : function (text, x, y, maxWidth) {
@@ -3801,7 +3803,9 @@ var Context2D = Class(
 			y = x.y;
 			x = x.x;
 		}
-		return this.original('strokeText', arguments);
+		var args = [text, x, y];
+		if (maxWidth) args.push( maxWidth );
+		return this.original('strokeText', args);
 	},
 	/** @returns {object} */
 	measureText : function (textToMeasure) {
@@ -3851,9 +3855,9 @@ var Context2D = Class(
 			       al == 'right' ? to.to.x - lineWidth - pad :
 			           to.from.x + (to.width - lineWidth)/2;
 		};
-		var x, lines = String(cfg.text).split('\n');
+		var lines = String(cfg.text).split('\n');
 		
-		var measure = function (text) { return this.measureText(text).width; }.bind(this);
+		var measure = function (text) { return Number(this.measureText(text).width); }.bind(this);
 		if (cfg.wrap == 'no') {
 			lines.forEach(function (line, i) {
 				if (!line) return;
@@ -5532,6 +5536,216 @@ LibCanvas.Processors.Mask = Class({
 /*
 ---
 
+name: "Scene.Element"
+
+description: "LibCanvas.Scene"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- Scene
+	- Behaviors.Drawable
+
+provides: Scene.Element
+
+...
+*/
+
+LibCanvas.Scene.Element = Class(
+/**
+ * @lends LibCanvas.Scene.Element#
+ * @augments Drawable
+ */
+{
+	Extends: Drawable,
+
+	Implements: Class.Options,
+
+	initialize: function (scene, options) {
+		scene.libcanvas.addElement( this ).stopDrawing();
+		this.scene = scene;
+		this.setOptions( options );
+
+		if (this.options.shape) {
+			this.shape = this.options.shape;
+			this.updateBoundingShapes();
+		}
+	},
+
+	previousBoundingShape: null,
+	currentBoundingShape : null,
+
+	/** @private */
+	updateBoundingShapes: function () {
+		if ( !this.previousBoundingShape ) {
+			if (!this.shape) throw new TypeError( 'shape is required' );
+
+			this.previousBoundingShape = this.shape.clone();
+			this.currentBoundingShape  = this.shape.clone();
+		} else {
+			this.previousBoundingShape.set( this.currentBoundingShape );
+			this.currentBoundingShape .set( this.shape );
+		}
+		return this;
+	},
+
+	onUpdate: function ( time ) {
+		return this;
+	},
+
+	renderTo: function ( ctx ) {
+		return this.updateBoundingShapes();
+	}
+});
+
+/*
+---
+
+name: "Scene.Standard"
+
+description: "LibCanvas.Scene"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- LibCanvas.Canvas2D
+	- Behaviors.Drawable
+
+provides: Scene.Standard
+
+...
+*/
+
+LibCanvas.Scene.Standard = Class(
+/**
+ * @lends LibCanvas.Scene.Standard#
+ * @augments Drawable
+ */
+{
+	Extends: Drawable,
+
+	/**
+	 * @param {LibCanvas.Canvas2D} libcanvas
+	 * @returns {LibCanvas.Scene.Standard}
+	 */
+	initialize: function (libcanvas) {
+		libcanvas.addElement( this );
+		this.elements       = [];
+		this.redrawElements = [];
+		return this;
+	},
+
+	/** @private */
+	elements: null,
+
+	/** @private */
+	redrawElements: null,
+
+	/**
+	 * @param {atom.Class} Class
+	 * @returns {function}
+	 */
+	createFactory: function (Class) {
+		return function () {
+			return Class.factory( [this].append( arguments ) );
+		}.bind( this );
+	},
+
+	/**
+	 * @param {Drawable} element
+	 * @returns {LibCanvas.Scene.Standard}
+	 */
+	addElement: function (element) {
+		this.elements.include( element );
+		return this;
+	},
+
+	/**
+	 * @private
+	 * @param {Drawable} element
+	 * @returns {LibCanvas.Scene.Standard}
+	 */
+	redrawElement: function (element) {
+		if (this.elements.contains( element )) {
+			this.redrawElements.include( element );
+		}
+		return this;
+	},
+
+	/**
+	 * @param {Drawable} element
+	 * @returns {LibCanvas.Scene.Standard}
+	 */
+	rmElement: function (element) {
+		this.elements.erase( element );
+		return this;
+	},
+
+	/** @private */
+	update: function (time) {
+		this.elements.sortBy( 'zIndex' ).invoke( 'onUpdate' );
+
+		return this.fireEvent( 'update', [ time ]);
+	},
+
+	/** @private */
+	findIntersections: function (shape) {
+		var i, e, elems = [];
+		for (i = this.elements.length; i--;) {
+			e = this.elements[i];
+			if (e.currentBoundingShape.intersect( shape )) {
+				elems.push( e );
+			}
+		}
+		return elems;
+	},
+
+
+	/** @private */
+	draw: function () {
+		var i, l, elem, clear = [],
+			redraw = this.redrawElements,
+			add    = this.redrawElement.bind( this );
+
+		for (i = 0; i < redraw.length; i++) {
+			elem = redraw[i];
+			clear.push( elem.previousBoundingShape );
+
+			this.findIntersections(elem.previousBoundingShape)
+				.forEach( add );
+			this.findIntersections(elem.currentBoundingShape )
+				.forEach(function (e) {
+					// we need to redraw it, only if it is over our element
+					if (e.zIndex > elem.zIndex) add( e );
+				});
+		}
+
+		redraw.sortBy( 'zIndex' );
+
+		for (i = 0, l = redraw.length; i < l; i++) {
+			redraw[ i ].renderTo( this.libcanvas.ctx );
+		}
+		redraw.empty();
+
+		return this.fireEvent( 'render', [ this.libcanvas.ctx ]);
+	}
+});
+
+/*
+---
+
 name: "Shapes.Ellipse"
 
 description: "Provides ellipse as canvas object"
@@ -6462,6 +6676,7 @@ var AudioElement = LibCanvas.Utils.AudioElement = Class({
 			this.container = container;
 			this.support = container.support;
 			this.audio = document.createElement("audio");
+			this.audio.preload = true;
 			this.src(file);
 			container.allAudios.push(this.audio);
 		}
@@ -6509,17 +6724,15 @@ var AudioElement = LibCanvas.Utils.AudioElement = Class({
 	stop : function (elem) {
 		if (this.stub) return this;
 		elem = elem || this.getCurrent();
-		if (elem.networkState > 2) {
-			// firefox 3.5 starting audio bug
+		try {
 			elem.currentTime = 0.025;
-		}
-		elem.pause();
+			elem.pause();
+		} catch (ignored) { }
 		return this;
 	},
 	restart: function (elem) {
 		elem = elem || this.getCurrent();
-		// #todo: fix error if audio system not enabled
-		elem.currentTime = 0.025;
+		this.stop( elem );
 		if (elem.ended || elem.paused) {
 			elem.play();
 		}
@@ -6529,6 +6742,15 @@ var AudioElement = LibCanvas.Utils.AudioElement = Class({
 		if (this.stub) return this;
 		this.events.push([event, fn]);
 		this.audio.addEventListener(event, fn.bind(this), false);
+		return this;
+	},
+	set: function (params) {
+		var elem = this.getCurrent();
+
+		if (elem && params) for (var i in params) if (params.hasOwnProperty(i)) {
+			elem[i] = params[i];
+		}
+
 		return this;
 	},
 
@@ -6574,20 +6796,41 @@ var AudioElement = LibCanvas.Utils.AudioElement = Class({
 		return this;
 	},
 
-	// testing. bug if run twice
-	fadeOut : function (elem, time) {
+	fade: function (time, volume, out) {
 		if (this.stub) return this;
-		this.animate.call(elem || this.getCurrent(), {
-			props  : { volume : 0.05 },
-			frames : 20,
-			delay  : (time || 1000) / 20,
+
+		var elem = this.getCurrent();
+
+		if (!out) this.play();
+
+		new Animatable(elem).animate({
+			props: { volume : volume },
+			fn: out ? 'expo-out' : 'sine-out',
+			time : time || 500,
 			onFinish   : function () {
-				this.stop();
-				this.audio.volume = 0.99;
+				if (out) this.stop();
 			}.bind(this)
 		});
 		return this;
 	},
+
+	fadeOut : function (time, volume) {
+		return this.fade( time, volume || 0.0, true);
+	},
+
+	fadeIn : function (time, volume) {
+		return this.fade( time, volume || 1.0, false);
+	},
+
+	fadeToggle: function (time, volumeUp, volumeDown) {
+		if (volumeUp.equals( this.getCurrent().volume, 3 )) {
+			this.fadeOut( time, volumeDown );
+		} else {
+			this.fadeIn( time, volumeUp );
+		}
+		return this;
+	},
+
 	toString: Function.lambda('[object LibCanvas.Utils.AudioElement]')
 });
 
@@ -6695,7 +6938,10 @@ var Trace = LibCanvas.Utils.Trace = Class({
 					'position' : 'fixed',
 					'top'      : '3px',
 					'right'    : '6px',
-					'maxWidth' : '70%'
+					'maxWidth' : '70%',
+					'maxHeight': '100%',
+					'overflowY': 'auto',
+					'background': 'rgba(0,192,0,0.2)'
 				})
 				.appendTo('body');
 	},
@@ -7030,14 +7276,24 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 			.first;
 	},
 	splitUrl: function (str) {
-		var url = str, coords = str.match(/ \[[\d\.:]+\]$/);
-		if (coords) {
-			coords = coords[0];
-			url    = str.substr(0, str.lastIndexOf(coords));
+		var url = str, size, cell, match, coords = null;
+
+				// searching for pattern 'url [x:y:w:y]'
+		if (match = str.match(/ \[(\d+)\:(\d+)\:(\d+)\:(\d+)\]$/)) {
+			coords = match.slice( 1 );
+				// searching for pattern 'url [w:y]{x:y}'
+		} else if (match = str.match(/ \[(\d+)\:(\d+)\]\{(\d+)\:(\d+)\}$/)) {
+			coords = match.slice( 1 ).map( Number );
+			size = coords.slice( 0, 2 );
+			cell = coords.slice( 2, 4 );
+			coords = [ cell[0] * size[0], cell[1] * size[1], size[0], size[1] ];
 		}
-		return { url: url,
-			coords: coords ? Array.from( coords.match(/[\d\.]+/g) ) : null
-		};
+		if (match) {
+			url = str.substr(0, str.lastIndexOf(match[0]));
+			coords = coords.map( Number );
+		}
+		
+		return { url: url, coords: coords };
 	},
 	createDomImages: function (images) {
 		var i, result = {}, url;
