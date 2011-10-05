@@ -14,19 +14,28 @@
 LibCanvas.extract();
 atom.dom(function () {
 
-	var libcanvas = new LibCanvas('canvas').listenMouse();
+	var libcanvas = new LibCanvas('canvas').listenMouse().size( 800, 400, true );
+	var ctx  = libcanvas.ctx;
+	var rect = libcanvas.ctx.rectangle;
 
-	var rect = new Rectangle(100, 100, 100, 100);
-
-	libcanvas.ctx.fill( rect, libcanvas.ctx.createGradient(rect, {
-		'0.00': 'red',
-		'0.15': 'magenta',
+	ctx.fill( rect, ctx.createRectangleGradient(rect, {
+		'0.00': 'magenta',
 		'0.30': 'cyan',
-		'1.00': 'rgba(0,255,0,0)'
+		'0.48': 'rgba(0,255,0,0.0)',
+		'0.52': 'rgba(0,255,0,0.0)',
+		'1.00': 'rgba(255,255,0,1)'
 	}));
 
-	libcanvas.mouse.addEvent( 'click', function (e) {
-		trace(new Color( libcanvas.ctx.getPixel(e.offset) ));
+	ctx.fill( rect, ctx.createRectangleGradient(new Rectangle( rect.bottomLeft, rect.topRight ), {
+		'0.00': 'rgba(255,0,0,0.2)',
+		'0.95': 'rgba(255,0,0,0.0)',
+		'1.00': 'rgba(255,0,0,0.0)'
+	}));
+
+	var trace = new Trace();
+
+	libcanvas.mouse.addEvent( 'move', function (e) {
+		trace.value = new Color( libcanvas.ctx.getPixel(e.offset) );
 	});
 	
 	libcanvas.update();
