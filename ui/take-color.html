@@ -28,6 +28,8 @@ atom.dom(function () {
 	libcanvas.mouse.addEvent( 'click', function (e) {
 		trace(new Color( libcanvas.ctx.getPixel(e.offset) ));
 	});
+	
+	libcanvas.update();
 });
 		</script>
 		<script src="/files/js/google-analytics.js"></script>
