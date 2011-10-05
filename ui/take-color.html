@@ -32,10 +32,14 @@ atom.dom(function () {
 		'1.00': 'rgba(255,0,0,0.0)'
 	}));
 
-	var trace = new Trace();
+	var trace = {
+		rgb: new Trace(),
+		hex: new Trace()
+	};
 
 	libcanvas.mouse.addEvent( 'move', function (e) {
-		trace.value = new Color( libcanvas.ctx.getPixel(e.offset) );
+		trace.rgb.value = new Color( libcanvas.ctx.getPixel(e.offset) );
+		trace.hex.value = new Color( libcanvas.ctx.getPixel(e.offset) ).toString( 'hex' );
 	});
 	
 	libcanvas.update();
