@@ -9,11 +9,10 @@ Fifteen.Field = atom.Class({
 
 		libcanvas = new LibCanvas( 'canvas', {
 				invoke: true,
-				fps   : 60,
+				fps   : 40,
 				clear : false
 			})
 			.listenMouse()
-			.fpsMeter()
 			.size( this.size( 'width' ), this.size( 'height' ), true )
 			.start();
 		
@@ -112,7 +111,8 @@ Fifteen.Field = atom.Class({
 			index: index
 		})
 		.redraw()
-		.addEvent( 'click', function () {
+		.addEvent( 'click', function (e) {
+			e.preventDefault();
 			this.move( tile );
 		}.bind(this));
 		return tile;
