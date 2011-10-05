@@ -21,7 +21,7 @@ Fifteen.Field = atom.Class({
 		this.generate( scene.createFactory( Fifteen.Tile ) );
 
 		this.activate();
-		this.shuffle( 100 );
+		this.shuffle( 128 );
 	},
 
 	move: function (tile, onFinish, fast) {
@@ -60,6 +60,8 @@ Fifteen.Field = atom.Class({
 			if (times-- > 0) {
 				trace.value = times;
 				field.moveRandom(next, tile);
+			} else {
+				trace.destroy();
 			}
 		})(null);
 		return this;
