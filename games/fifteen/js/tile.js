@@ -1,120 +1,98 @@
 
-var Tile = atom.Class({
-	Implements: [ Drawable, Animatable, Clickable ],
+Fifteen.Tile = atom.Class({
+	Extends: LibCanvas.Scene.Element,
 
-	Generators: {
-		buffer: function () {
-			return ['hover', 'standard'].associate(function (status) {
-				var buffer = LibCanvas.Buffer(this.shape.width, this.shape.height, true);
+	Implements: [ Animatable, Clickable ],
 
-				var shape = this.rectangle;
-				buffer.ctx
-					.fill(shape, this.gradient(shape, status == 'hover'))
-					.text({
-						text : this.index,
-						to   : shape,
-						size : shape.height / 2,
-						color: 'white',
-						weigth : 'bold', /* bold|normal */
-						align  : 'center',
-						padding : [shape.height/8, shape.width/4]
-					})
-					.set({ globalAlpha: 0.3, lineWidth: 1 })
-					.stroke(shape, '#ccc');
+	initialize: function (scene, options) {
+		this.parent.apply( this, arguments );
 
-				return buffer;
-			}.bind(this));
+		this.sprites = {
+			'standard': this.renderSprite( 'standard' ),
+			'playable': this.renderSprite( 'playable' ),
+			'hover'   : this.renderSprite( 'hover' )
+		};
+
+		this.clickable().addEvent( 'statusChanged', this.redraw );
+	},
+
+	moveTo: function (destination, onFinish, fast) {
+		var props = {}, current = this.shape.from;
+
+		if ( !destination.x.equals( current.x, 1 ) ) {
+			props.x = destination.x;
+		} else if ( !destination.y.equals( current.y, 1 ) ) {
+			props.y = destination.y;
+		} else {
+			throw new TypeError( 'Wrong destination' );
 		}
-	},
 
-	zIndex: 15,
-
-	index: 0,
-
-	initialize: function (field, index, position) {
-		this.field    = field;
-		this.index    = index;
-		this.position = position;
-
-		this.addEvent('libcanvasSet', function () {
-			this.clickable();
-			this.addEvent('statusChanged', this.redraw.bind(this, false));
-		});
-
-		this.addEvent('click', field.move.bind(field, this));
-	},
-
-	move: function (point) {
-		this.field.blocked = true;
 		this.animate({
-			time: 150,
-			props: { x: point.x, y: point.y },
-			onProccess: this.redraw.bind(this, true),
-			onFinish: function () {
-				this.field.blocked = false;
-				this.field.redraw();
-			},
-			fn: 'sine-out'
+			time : fast ? 50 : 200,
+			fn   : fast ? 'linear' : 'sine-out',
+			props: props,
+			onProcess: this.redraw,
+			onFinish : function () {
+				this.redraw(),
+				onFinish && onFinish.call( this );
+			}
 		});
+		return this;
 	},
 
-	gradient: function (shape, status) {
-		var gradient = this.libcanvas.ctx.createLinearGradient( shape );
+	get x () { return this.shape.from.x },
+	get y () { return this.shape.from.y },
 
-		gradient.addColorStop(0, status ? '#666' : '#444');
-		gradient.addColorStop(1, status ? '#333' : '#111');
-
-		return gradient;
-	},
-
-	get rectangle () {
-		var rect = this.shape.clone().moveTo(new Point(0, 0))
-		  , x = rect.width / 16
-		  , y = rect.height / 16;
-		rect.from.move([x/2,y/2]);
-		rect.width  -= x;
-		rect.height -= y;
-		return rect.snapToPixel();
-	},
-
-	redraw: function (move) {
-		if (move) {
-			this.libcanvas.ctx
-				.clearRect( this.shape )
-				.clearRect( this.field.emptyRect );
-		}
-		this.draw();
-	},
-
-	draw: function () {
-		var status = this.hover && this.field.isMoveable(this) ? 'hover' : 'standard';
-		this.libcanvas.ctx.drawImage({
-			image: this.buffer[status],
-			draw : this.shape
-		});
-	},
-
-
-	// Need for animation, mapping Tile coords
-	setCoord: function (coord, value) {
-		var shape = this.shape, diff = value - shape.from[coord], point;
-
-		if (diff) {
-			point = { x: 0, y : 0 };
-			point[coord] = diff;
-			shape.move(point);
-		}
-	},
 	set x (value) {
-		this.setCoord('x', value);
+		return this.shape.move(new Point( value - this.x, 0 ));
 	},
 	set y (value) {
-		this.setCoord('y', value);
+		return this.shape.move(new Point( 0, value - this.y ));
 	},
-	get x () {
-		return this.shape.from.x;
+
+	renderSprite: function ( status ) {
+		var
+			buffer = new LibCanvas.Buffer(this.shape.width, this.shape.height, true),
+			shape  = buffer.ctx.rectangle,
+			stroke = new Rectangle(0.5, 0.5, shape.width-1, shape.height - 1);
+
+		var colors = {
+			'standard' : [ '#444', '#111' ],
+			'playable' : [ '#464', '#131' ],
+			'hover'    : [ '#696', '#353' ]
+		}[status];
+
+		buffer.ctx
+			.fill(shape, buffer.ctx.createGradient( shape, {
+				0: colors[0],
+				1: colors[1]
+			}))
+			.text({
+				text: this.options.index,
+				to  : shape,
+				size: shape.height / 2,
+				color  : 'white',
+				weight : 'bold',
+				align  : 'center',
+				padding: [(shape.height/8).round(), (shape.width/4).round()]
+			})
+			.set({ globalAlpha: 0.6, lineWidth: 1 })
+			.stroke(stroke, '#999');
+
+		return buffer;
 	},
-	get y () {
-		return this.shape.from.y;
+
+	renderTo: function (ctx) {
+		var status = 'standard';
+		if (this.activated) {
+			status = this.hover ? 'hover' : 'playable';
+		}
+
+		ctx.drawImage({
+			image: this.sprites[ status ],
+			draw : this.options.shape,
+			optimize: true
+		});
+		return this.parent( ctx );
 	}
 });

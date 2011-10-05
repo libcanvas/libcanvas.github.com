@@ -1,124 +1,135 @@
-/**
-	{0:[0,1,2,3]
-	.1:[0,1,2,3]
-	.2:[0,1,2,3]
-	.3:[0,1,2,3]
-	}
- */
 
-var Field = atom.Class({
-	Extends: Drawable,
-
-	Implements: [ atom.Class.Options ],
-
-	zIndex: 5,
-
-	blocked: false,
-
-	options: {
-		tile  : { width: 32, height: 32 },
-		margin: { horisontal: 8, vertical: 8 }
-	},
-	/**
-	 * @var {Tiles[][]} tiles
-	 */
-	tiles: null,
-
-	/**
-	 * @var {Point} empty
-	 */
-	empty: null,
-
-	get size () {
-		var opt = this.options;
-		return {
-			width : opt.tile.width  * 4 + opt.margin.horisontal * 2,
-			height: opt.tile.height * 4 + opt.margin.vertical * 2
-		};
-	},
+Fifteen.Field = atom.Class({
+	Extends: atom.Class.Options,
 
 	initialize: function (options) {
-		this.setOptions(options);
-		this.addEvent('libcanvasSet', function () {
-			this.createTiles( this.libcanvas.createLayer('tiles', Infinity, { backBuffer: 'off' }) );
-		});
+		var libcanvas, scene;
+
+		this.setOptions( options );
+
+		libcanvas = new LibCanvas( 'canvas', {
+				invoke: true,
+				fps   : 60,
+				clear : false
+			})
+			.listenMouse()
+			.fpsMeter()
+			.size( this.size( 'width' ), this.size( 'height' ), true )
+			.start();
+		
+		scene = new LibCanvas.Scene.Standard( libcanvas );
+		this.generate( scene.createFactory( Fifteen.Tile ) );
+
+		this.activate();
+		this.shuffle( 100 );
 	},
 
-	makeArray: function (length) {
-		return Array.create( length, function() { return new Array(length) } );
-	},
+	move: function (tile, onFinish, fast) {
+		if (tile.activated && !this.blocked) {
+			var empty = this.empty, position = tile.options.position;
 
-	/**
-	 * @var {Point[]} emptyTiles
-	 */
-	emptyTiles: null,
-	genEmptyTiles: function (recount) {
-		var et = this.emptyTiles || [], tiles = this.tiles;
-		for (var y = tiles.length; y--;) for (var x = tiles[y].length; x--;) {
-			if (tiles[y][x] == null) et.push(new Point(x, y));
+			this.blocked = true;
+			this.activate( true );
+
+			tile.moveTo( this.translatePoint( empty ), function () {
+				var newPosition = empty.clone();
+				empty.moveTo( position );
+				position.moveTo( newPosition );
+				this.activate();
+				this.blocked = false;
+				onFinish && onFinish.call( this, tile );
+			}.bind(this), fast);
 		}
-		return this.emptyTiles = et;
+		return this;
 	},
 
-	pullEmptyPosition: function () {
-		var et = this.emptyTiles, elem;
-		if (!et) et = this.genEmptyTiles();
-		et.erase(elem = et.random);
-		return elem;
+	moveRandom: function (onFinish, previous) {
+		var x, y, t = [], tiles = this.tiles;
+		for (x = 4; x--;) for (y = 4; y--;) {
+			var tile = tiles[y][x];
+			if (tile && tile.activated && tile != previous) t.push( tile );
+		}
+		this.move( t.random, onFinish, true );
+		return this;
+	},
+
+	shuffle: function (times) {
+		var trace = new Trace( times );
+		var field = this;
+		(function next (tile) {
+			if (times-- > 0) {
+				trace.value = times;
+				field.moveRandom(next, tile);
+			}
+		})(null);
+		return this;
+	},
+
+	activate: function ( disableAll ) {
+		var y, x, tile;
+		for (y = 0; y < 4; y++) for (x = 0; x < 4; x++) {
+			tile = this.tiles[y][x];
+			if (tile) {
+				tile.activated = disableAll ? false : this.isMovable( tile );
+				tile.redraw();
+			}
+		}
+		return this;
+	},
+
+	isMovable: function ( tile ) {
+		var pos = tile.options.position, empty = this.empty, diff = pos.diff(empty);
+		return (diff.x == 0 && diff.y.abs() == 1) || (diff.y == 0 && diff.x.abs() == 1);
+	},
+
+	generate: function (factory) {
+		var
+			y, x, position, index,
+			tiles = {},
+			indexes = Array.range( 1, 15 );
+		for (y = 0; y < 4; y++) {
+			tiles[y] = {};
+			for (x = 0; x < 4; x++) {
+				position = new Point( x, y );
+				if (indexes.length) {
+					index = indexes.shift();
+					tiles[y][x] = this.createTile( factory, index, position );
+				} else {
+					this.empty = position;
+				}
+			}
+		}
+		this.tiles = tiles;
+		return this;
+	},
+
+	createTile: function (factory, index, position) {
+		var tile = factory({
+			position: position,
+			shape: this.tileShape(position),
+			index: index
+		})
+		.redraw()
+		.addEvent( 'click', function () {
+			this.move( tile );
+		}.bind(this));
+		return tile;
+	},
+
+	size: function (size) {
+		var tile = this.options.tile;
+		return 4 * tile[size] + 5 * tile.margin + 1;
 	},
 
 	translatePoint: function (pos) {
-		var opt = this.options, mar = opt.margin, size = opt.tile;
-		return new Point(pos.x * size.width + mar.horisontal , pos.y * size.height + mar.vertical);
+		var opt = this.options, size = opt.tile;
+		return new Point(pos.x * (size.width + size.margin) + size.margin , pos.y * (size.height + size.margin) + size.margin);
 	},
-
+	
 	tileShape: function (pos) {
 		return new Rectangle({
 			from: this.translatePoint(pos),
 			size: this.options.tile
 		});
-	},
-
-	createTiles: function (libcanvas) {
-		var i = 16, pos, tile, tiles = this.tiles = this.makeArray(4);
-		while (--i > 0) {
-			pos = this.pullEmptyPosition();
-			tiles[pos.y][pos.x] = tile = new Tile(this, i, pos);
-			tile.shape = this.tileShape(pos);
-			libcanvas.addElement(tile);
-		}
-		this.empty = this.emptyTiles.pop();
-		this.emptyRect = this.tileShape(this.empty);
-		return tiles;
-	},
-
-	each: function (fn) {
-		var tiles = this.tiles, x, y = tiles.length;
-		while (y-- > 0) for (x = tiles[0].length; x-- > 0;) fn(tiles[y][x]);
-	},
-
-	redraw: function () {
-		this.each(function (tile) { tile && tile.redraw() });
-	},
-
-	draw: function () {
-		this.libcanvas.ctx.fillAll( '#333' );
-	},
-
-	isMoveable: function (tile) {
-		if (this.blocked) return false;
-
-		var pos = tile.position, empty = this.empty, diff = pos.diff(empty);
-		return (diff.x == 0 && diff.y.abs() == 1) || (diff.y == 0 && diff.x.abs() == 1);
-	},
-
-	move: function (tile) {
-		if ( this.isMoveable(tile) ) {
-			var pos = tile.position, empty = this.empty, diff = pos.diff(empty);
-			empty.move(diff, true);
-			  pos.move(diff);
-			this.emptyRect.moveTo(this.translatePoint(empty));
-			tile.move(this.translatePoint(pos));
-		}
 	}
 });
