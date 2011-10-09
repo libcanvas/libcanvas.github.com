@@ -11,26 +11,13 @@
 		<p><canvas></canvas></p>
 		<p><a href="/">Return to index</a></p>
 
-		<script>
-// Globalizing LibCanvas variables
-LibCanvas.extract();
+		<!-- Game engine -->
+		<script src="js/init.js"></script>
+		<script src="js/controller.js"></script>
+		<script src="js/field.js"></script>
+		<script src="js/tile.js"></script>
 
-window.Fifteen = {};
 
-// onDomReady - run our app
-atom.dom(function () {
-
-	new Fifteen.Field({
-		tile: {
-			width : 64,
-			height: 64,
-			margin: 4
-		}
-	});
-});
-		</script>
-		<script src="field.js"></script>
-		<script src="tile.js"></script>
 
 		<script src="/files/js/google-analytics.js"></script>
 	</body>

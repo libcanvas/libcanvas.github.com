@@ -22,6 +22,8 @@ new function () {
 	var LinearGradient = atom.Class({
 		Implements: [ Drawable, Draggable ],
 
+		method: 'createLinearGradient',
+
 		initialize: function (shape) {
 			this.shape = shape;
 
@@ -33,16 +35,22 @@ new function () {
 		draw: function () {
 			var ctx = this.libcanvas.ctx;
 			ctx.fill(this.shape, ctx
-				.createLinearGradient( this.shape )
+				[this.method]( this.shape )
 				.addColorStop({
-					'0.0' : 'black',
+					'0.0' : 'white',
 					'0.3' : 'blue',
+					'0.5' : 'yellow',
 					'0.7' : 'green',
 					'1.0' : 'red'
 				})
 			);
 
 		}
+	});
+
+	var RectangleGradient = atom.Class({
+		Extends: LinearGradient,
+		method: 'createRectangleGradient'
 	});
 
 	var RadialGradient = atom.Class({
@@ -75,20 +83,34 @@ new function () {
 	});
 
 	[
-		new LinearGradient( new Rectangle(20, 20, 100, 100) ),
 		new RadialGradient(
-			new Circle(200, 160, 50),
-			new Circle(200, 160, 10)
+			new Circle(340, 170, 50),
+			new Circle(340, 170, 10)
 		),
 		new RadialGradient(
-			new Circle(270, 60, 50),
-			new Circle(270, 60, 10)
-		).fixed()
+			new Circle(320, 55, 50),
+			new Circle(320, 55, 10)
+		).fixed(),
+		new LinearGradient( new Rectangle(20, 20, 200, 100) ),
+		new RectangleGradient( new Rectangle(80, 140, 200, 100) )
 	].forEach(function (gradient, z) {
 		gradient.zIndex = z;
 		libcanvas.addElement( gradient );
+		if (gradient.shape instanceof Rectangle) {
+			[gradient.shape.from, gradient.shape.to].forEach(function (point) {
+				libcanvas.createShaper({
+					shape: new Circle(point, 4),
+					stroke: 'white',
+					lineWidth: 2
+				})
+				.setZIndex(z+0.5)
+				.draggable();
+			});
+		}
 	});
-}
+
+	libcanvas.update();
+};
 		</script>
 		<script src="/files/js/google-analytics.js"></script>
 	</body>
