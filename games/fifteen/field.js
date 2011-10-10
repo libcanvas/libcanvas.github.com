@@ -16,7 +16,7 @@ Fifteen.Field = atom.Class({
 			.size( this.size( 'width' ), this.size( 'height' ), true )
 			.start();
 		
-		scene = new LibCanvas.Scene.Standard( libcanvas );
+		scene = new LibCanvas.Scene.Standard( libcanvas, { intersection: 'manual' });
 		this.generate( scene.createFactory( Fifteen.Tile ) );
 
 		this.activate();
