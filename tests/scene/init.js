@@ -6,14 +6,19 @@ var Element = atom.Class({
 	Implements: [
 		LibCanvas.Behaviors.Clickable,
 		LibCanvas.Behaviors.Draggable
-
 	],
 
 	initialize: function () {
 		this.parent.apply( this, arguments );
 		this
+			.clickable()
 			.draggable()
-			.addEvent( 'moveDrag', this.redraw );
+			.addEvent( 'statusChanged', this.redraw )
+			.addEvent( 'moveDrag', this.redraw )
+			.addEvent( 'contextmenu', function (event) {
+				event.stop().prevent();
+				this.destroy().redraw();
+			});
 	},
 
 	renderTo: function (ctx) {
@@ -24,8 +29,10 @@ var Element = atom.Class({
 			pos = this.shape.center;
 		}
 
+		ctx.save();
+		if (this.hover) ctx.set({ font: 'bold 16px sans-serif', fillStyle: 'red' });
 		ctx.fillText( this.options.zIndex, pos );
-		return this.parent( ctx );
+		return this.parent( ctx.restore() );
 	}
 });
 
@@ -45,44 +52,28 @@ atom.dom(function (atom, $) {
 
 	var factory = scene.createFactory( Element );
 
-	var elements = [
+	for (var i = 0; i < 5; i++) {
+		var y = 50 + i * 100;
 		factory({
-			shape: new Rectangle( 100, 100, 50, 50 ),
+			shape: new Rectangle( 50, y-25, 50, 50 ),
 			color: 'rgba(255,0,0,0.8)',
 			zIndex: 0
 		}).redraw(),
-		factory({
-			shape: new Circle( 400, 100, 50 ),
-			color: 'rgba(0,0,255,0.8)',
-			zIndex: 1
-		}).redraw(),
-		factory({
-			shape: new Circle( 460, 100, 50 ),
-			color: 'rgba(0,255,255,0.8)',
-			zIndex: 2
-		}).redraw(),
-		factory({
-			shape: new Circle( 520, 100, 50 ),
-			color: 'rgba(255,0,255,0.8)',
-			zIndex: 3
-		}).redraw(),
-		factory({
-			shape: new Circle( 580, 100, 50 ),
-			color: 'rgba(255,255,0,0.8)',
-			zIndex: 4
-		}).redraw(),
-		factory({
-			shape: new Circle( 460, 300, 50 ),
-			color: 'rgba(0,255,0,0.8)',
-			zIndex: 5
-		}).redraw()
-	];
-
-	libcanvas.mouse.addEvent( 'wheel', function (e) {
-		for (var i = elements.length; i--;) {
-			if (elements[i].shape.hasPoint( e.offset )) {
-				elements[i].destroy().redraw();
-			}
-		}
-	});
+		[ 'rgba(0,0,255,0.8)'
+		, 'rgba(0,255,255,0.8)'
+		, 'rgba(255,0,255,0.8)'
+		, 'rgba(255,255,0,0.8)'
+		, 'rgba(0,0,255,0.8)'
+		, 'rgba(0,255,255,0.8)'
+		, 'rgba(255,0,255,0.8)'
+		, 'rgba(255,255,0,0.8)'
+		, 'rgba(0,0,255,0.8)'
+		].forEach(function (color, i) {
+			factory({
+				shape: new Circle( 200+i*60, y, 40 ),
+				color: color,
+				zIndex: i+1
+			}).redraw()
+		});
+	}
 });
