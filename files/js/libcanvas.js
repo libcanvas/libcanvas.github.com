@@ -55,13 +55,13 @@ var LibCanvas = this.LibCanvas = Class(
 				height  = width.height;
 				width   = width.width
 			}
-			
+
 			var canvas = atom.dom
 				.create("canvas", {
 					width  : width,
 					height : height
 				}).get();
-			
+
 			if (withCtx) canvas.ctx = canvas.getContext('2d-libcanvas');
 			return canvas;
 		},
@@ -350,7 +350,7 @@ var Invoker = LibCanvas.Invoker = Class(
 		var i, all = this.time,
 			time   = Math.max(all.average(), this.minDelay);
 		this.timeoutId = this.invoke.delay(time, this);
-		
+
 		var startTime = new Date(),
 			funcs     = this.funcs.sortBy('priority'),
 			ignore    = false,
@@ -439,7 +439,7 @@ inspiration:
 */
 
 var TimingFunctions = LibCanvas.Inner.TimingFunctions = function () {
-	
+
 return Class({
 	Static: {
 		_instance: null,
@@ -776,7 +776,7 @@ return Class({
 		};
 
 		if ('onProccess' in args) args.onProcess = args.onProccess;
-		
+
 		var fn = function (time) {
 			timeLeft -= Math.min(time, timeLeft);
 
@@ -1092,7 +1092,7 @@ return Class(
 	rotate : function (angle, pivot) {
 		pivot = Point(pivot || {x: 0, y: 0});
 		if (this.equals(pivot)) return this;
-		
+
 		var radius = pivot.distanceTo(this);
 		var sides  = pivot.diff(this);
 		// TODO: check, maybe here should be "sides.y, sides.x" ?
@@ -1162,12 +1162,6 @@ return Class(
 			x: this.x,
 			y: this.y
 		};
-	},
-	/** @returns {LibCanvas.Point} */
-	invoke: function (method) {
-		this.x = this.x[method]();
-		this.y = this.y[method]();
-		return this;
 	},
 	/** @returns {LibCanvas.Point} */
 	mean: function (points) {
@@ -1259,11 +1253,11 @@ var MouseEvents = LibCanvas.Inner.MouseEvents = Class({
 			diff = $1.getZIndex() - $0.getZIndex();
 			return diff ? (diff < 0 ? -1 : 1) : 0;
 		});
-		
-		
+
+
 		for (var i = 0, l = sub.length; i < l; i++) {
 			var elem = sub[i];
-			
+
 			if (elem.getZIndex() >= maxOverMouseZ
 			 && elem.libcanvas.zIndex >= maxOverMouseLCZ
 			 && this.overElem(elem)) {
@@ -1285,7 +1279,7 @@ var MouseEvents = LibCanvas.Inner.MouseEvents = Class({
 			subscribers = this.getOverSubscribers();
 
 		if (type == 'mousedown') mouse.lastMouseDown.empty();
-		
+
 		subscribers.over.forEach(function (elem) {
 			// Mouse move firstly on this element
 			if (type == 'mousemove' && !mouse.lastMouseMove.contains(elem)) {
@@ -1347,7 +1341,7 @@ var Mouse = LibCanvas.Mouse = Class(
  */
 {
 	Implements: Class.Events,
-	
+
 	Static: {
 		buttons: {
 			left  : false,
@@ -1375,7 +1369,7 @@ var Mouse = LibCanvas.Mouse = Class(
 			});
 		}
 	},
-	
+
 	initialize : function (elem) {
 		this.inCanvas = false;
 		this.point = new Point(null, null);
@@ -1632,11 +1626,6 @@ var MouseListener = LibCanvas.Behaviors.MouseListener = Class({
 	},
 
 	listenMouse : function (stopListen) {
-		if (this.scene) {
-			this.scene.resources.mouse.subscribe( this );
-			return this;
-		}
-
 		var method = this[ 'listenMouse.' + (stopListen ? 'stop' : 'start') ];
 
 		this.libcanvas ? method.call( this ) :
@@ -1671,8 +1660,7 @@ provides: Behaviors.Clickable
 var Clickable = LibCanvas.Behaviors.Clickable = function () {
 
 var setValFn = function (object, name, val) {
-	return function (event) {
-		if (typeof event.stop == 'function') event.stop();
+	return function () {
 		object[name] = val;
 		object.fireEvent('statusChanged');
 	};
@@ -1682,11 +1670,11 @@ var setValFn = function (object, name, val) {
 return Class({
 	Extends: MouseListener,
 
-	clickable : function () { 
+	clickable : function () {
 		this.listenMouse();
 
 		var fn = setValFn.bind(null, this);
-		
+
 		this.addEvent('mouseover', fn('hover', true));
 		this.addEvent('mouseout' , fn('hover', false));
 		this.addEvent('mousedown', fn('active', true));
@@ -1743,8 +1731,7 @@ var initDraggable = function () {
 
 	draggable.addEvent( 'mousedown' , function (e) {
 		if (!draggable['draggable.isDraggable']) return;
-		if (typeof e.stop == 'function') e.stop();
-		
+
 		draggable.fireEvent('startDrag', [ e ]);
 
 		mouse
@@ -1771,7 +1758,7 @@ return Class({
 		return this;
 	}
 });
-	
+
 }();
 
 /*
@@ -1797,7 +1784,7 @@ provides: Behaviors.Drawable
 */
 
 var Drawable = LibCanvas.Behaviors.Drawable = function () {
-	
+
 var start = function () {
 	this.libcanvas.addElement(this);
 	return 'removeEvent';
@@ -2049,7 +2036,7 @@ var Moveable = LibCanvas.Behaviors.Moveable = Class({
 	moveTo    : function (point, speed, fn) { // speed == pixels per sec
 		this.stopMoving();
 		point = Point(point);
-		var shape = this.shape, diff = shape.getCoords().diff(point);
+		var diff = this.getCoords().diff(point), shape = this.getShape();
 		if (!speed) {
 			shape.move(diff);
 			this.fireEvent('stopMove');
@@ -2241,7 +2228,7 @@ var DownloadingProgress = LibCanvas.Inner.DownloadingProgress = Class({
 	},
 	getImage : function (name) {
 		if (this.parentLayer) return this.parentLayer.getImage(name);
-		
+
 		if (this.images && this.images[name]) {
 			return this.images[name];
 		} else {
@@ -2250,7 +2237,7 @@ var DownloadingProgress = LibCanvas.Inner.DownloadingProgress = Class({
 	},
 	getAudio: function (name) {
 		if (this.parentLayer) return this.parentLayer.getAudio(name);
-		
+
 		if (this._audio) {
 			var audio = this._audio.get(name);
 			if (audio) return audio;
@@ -2259,7 +2246,7 @@ var DownloadingProgress = LibCanvas.Inner.DownloadingProgress = Class({
 	},
 	renderProgress : function () {
 		if (this.parentLayer) return;
-		
+
 		if (this.options.progressBarStyle && !this.progressBar) {
 			if (typeof ProgressBar == 'undefined') {
 				throw new Error('LibCanvas.Utils.ProgressBar is not loaded');
@@ -2276,7 +2263,7 @@ var DownloadingProgress = LibCanvas.Inner.DownloadingProgress = Class({
 	},
 	createPreloader : function () {
 		if (!this.imagePreloader) {
-			
+
 			if (this.parentLayer) {
 				this.parentLayer.addEvent('ready', function () {
 					this.readyEvent('ready');
@@ -2284,7 +2271,7 @@ var DownloadingProgress = LibCanvas.Inner.DownloadingProgress = Class({
 				this.imagePreloader = true;
 				return;
 			}
-			
+
 			if (this.options.preloadAudio) {
 				if (typeof AudioContainer == 'undefined') {
 					throw new Error('LibCanvas.Utils.AudioContainer is not loaded');
@@ -2485,7 +2472,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 		cover.css('zIndex', this.maxZIndex + 100);
 
 		if (this.options.autoStart) this.isReady();
-		
+
 		aElem
 			.attr('data-layer-name', this.name)
 			.css('position', 'absolute');
@@ -2523,7 +2510,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 				this.origElem[i] = size[i];
 			}
 			this.elem[i] = size[i];
-			
+
 			if (wrapper) {
 				this.wrapper       .css(i, size[i]);
 				this.wrapper.parent.css(i, size[i]);
@@ -2751,7 +2738,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 			// gettin master layer
 			return this.parentLayer == null ? this : this.parentLayer.layer();
 		}
-		
+
 		if (this.layerExists(name)) {
 			return this._layers[name];
 		} else {
@@ -2801,7 +2788,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 
 	/** @private */
 	_zIndex: null,
-	
+
 	set zIndex (value) {
 		var set = function (layer, z) {
 			layer._zIndex = z;
@@ -2815,11 +2802,11 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 		}
 
 		var current = this._zIndex;
-		
+
 		if (value == null) value = Infinity;
 		value = value.limit(1, this.maxZIndex + (current ? 0 : 1));
 		current = current || Infinity;
-		
+
 		for (var i in this._layers) if (this._layers[i] != this) {
 			var l = this._layers[i], z = l._zIndex;
 			if (current > z && value <= z) set(l, z+1);
@@ -2827,7 +2814,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 		}
 		set(this, value);
 	},
-	
+
 	get zIndex () {
 		return this._zIndex;
 	},
@@ -2841,7 +2828,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 	},
 	/** @returns {string} */
 	dump: function () {
-		var el = this.elem, 
+		var el = this.elem,
 			pr = [
 				'"' + this.name + '"',
 				'z=' + this.zIndex,
@@ -3032,7 +3019,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class(
 				this.from = new Point(a.x, a.y);
 			}
 			if (a.to) this.to = Point(a.to);
-		
+
 			if (!a.from || !a.to) {
 				var as = a.size, size = {
 					x : (as ? [as.w, as[0], as.width ] : [ a.w, a.width  ]).pick(),
@@ -3042,7 +3029,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class(
 					(this.to = this.from.clone().move(size, 0)) :
 					(this.from = this.to.clone().move(size, 1));
 			}
-		
+
 		}
 		return this;
 	},
@@ -3070,7 +3057,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class(
 			this.to.moveTo([ this.from.x + size.width, this.from.y + size.height ]);
 		}
 	},
-	// @deprecated 
+	// @deprecated
 	getWidth : function () {
 		return this.width;
 	},
@@ -3078,7 +3065,7 @@ var Rectangle = LibCanvas.Shapes.Rectangle = Class(
 	getHeight : function () {
 		return this.height;
 	},
-	// @deprecated 
+	// @deprecated
 	setWidth : function (width) {
 		this.width = width;
 		return this;
@@ -3436,7 +3423,7 @@ var office = {
 			this.original(type);
 			if (args.length && args[0]) this.restore();
 		}
-		
+
 		return this;
 	},
 	originalPoint : function (func, args) {
@@ -3552,11 +3539,11 @@ var Context2D = Class(
 	get height() { return this.canvas.height; },
 	set width (width)  { this.canvas.width  = width; },
 	set height(height) { this.canvas.height = height;},
-				 
+
 	get shadow () {
 		return [this.shadowOffsetX, this.shadowOffsetY, this.shadowBlur, this.shadowColor].join( ' ' );
 	},
-	
+
 	set shadow (value) {
 		value = value.split( ' ' );
 		this.shadowOffsetX = value[0];
@@ -3564,7 +3551,7 @@ var Context2D = Class(
 		this.shadowBlur    = value[2];
 		this.shadowColor   = value[3];
 	},
-	
+
 	_rectangle: null,
 	/** @returns {Rectangle} */
 	get rectangle () {
@@ -3871,7 +3858,7 @@ var Context2D = Class(
 	/** @returns {Context2D} */
 	text : function (cfg) {
 		if (!this.ctx2d.fillText) return this;
-		
+
 		cfg = atom.append({
 			text   : '',
 			color  : null, /* @color */
@@ -3887,7 +3874,7 @@ var Context2D = Class(
 			padding : [0,0],
 			shadow : null
 		}, cfg);
-		
+
 		this.save();
 		if (atom.typeOf(cfg.padding) == 'number') {
 			cfg.padding = [cfg.padding, cfg.padding];
@@ -3905,7 +3892,7 @@ var Context2D = Class(
 		if (cfg.shadow) this.shadow = cfg.shadow;
 		if (cfg.color) this.set({ fillStyle: cfg.color });
 		if (cfg.overflow == 'hidden') this.clip(to);
-		
+
 		var xGet = function (lineWidth) {
 			var al = cfg.align, pad = cfg.padding[1];
 			return Math.round(
@@ -3915,12 +3902,12 @@ var Context2D = Class(
 			);
 		};
 		var lines = String(cfg.text).split('\n');
-		
+
 		var measure = function (text) { return Number(this.measureText(text).width); }.bind(this);
 		if (cfg.wrap == 'no') {
 			lines.forEach(function (line, i) {
 				if (!line) return;
-				
+
 				this.fillText(line, xGet(cfg.align == 'left' ? 0 : measure(line)), to.from.y + (i+1)*lh);
 			}.bind(this));
 		} else {
@@ -3930,7 +3917,7 @@ var Context2D = Class(
 					lNum++;
 					return;
 				}
-				
+
 				var words = (line || ' ').match(/.+?(\s|$)/g);
 				if (!words) {
 					lNum++;
@@ -3967,7 +3954,7 @@ var Context2D = Class(
 					Lw = 0;
 				}
 			}.bind(this));
-			
+
 		}
 		return this.restore();
 	},
@@ -4244,7 +4231,7 @@ var addColorStop = function () {
 		.getContext('2d')
 		.createLinearGradient(0,0,1,1)
 		.addColorStop;
-		
+
 	return function (colors) {
 		if (typeof colors == 'object') {
 			for (var position in colors) {
@@ -4312,39 +4299,39 @@ EC.getPoints = function (prevPos, pos, width, inverted) {
 	var w    = pos.x-prevPos.x,
 	    h    = pos.y-prevPos.y,
 	    dist = Math.hypotenuse(w, h);
-		
+
 	var sin = h / dist,
 	    cos = w / dist;
-		
+
 	var dx = sin * width,
 	    dy = cos * width;
-		
+
 	return [new Point(pos.x + dx, pos.y + dy*inverted),
 	        new Point(pos.x - dx, pos.y - dy*inverted)];
 };
 
-EC.getGradientFunction = function (attr) {	
+EC.getGradientFunction = function (attr) {
 	switch (typeof attr.gradient) {
-		case 'undefined' : 
+		case 'undefined' :
 			return Function.lambda( EC.getColor(attr.color) );
 			break;
-		
+
 		case 'function' :
 			return attr.gradient;
 			break;
-		
+
 		default :
 			var gradient = { fn: attr.gradient.fn || 'linear' };
-			
+
 			if (typeof gradient.fn != 'string') {
 				throw new Error('LibCanvas.Context2D.drawCurve -- unexpected type of gradient function');
 			}
-			
+
 			gradient.from = EC.getColor(attr.gradient.from);
 			gradient.to   = EC.getColor(attr.gradient.to  );
-			
+
 			var diff = gradient.from.diff( gradient.to );
-			
+
 			return function (t) {
 				var factor = TimingFunctions.count(gradient.fn, t);
 				return gradient.from.shift( diff.clone().mul(factor) ).toString();
@@ -4400,35 +4387,35 @@ LibCanvas.Context2D.implement({
 	drawCurve:function (obj) {
 	console.time('curve')
 		var points = [Point(obj.from)].append( obj.points.map(Point), [Point(obj.to)] );
-		
+
 		var gradientFunction = EC.getGradientFunction(obj),             //Getting gradient function
 			widthFunction    = EC.getWidthFunction(obj),                //Getting width function
 			curveFunction    = EC.curvesFunctions[ obj.points.length ]; //Getting curve function
-		
+
 		if (!curveFunction) throw new Error('LibCanvas.Context2D.drawCurve -- unexpected number of points');
-		
+
 		var step = obj.step || 0.02;
-		
+
 		var invertedMultipler = obj.inverted ? 1 : -1;
-		
+
 		var controlPoint, prevContorolPoint,
 			drawPoints  , prevDrawPoints   ,
 			width , color, prevColor, style;
-		
+
 		var add = function (a, b) {
 			return a + b;
 		};
-        
+
 		prevContorolPoint = curveFunction(points, -step);
-		
+
 		for (var t=-step ; t<1.02 ; t += step) {
 			controlPoint = curveFunction(points, t);
 			color = gradientFunction(t);
 			width = widthFunction(t) / 2;
 
 			drawPoints = EC.getPoints(prevContorolPoint, controlPoint, width, invertedMultipler);
-			
-			if (t >= step) {			
+
+			if (t >= step) {
 				if ( EC.getColor(prevColor).diff(color).reduce(add) > 150 ) {
 					style = this.createLinearGradient(prevContorolPoint, controlPoint);
 					style.addColorStop(0, prevColor);
@@ -4436,7 +4423,7 @@ LibCanvas.Context2D.implement({
 				} else {
 					style = color;
 				}
-				
+
 					this
 						.set("lineWidth",1)
 						.beginPath(prevDrawPoints[0])
@@ -4532,7 +4519,7 @@ var Keyboard = Class(
 			}
 		},
 		keyName: function (code) {
-			return typeof code == 'string' && code in this.keyCodes ? 
+			return typeof code == 'string' && code in this.keyCodes ?
 				code : this.key(code);
 		},
 		// @deprecated
@@ -4543,7 +4530,7 @@ var Keyboard = Class(
 	},
 	initialize : function (preventDefault) {
 		this.preventDefault = preventDefault;
-		
+
 		atom.dom(window).bind({
 			keydown:  this.keyEvent('down'),
 			keyup:    this.keyEvent('up'),
@@ -4627,7 +4614,7 @@ provides: Layer
 */
 
 var Layer = LibCanvas.Layer = function () {
-	
+
 var callParent = function (method) {
 	return function () {
 		this.parentLayer[method].apply(this.parentLayer, arguments);
@@ -4657,7 +4644,7 @@ return Class(
 			return this.parentLayer.wrapper;
 		}
 	},
-	
+
 	initialize : function (elem, parentOptions, options) {
 		this.parentLayer = elem;
 
@@ -4824,7 +4811,7 @@ var Tile = LibCanvas.Engines.Tile = Class({
 	getCell : function (point) {
 		point = Point(arguments);
 		if (point.x < 0 || point.y < 0) return null;
-		
+
 		var x = parseInt(point.x / (this.cellWidth  + this.margin)),
 			y = parseInt(point.y / (this.cellHeight + this.margin)),
 			row = this.points[y];
@@ -4969,7 +4956,7 @@ var ProjectiveTexture = Class({
 			[points[3].x, points[3].y],
 			[points[2].x, points[2].y]
 		];
-		
+
 		var tr = getProjectiveTransform(points);
 
 		// Begin subdivision process.
@@ -5012,7 +4999,7 @@ var divide = function (u1, v1, u4, v4, p1, p2, p3, p4, limit) {
 			var pb   = tr.transformProjectiveVector([umid, v4, 1]);
 			var pl   = tr.transformProjectiveVector([u1, vmid, 1]);
 			var pr   = tr.transformProjectiveVector([u4, vmid, 1]);
-			
+
 			// Subdivide.
 			limit--;
 			divide.call(this,   u1,   v1, umid, vmid,   p1,   pt,   pl, pmid, limit);
@@ -5023,7 +5010,7 @@ var divide = function (u1, v1, u4, v4, p1, p2, p3, p4, limit) {
 			return;
 		}
 	}
-	
+
 	var ctx = this.ctx;
 
 	// Render this patch.
@@ -5375,7 +5362,7 @@ LibCanvas.Processors.Color = Class({
 			else if (green == max) hue = 2 + rr - br;
 			else                   hue = 4 + gr - rr;
 			hue /= 6;
-			
+
 			if (hue < 0) hue++;
 		}
 		return [Math.round(hue * 360), Math.round(saturation * 100), Math.round(brightness * 100)];
@@ -5385,7 +5372,7 @@ LibCanvas.Processors.Color = Class({
 		bri = Math.round(bri / 100 * 255);
 		if (!sat) return [bri, bri, bri];
 		hue = hue % 360;
-		
+
 		var f = hue % 60,
 			p = Math.round((bri * (100  - sat)) / 10000 * 255),
 			q = Math.round((bri * (6000 - sat * f)) / 600000 * 255),
@@ -5445,9 +5432,9 @@ LibCanvas.Processors.Grayscale = Class({
 			b = d[i+2];
 			switch (type) {
 				case 'sepia':
-					d[i]   = (r * .393) + (g *.769) + (b * .189);
-					d[i+1] = (r * .349) + (g *.686) + (b * .168);
-					d[i+2] = (r * .272) + (g *.534) + (b * .131);
+					data[i]   = (r * .393) + (g *.769) + (b * .189);
+					data[i+1] = (r * .349) + (g *.686) + (b * .168);
+					data[i+2] = (r * .272) + (g *.534) + (b * .131);
 					break;
 				case 'luminance': set(i, 0.2126*r + 0.7152*g + 0.0722*b); break;
 				case 'average'  : set(i, (r + g + b)/3); break;
@@ -5634,7 +5621,7 @@ Scene.Element = Class(
 	initialize: function (scene, options) {
 		scene.libcanvas.addElement( this );
 		this.stopDrawing();
-		
+
 		this.scene = scene;
 		this.setOptions( options );
 
@@ -5668,242 +5655,8 @@ Scene.Element = Class(
 	},
 
 	renderTo: function () {
-		var shape = this.shape;
-		if (shape instanceof Rectangle) {
-			var point = function (method, invoke) {
-				return new Point(
-					Math[method](shape.from.x, shape.to.x),
-					Math[method](shape.from.y, shape.to.y)
-				).invoke( invoke );
-			};
-			this.previousBoundingShape = new Rectangle(
-				point( 'min', 'floor' ),
-				point( 'max', 'ceil'  )
-			);
-		} else {
-			this.previousBoundingShape = shape.clone().grow( 2 );
-		}
+		this.previousBoundingShape = this.shape.clone().grow( 2 );
 	}
-});
-
-/*
----
-
-name: "Scene.Mouse.Event"
-
-description: "LibCanvas.Scene.Mouse"
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-authors:
-	- "Shock <shocksilien@gmail.com>"
-
-requires:
-	- LibCanvas
-	- Scene
-
-provides: Scene.MouseEvent
-
-...
-*/
-
-Scene.MouseEvent = Class(
-/**
- * @lends LibCanvas.Scene.MouseEvent#
- */
-{
-	/** @property {LibCanvas.Point} */
-	offset: null,
-	/** @property {LibCanvas.Point} */
-	deltaOffset: null,
-	/** @property {number} */
-	delta: 0,
-
-	/** @constructs */
-	initialize: function (type, original) {
-		this.type     = type;
-		this.original = original;
-		this.extend( 'offset', 'deltaOffset', 'delta' );
-	},
-
-	/** @returns {Scene.MouseEvent} */
-	prevent: function () {
-		this.original.preventDefault();
-		return this;
-	},
-
-	/** @private */
-	extend: function (props) {
-		for (var i = props.length; i--;) {
-			var prop = props[i];
-			if ( this.original[prop] != null ) {
-				this[prop] = this.original[prop];
-			}
-		}
-		return this;
-	},
-
-	/** @private */
-	stopped: false,
-
-	/** @returns {LibCanvas.Scene.MouseEvent} */
-	stop: function () {
-		this.stopped = true;
-		this.original._stopped = true;
-		return this;
-	}
-});
-
-/*
----
-
-name: "Scene.Mouse"
-
-description: "LibCanvas.Scene.Mouse"
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-authors:
-	- "Shock <shocksilien@gmail.com>"
-
-requires:
-	- LibCanvas
-	- Scene
-	- Scene.MouseEvent
-
-provides: Scene.Mouse
-
-...
-*/
-
-Scene.Mouse = Class(
-/**
- * @lends LibCanvas.Scene.Mouse#
- */
-{
-
-	/** @private */
-	mouse: null,
-
-	/** @constructs */
-	initialize: function (scene) {
-		var mouse = this;
-
-		mouse.lastMouseMove = [];
-		mouse.lastMouseDown = [];
-
-		mouse.scene = scene;
-		mouse.subscribers = [];
-
-		var events = function (force, types) {
-			var method = force ? 'forceEvent' : 'event';
-			types.forEach(function (type) {
-				mouse.mouse.addEvent( type, function (e) { mouse[method]( type, e ) } );
-			});
-		};
-
-		mouse.mouse = scene.libcanvas.mouse;
-		mouse.point = mouse.mouse.point;
-		events(true , [ 'dblclick', 'contextmenu', 'wheel' ]);
-		events(false, [ 'down', 'up', 'move', 'out' ]);
-	},
-
-	/** @private */
-	stopped: false,
-
-	/** @returns {LibCanvas.Scene.Mouse} */
-	stop: function () {
-		this.stopped = true;
-		return this;
-	},
-
-	/** @returns {LibCanvas.Scene.Mouse} */
-	start: function () {
-		this.stopped = false;
-		return this;
-	},
-
-	/** @returns {LibCanvas.Scene.Mouse} */
-	subscribe : function (elem) {
-		this.subscribers.include(elem);
-		return this;
-	},
-
-	/** @returns {LibCanvas.Scene.Mouse} */
-	unsubscribe : function (elem) {
-		this.subscribers.erase(elem);
-		return this;
-	},
-
-	/** @private */
-	event: function (type, e) {
-		if (this.stopped || e._stopped) return;
-
-		var event = new Scene.MouseEvent( type, e );
-
-		if (['dblclick', 'contextmenu', 'wheel'].contains( type )) {
-			return this.forceEvent( type == 'wheel' ? 'mousewheel' : type, e );
-		}
-
-		if (type == 'down') this.lastMouseDown.empty();
-
-		var
-			lastDown = this.lastMouseDown,
-			lastMove = this.lastMouseMove,
-			sub = this.subscribers.sortBy( 'zIndex', true );
-
-		for (var i = sub.length; i--;) {
-			var elem = sub[i];
-
-			if (event.stopped) {
-				if (type == 'move' || type == 'out') {
-					if (lastMove.contains(elem)) elem.fireEvent( 'mouseout', [event] );
-				} else if (type == 'up') {
-					if (lastDown.contains(elem)) elem.fireEvent( 'mouseup', [event] );
-				}
-			} else if (this.mouse.isOver(elem)) {
-				if (type == 'move') {
-					if (lastMove.contains(elem)) {
-						elem.fireEvent( 'mouseover', [event] );
-					} else {
-						lastMove.push( elem );
-					}
-				} else if (type == 'down') {
-					lastDown.push(elem);
-				// If mouseup on this elem and last mousedown was on this elem - click
-				} else if (type == 'mouseup' && lastDown.contains(elem)) {
-					elem.fireEvent( 'click', [event] );
-				}
-				elem.fireEvent( 'mouse' + type, [event] );
-			} else {
-				var mouseOut = false;
-				if ( (type == 'move' || type == 'out') && lastMove.contains(elem)) {
-					elem.fireEvent( 'mouseout', [event] );
-					lastMove.erase(elem);
-					mouseOut = true;
-				}
-				if (!mouseOut) elem.fireEvent( 'away:mouse' + type, [event] );
-			}
-		}
-	},
-
-	/** @private */
-	forceEvent: function (type, e) {
-		var
-			event = new Scene.MouseEvent( type, e ),
-			sub = this.subscribers.sortBy( 'zIndex', true ),
-			i   = sub.length;
-		while (i--) if (this.mouse.isOver(sub[i])) {
-			sub[i].fireEvent( type, event );
-			if (event.stopped) break;
-		}
-		return this;
-	}
-
 });
 
 /*
@@ -5953,18 +5706,12 @@ Scene.Resources = Class(
 		return this.lc.imageExists( name );
 	},
 
-	/** @private */
-	_mouse: null,
-
 	get mouse () {
-		if (this._mouse == null) {
-			this._mouse = new Scene.Mouse( this.scene );
-		}
-		return this._mouse;
+		return this.lc.mouse;
 	},
 
 	get keyboard () {
-		return this.lc.keyboard;
+		return this.lc.mouse;
 	},
 
 	get rectangle () {
@@ -6292,7 +6039,7 @@ return Class(
 			this.from = Point(a[0] || a.from);
 			this.to   = Point(a[1] || a.to);
 		}
-		
+
 		return this;
 	},
 	hasPoint : function (point) {
@@ -6336,7 +6083,7 @@ return Class(
 			y = ((c.y-d.y)*x-(c.x*d.y-d.x*c.y))/(d.x-c.x);
 			x *= -1;
 		}
-		
+
 		return between(x, a.x, b.x) && between (y, a.y, b.y) &&
 		       between(x, c.x, d.x) && between (y, c.y, d.y) ?
 		            (point ? new Point(x, y) : true) : FALSE;
@@ -6360,7 +6107,7 @@ return Class(
 	distanceTo: function (p, asInfiniteLine) {
 		p = Point(p);
 		var f = this.from, t = this.to, degree, s, x, y;
-			
+
 		if (!asInfiniteLine) {
 			degree = Math.atan2(p.x - t.x, p.y - t.y).getDegree();
 			if ( degree.between(-90, 90) ) {
@@ -6642,7 +6389,7 @@ Path.Builder = LibCanvas.Shapes.Path.Builder = Class({
 		a.acw = !!(a.acw || a.anticlockwise);
 		return this.push('arc', [a]);
 	},
-	
+
 	// stringing
 	stringify : function (sep) {
 		if (!sep) sep = ' ';
@@ -6665,7 +6412,7 @@ Path.Builder = LibCanvas.Shapes.Path.Builder = Class({
 
 		parts.forEach(function (part) {
 			if (!part.length) return;
-			
+
 			if (isNaN(part)) {
 				full.push({ method : part, args : [] });
 			} else if (full.length) {
@@ -7295,7 +7042,7 @@ var Trace = LibCanvas.Utils.Trace = Class({
 	Static: {
 		dumpRec : function (obj, level, plain) {
 			level  = parseInt(level) || 0;
-			
+
 			var escape = function (v) {
 				return plain ? v : v.safeHtml();
 			};
@@ -7567,7 +7314,7 @@ atom.implement(HTMLImageElement, {
 			if (from.y < rect.from.y) from.y = rect.from.y;
 			if (  to.x > rect. to .x)   to.x = rect. to .x;
 			if (  to.y > rect. to .y)   to.y = rect. to .y;
-			
+
 			crop = new Rectangle(from, to);
 			size = crop.size;
 			crop.from.x %= this.width;
@@ -7576,7 +7323,7 @@ atom.implement(HTMLImageElement, {
 
 			if (x) current.x -= rect.from.x;
 			if (y) current.y -= rect.from.y;
-			
+
 			buf.ctx.drawImage({
 				image : this,
 				crop  : crop,
@@ -7701,16 +7448,14 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 	},
 	createDomImage : function (src) {
 		this.number++;
-		var img = new Image();
-		img.src = src;
-		if (window.opera && img.complete) {
-			this.onProcessed.delay(10, this, ['loaded', img]);
-		} else {
-			img.addEventListener( 'load' , this.onProcessed.bind(this, 'loaded', img), false );
-			img.addEventListener( 'error', this.onProcessed.bind(this, 'errors', img), false );
-			img.addEventListener( 'abort', this.onProcessed.bind(this, 'aborts', img), false );
-		}
-		return img;
+		return atom.dom
+			.create('img', { src : src })
+			.bind({
+				load : this.onProcessed.bind(this, 'loaded'),
+				error: this.onProcessed.bind(this, 'errors'),
+				abort: this.onProcessed.bind(this, 'aborts')
+			})
+			.first;
 	},
 	splitUrl: function (str) {
 		var url = str, size, cell, match, coords = null;
@@ -7729,7 +7474,7 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 			url = str.substr(0, str.lastIndexOf(match[0]));
 			coords = coords.map( Number );
 		}
-		
+
 		return { url: url, coords: coords };
 	},
 	createDomImages: function (images) {
@@ -7801,7 +7546,7 @@ var ProgressBar = LibCanvas.Utils.ProgressBar = Class({
 	},
 	drawBorder : function () {
 		var s = this.style;
-		
+
 		var pbRect = new Rectangle({
 			from : this.coord,
 			size : Object.collect(s, ['width', 'height'])
