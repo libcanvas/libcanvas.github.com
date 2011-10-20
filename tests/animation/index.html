@@ -26,11 +26,16 @@ new function () {
 		var animation;
 
 		atom.dom('#run').bind( 'click', function () {
-			animation = new LibCanvas.Animation.Sprite()
+			var a = animation = new LibCanvas.Animation.Sprite()
 				.addSprites( libcanvas.getImage('arrow'), 100 )
 				.run({ line: Array.range(0, 11), delay: 50, repeat: 1 })
 				.addEvent('changed', libcanvas.update )
-				.addEvent('stop', function () { animation = null; });
+				.addEvent('stop', function () {
+					if (animation == a) {
+						animation = null;
+					}
+				});
+
 		});
 
 		libcanvas.addRender(function () {
