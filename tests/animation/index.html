@@ -26,6 +26,8 @@ new function () {
 		var animation;
 
 		atom.dom('#run').bind( 'click', function () {
+			console.log( 'image width: ', libcanvas.getImage('arrow').width, libcanvas.getImage('arrow') );
+
 			var a = animation = new LibCanvas.Animation.Sprite()
 				.addSprites( libcanvas.getImage('arrow'), 100 )
 				.run({ line: [0, 3, 6, 9], delay: 150 })
@@ -35,7 +37,6 @@ new function () {
 						animation = null;
 					}
 				});
-
 		});
 
 		libcanvas.addRender(function () {
@@ -46,8 +47,9 @@ new function () {
 					console.log( 'Success', animation );
 					libcanvas.ctx.drawImage( animation.sprite );
 				} else {
+					console.log( libcanvas.getImage( 'arrow' ));
 					console.log( 'Fail', animation );
-					throw new Error('image disapear');
+					//throw new Error('image disapear');
 				}
 			}
 		});
