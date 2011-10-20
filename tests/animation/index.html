@@ -28,7 +28,7 @@ new function () {
 		atom.dom('#run').bind( 'click', function () {
 			var a = animation = new LibCanvas.Animation.Sprite()
 				.addSprites( libcanvas.getImage('arrow'), 100 )
-				.run({ line: Array.range(0, 11), delay: 50, repeat: 1 })
+				.run({ line: [0, 3, 6, 9], delay: 150 })
 				.addEvent('changed', libcanvas.update )
 				.addEvent('stop', function () {
 					if (animation == a) {
