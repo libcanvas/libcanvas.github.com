@@ -43,9 +43,10 @@ new function () {
 
 			if (animation)  {
 				if (animation.sprite) {
+					console.log( 'Success', animation );
 					libcanvas.ctx.drawImage( animation.sprite );
 				} else {
-					console.log( animation );
+					console.log( 'Fail', animation );
 					throw new Error('image disapear');
 				}
 			}
