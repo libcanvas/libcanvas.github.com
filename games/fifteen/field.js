@@ -112,7 +112,7 @@ Fifteen.Field = atom.Class({
 		})
 		.redraw()
 		.addEvent( 'mousedown', function (e) {
-			e.preventDefault();
+			e.prevent().stop();
 			this.move( tile );
 		}.bind(this));
 		return tile;

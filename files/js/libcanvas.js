@@ -1506,6 +1506,7 @@ var Mouse = LibCanvas.Mouse = Class(
 		},
 		down = waitEvent('mousedown', true),
 		up   = waitEvent('mouseup'  , true),
+		over = waitEvent('mouseover', true),
 		move = function ( e ) {
 			var offset = mouse.getOffset(e);
 			mouse.setCoords(offset, true);
@@ -1543,6 +1544,7 @@ var Mouse = LibCanvas.Mouse = Class(
 			//	up(e);
 			//	out(e);
 			//},
+			mouseover  : over,
 			mousedown  : down,
 			mouseup    : up,
 			mousemove  : move,
@@ -6037,11 +6039,12 @@ Scene.Standard = Class(
 	 * @returns {function}
 	 */
 	createFactory: function (Class) {
+		var scene = this;
 		return function () {
-			var element = Class.factory( [this].append( arguments ) );
-			this.addElement( element );
+			var element = Class.factory( [ scene ].append( arguments ) );
+			scene.addElement( element );
 			return element;
-		}.bind( this );
+		};
 	},
 
 	/**
@@ -7677,7 +7680,14 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 		}
 		return this;
 	},
-	onProcessed : function (type) {
+	onProcessed : function (type, img) {
+		if (type == 'loaded') {
+			// opera fullscreen bug workaround
+			img.width  = img.width;
+			img.height = img.height;
+			img.naturalWidth  = img.naturalWidth;
+			img.naturalHeight = img.naturalHeight;
+		}
 		this.count[type]++;
 		this.processed++;
 		if (this.isReady()) this.cutImages().readyEvent('ready', [this]);
