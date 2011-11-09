@@ -9,7 +9,10 @@ var Element = atom.Class({
 		this.parent.apply( this, arguments );
 		this
 			.clickable()
-			.addEvent( 'statusChanged', this.redraw );
+			.addEvent( 'statusChanged', this.redraw )
+			.addEvent( 'click', function () {
+				new Trace( 'Click: ' + this.options.name );
+			});
 	},
 
 	renderTo: function (ctx) {
