@@ -981,7 +981,7 @@ atom.implement(Number, {
 		);
 	},
 	equals : function (to, accuracy) {
-		if (arguments.length == 1) accuracy = 8;
+		if (accuracy == null) accuracy = 8;
 		return this.toFixed(accuracy) == to.toFixed(accuracy);
 	},
 	limit: function(min, max){
@@ -1614,7 +1614,7 @@ atom.extend(Class, {
 				}
 			} else if (arguments.length == 1 && typeof name != 'string') {
 				for (i in name) {
-					this.addEvent(i, name[i]);
+					this.removeEvent(i, name[i]);
 				}
 			} else {
 				name = removeOn(name);
