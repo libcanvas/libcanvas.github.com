@@ -3,13 +3,18 @@ LibCanvas.extract();
 var Element = atom.Class({
 	Extends: LibCanvas.Scene.Element,
 
-	Implements: LibCanvas.Behaviors.Clickable,
+	Implements: [
+		LibCanvas.Behaviors.Clickable,
+		LibCanvas.Behaviors.Draggable
+	],
 
 	initialize: function () {
 		this.parent.apply( this, arguments );
 		this
 			.clickable()
+			.draggable()
 			.addEvent( 'statusChanged', this.redraw )
+			.addEvent( 'moveDrag'     , this.redraw )
 			.addEvent( 'click', function () {
 				new Trace( 'Click: ' + this.options.name );
 			});
@@ -30,7 +35,9 @@ var Element = atom.Class({
 			to  : this.shape,
 			align: 'center',
 			weight: 'bold'
-		})
+		});
+
+		return this.parent( ctx );
 	}
 });
 
