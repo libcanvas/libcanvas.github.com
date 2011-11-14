@@ -981,7 +981,7 @@ atom.implement(Number, {
 		);
 	},
 	equals : function (to, accuracy) {
-		if (arguments.length == 1) accuracy = 8;
+		if (accuracy == null) accuracy = 8;
 		return this.toFixed(accuracy) == to.toFixed(accuracy);
 	},
 	limit: function(min, max){
@@ -1553,8 +1553,8 @@ var removeOn = function(string){
 	});
 };
 
-var initEvents = function (object) {
-	if (!object._events) object._events = { $ready: {} };
+var initEvents = function (object, reset) {
+	if (reset || !object._events) object._events = { $ready: {} };
 };
 
 var nextTick = function (fn) {
@@ -1606,6 +1606,11 @@ atom.extend(Class, {
 			return this;
 		},
 		removeEvent: function (name, fn) {
+			if (!arguments.length) {
+				initEvents( this, true );
+				return this;
+			}
+
 			initEvents(this);
 
 			if (Array.isArray(name)) {
@@ -1614,14 +1619,13 @@ atom.extend(Class, {
 				}
 			} else if (arguments.length == 1 && typeof name != 'string') {
 				for (i in name) {
-					this.addEvent(i, name[i]);
+					this.removeEvent(i, name[i]);
 				}
 			} else {
 				name = removeOn(name);
 				if (name == '$ready') {
 					throw new TypeError('Event name «$ready» is reserved');
-				}
-				if (arguments.length == 1) {
+				} else if (arguments.length == 1) {
 					this._events[name] = [];
 				} else if (name in this._events) {
 					this._events[name].erase(fn);
