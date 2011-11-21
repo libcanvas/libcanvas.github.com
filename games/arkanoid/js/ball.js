@@ -26,7 +26,7 @@ Arkanoid.Ball = atom.Class(
 	},
 
 	get currentBoundingShape () {
-		return this.shape.getBoundingRectangle().fillToPixel();
+		return this.shape.getBoundingRectangle().fillToPixel().grow(2);
 	},
 
 	getMovementVector: function (time, factor) {
