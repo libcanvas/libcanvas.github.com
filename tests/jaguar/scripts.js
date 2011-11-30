@@ -69,7 +69,7 @@ var MenuItem = atom.Class({
 
 		this.ty = ty;
 		this.buff = 0;
-		this.click = click;
+		this.addEvent({ click: click });
 		this.text = text;
 		this.shape = new RoundedRectangle(-5,this.ty,220,40).setRadius(5);
 	},
