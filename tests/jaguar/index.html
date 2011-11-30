@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+		<script type="text/javascript" src="scripts.js"></script>
+		<style>* {margin: 0}</style>
+	</head>
+	<body>
+		<canvas></canvas>
+		<script>
+new function () {
+
+var lc = new LibCanvas('canvas', { clear: '#42aaff' })
+	.listenMouse()
+	.size( 600, 300, true )
+	.start();
+
+var
+	menu1 = new MenuItem(lc, 40,'+1 к репутации'    , function() { trace('m1') }),
+	menu2 = new MenuItem(lc,100,'-1 к репутации'    , function() { trace('m2') }),
+	menu3 = new MenuItem(lc,160,'Изменить репутацию', function() { trace('m3') }),
+	menu4 = new MenuItem(lc,220,'Максимум репутации', function() { trace('m4') });
+
+
+var loading =  lc.createLayer("loading", Infinity, {clear: 'rgba(0,0,0,0.1)' });
+
+new PartedCircle( loading, circle(50), "rgba(204,85,0,0.9)", true, function () {
+	new PartedCircle( loading, circle(40), "rgba(234,117,0,0.9)", false, function () {
+		new FadeCircle (loading, new Circle(275,125,35), function () {
+			(function () {
+				loading.hide();
+				[ menu1, menu2, menu3, menu4 ].invoke( 'activate' );
+			}.delay(1000));
+		});
+	});
+});
+
+};
+		</script>
+	</body>
+</html>
