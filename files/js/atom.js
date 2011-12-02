@@ -1,3 +1,4 @@
+
 /*
 ---
 
@@ -17,7 +18,7 @@ inspiration:
 ...
 */
 
-(function (undefined) { // AtomJS
+(function (Object, Array, undefined) { // AtomJS
 'use strict';
 	
 /*
@@ -40,177 +41,176 @@ provides: atom
 ...
 */
 
-(function (Object, Array) {
-	var prototype = 'prototype',
-	    apply     = 'apply',
-		toString  = Object[prototype].toString,
-		slice     = [].slice;
+var
+	prototype = 'prototype',
+	apply     = 'apply',
+	toString  = Object[prototype].toString,
+	slice     = [].slice;
 
-	var atom = this.atom = function () {
-		if (atom.initialize) return atom.initialize[apply](this, arguments);
-	};
+var atom = this.atom = function () {
+	if (atom.initialize) return atom.initialize[apply](this, arguments);
+};
 
-	atom.global = this;
+atom.global = this;
 
-	var innerExtend = function (proto) {
-		return function (elem, from) {
-			if (from == null) {
-				from = elem;
-				elem = atom;
-			}
-
-			var ext = proto ? elem[prototype] : elem,
-			    accessors = atom.accessors && atom.accessors.inherit;
-			
-			for (var i in from) if (i != 'constructor') {
-				if ( accessors && accessors(from, ext, i) ) continue;
-
-				ext[i] = clone(from[i]);
-			}
-			return elem;
-		};
-	};
-
-	var typeOf = function (item) {
-		if (item == null) return 'null';
-
-		var string = toString.call(item);
-		for (var i in typeOf.types) if (i == string) return typeOf.types[i];
-
-		if (item.nodeName){
-			if (item.nodeType == 1) return 'element';
-			if (item.nodeType == 3) return /\S/.test(item.nodeValue) ? 'textnode' : 'whitespace';
+var innerExtend = function (proto) {
+	return function (elem, from) {
+		if (from == null) {
+			from = elem;
+			elem = atom;
 		}
-		
-		var type = typeof item;
 
-		if (item && type == 'object') {
-			if (atom.Class && item instanceof atom.Class) return 'class';
-			if (atom.isEnumerable(item)) return 'arguments';
+		var ext = proto ? elem[prototype] : elem,
+		    accessors = atom.accessors && atom.accessors.inherit;
+
+		for (var i in from) if (i != 'constructor') {
+			if ( accessors && accessors(from, ext, i) ) continue;
+
+			ext[i] = clone(from[i]);
 		}
-		
-		return type;
+		return elem;
 	};
-	typeOf.types = {};
-	['Boolean', 'Number', 'String', 'Function', 'Array', 'Date', 'RegExp', 'Class'].forEach(function(name) {
-		typeOf.types['[object ' + name + ']'] = name.toLowerCase();
-	});
+};
+
+var typeOf = function (item) {
+	if (item == null) return 'null';
+
+	var string = toString.call(item);
+	for (var i in typeOf.types) if (i == string) return typeOf.types[i];
+
+	if (item.nodeName){
+		if (item.nodeType == 1) return 'element';
+		if (item.nodeType == 3) return /\S/.test(item.nodeValue) ? 'textnode' : 'whitespace';
+	}
+
+	var type = typeof item;
+
+	if (item && type == 'object') {
+		if (atom.Class && item instanceof atom.Class) return 'class';
+		if (atom.isEnumerable(item)) return 'arguments';
+	}
+
+	return type;
+};
+typeOf.types = {};
+['Boolean', 'Number', 'String', 'Function', 'Array', 'Date', 'RegExp', 'Class'].forEach(function(name) {
+	typeOf.types['[object ' + name + ']'] = name.toLowerCase();
+});
 
 
-	var clone = function (object) {
-		var type = typeOf(object);
-		return type in clone.types ? clone.types[type](object) : object;
-	};
-	clone.types = {
-		array: function (array) {
-			var i = array.length, c = new Array(i);
-			while (i--) c[i] = clone(array[i]);
-			return c;
-		},
-		object: function (object) {
-			if (typeof object.clone == 'function') return object.clone();
+var clone = function (object) {
+	var type = typeOf(object);
+	return type in clone.types ? clone.types[type](object) : object;
+};
+clone.types = {
+	array: function (array) {
+		var i = array.length, c = new Array(i);
+		while (i--) c[i] = clone(array[i]);
+		return c;
+	},
+	object: function (object) {
+		if (typeof object.clone == 'function') return object.clone();
 
-			var c = {}, accessors = atom.accessors && atom.accessors.inherit;
-			for (var key in object) {
-				if (accessors && accessors(object, c, key)) continue;
-				c[key] = clone(object[key]);
+		var c = {}, accessors = atom.accessors && atom.accessors.inherit;
+		for (var key in object) {
+			if (accessors && accessors(object, c, key)) continue;
+			c[key] = clone(object[key]);
+		}
+		return c;
+	}
+};
+
+atom.extend = innerExtend(false);
+
+atom.extend({
+	implement: innerExtend(true),
+	toArray: function (elem) {
+		return slice.call(elem);
+	},
+	/**
+	 * @deprecated - use console-cap instead:
+	 * @see https://github.com/theshock/console-cap/
+	 */
+	log: function () {
+		// ie9 bug, typeof console.log == 'object'
+		if (atom.global.console) Function.prototype.apply.call(console.log, console, arguments);
+	},
+	isEnumerable: function(item){
+		return item != null && toString.call(item) != '[object Function]' && typeof item.length == 'number';
+	},
+	append: function (target, source) {
+		for (var i = 1, l = arguments.length; i < l; i++){
+			source = arguments[i] || {};
+			for (var key in source) {
+				target[key] = source[key];
 			}
-			return c;
 		}
-	};
-	
-	atom.extend = innerExtend(false);
+		return target;
+	},
+	typeOf: typeOf,
+	clone: clone
+});
 
-	atom.extend({
-		implement: innerExtend(true),
-		toArray: function (elem) {
-			return slice.call(elem);
-		},
-		/**
-		 * @deprecated - use console-cap instead:
-		 * @see https://github.com/theshock/console-cap/
-		 */
-		log: function () {
-			// ie9 bug, typeof console.log == 'object'
-			if (atom.global.console) Function.prototype.apply.call(console.log, console, arguments);
-		},
-		isEnumerable: function(item){
-			return item != null && toString.call(item) != '[object Function]' && typeof item.length == 'number';
-		},
-		append: function (target, source) {
-			for (var i = 1, l = arguments.length; i < l; i++){
-				source = arguments[i] || {};
-				for (var key in source) {
-					target[key] = source[key];
+// JavaScript 1.8.5 Compatiblity
+// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind
+
+if (!Function.prototype.bind) {
+	Function.prototype.bind = function(context /*, arg1, arg2... */) {
+		if (typeof this !== "function") throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+
+		var args   = slice.call(arguments, 1),
+			toBind = this,
+			Nop    = function () {},
+			Bound  = function () {
+				var isInstance;
+				// Opera & Safari bug fixed. I must fix it in right way
+				// TypeError: Second argument to 'instanceof' does not implement [[HasInstance]]
+				try {
+					isInstance = this instanceof Nop;
+				} catch (ignored) {
+					// console.log( 'bind error', Nop.prototype );
+					isInstance = false;
 				}
-			}
-			return target;
-		},
-		typeOf: typeOf,
-		clone: clone
-	});
+				return toBind.apply(
+					isInstance ? this : ( context || {} ),
+					args.concat( slice.call(arguments) )
+				);
+			};
+		Nop.prototype   = toBind.prototype;
+		Bound.prototype = new Nop();
+		return Bound;
+	};
+}
 
-	// JavaScript 1.8.5 Compatiblity
-	// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind
+// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/keys
+if (!Object.keys) {
+	Object.keys = function(obj) {
+		if (obj !== Object(obj)) throw new TypeError('Object.keys called on non-object');
 
-	if (!Function.prototype.bind) {
-		Function.prototype.bind = function(context /*, arg1, arg2... */) {
-			if (typeof this !== "function") throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+		var keys = [], i, has = Object[prototype].hasOwnProperty;
+		for (i in obj) if (has.call(obj, i)) keys.push(i);
+		return keys;
+	};
+}
 
-			var args   = slice.call(arguments, 1),
-				toBind = this,
-				Nop    = function () {},
-				Bound  = function () {
-					var isInstance;
-					// Opera & Safari bug fixed. I must fix it in right way
-					// TypeError: Second argument to 'instanceof' does not implement [[HasInstance]]
-					try {
-						isInstance = this instanceof Nop;
-					} catch (ignored) {
-						// console.log( 'bind error', Nop.prototype );
-						isInstance = false;
-					}
-					return toBind.apply(
-						isInstance ? this : ( context || {} ),
-						args.concat( slice.call(arguments) )
-					);
-				};
-			Nop.prototype   = toBind.prototype;
-			Bound.prototype = new Nop();
-			return Bound;
-		};
-	}
+// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/isArray
+if (!Array.isArray) {
+	Array.isArray = function(o) {
+		return o && toString.call(o) === '[object Array]';
+	};
+}
 
-	// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/keys
-	if (!Object.keys) {
-		Object.keys = function(obj) {
-			if (obj !== Object(obj)) throw new TypeError('Object.keys called on non-object');
-
-			var keys = [], i, has = Object[prototype].hasOwnProperty;
-			for (i in obj) if (has.call(obj, i)) keys.push(i);
-			return keys;
-		};
-	}
-
-	// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/isArray
-	if (!Array.isArray) {
-		Array.isArray = function(o) {
-			return o && toString.call(o) === '[object Array]';
-		};
-	}
-
-	// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/create
-	if (!Object.create) {
-		Object.create = function (o) {
-			if (arguments.length > 1) {
-				throw new Error('Object.create implementation only accepts the first parameter.');
-			}
-			function F() {}
-			F.prototype = o;
-			return new F();
-		};
-	}
-}).call(typeof exports == 'undefined' ? window : exports, Object, Array);
+// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/create
+if (!Object.create) {
+	Object.create = function (o) {
+		if (arguments.length > 1) {
+			throw new Error('Object.create implementation only accepts the first parameter.');
+		}
+		function F() {}
+		F.prototype = o;
+		return new F();
+	};
+}
 
 /*
 ---
@@ -527,8 +527,8 @@ new function () {
 		},
 		create : function (tagName, index, attr) {
 			if (typeof index == 'object') {
-				index = 0;
 				attr  = index;
+				index = 0;
 			}
 			atom.dom.create(tagName, attr).appendTo( this.get(index) );
 			return this;
@@ -1553,8 +1553,8 @@ var removeOn = function(string){
 	});
 };
 
-var initEvents = function (object) {
-	if (!object._events) object._events = { $ready: {} };
+var initEvents = function (object, reset) {
+	if (reset || !object._events) object._events = { $ready: {} };
 };
 
 var nextTick = function (fn) {
@@ -1606,6 +1606,11 @@ atom.extend(Class, {
 			return this;
 		},
 		removeEvent: function (name, fn) {
+			if (!arguments.length) {
+				initEvents( this, true );
+				return this;
+			}
+
 			initEvents(this);
 
 			if (Array.isArray(name)) {
@@ -1620,8 +1625,7 @@ atom.extend(Class, {
 				name = removeOn(name);
 				if (name == '$ready') {
 					throw new TypeError('Event name «$ready» is reserved');
-				}
-				if (arguments.length == 1) {
+				} else if (arguments.length == 1) {
 					this._events[name] = [];
 				} else if (name in this._events) {
 					this._events[name].erase(fn);
@@ -1829,7 +1833,7 @@ new function () {
 		}[name];
 
 		return function (time, bind, args) {
-			return set.call(window, this.bind.apply(this, [bind].append(args)), time);
+			return set.call(null, this.bind.apply(this, [bind].append(args)), time);
 		};
 	};
 	
@@ -2096,4 +2100,4 @@ atom.Class.Mutators.Generators = function(properties) {
 
 };
 
-})(); 
+}.call(typeof exports == 'undefined' ? window : exports, Object, Array)); 

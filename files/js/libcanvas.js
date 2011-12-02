@@ -1,3 +1,4 @@
+
 /*
 ---
 
@@ -15,7 +16,7 @@ authors:
 ...
 */
 
-(function (atom, Math, HTMLCanvasElement) { // LibCanvas
+(function (atom, Math) { // LibCanvas
 
 // bug in Safari 5.1 ( 'use strict' + 'set prop' )
 // 'use strict';
@@ -2299,7 +2300,7 @@ var DownloadingProgress = LibCanvas.Inner.DownloadingProgress = Class({
 				if (typeof ImagePreloader == 'undefined') {
 					throw new Error('LibCanvas.Utils.ImagePreloader is not loaded');
 				}
-				this.imagePreloader = new ImagePreloader(this.options.preloadImages)
+				this.imagePreloader = new ImagePreloader(this.options.preloadImages, this.options.imagesSuffix)
 					.addEvent('ready', function (preloader) {
 						this.images = preloader.images;
 						atom.log(preloader.getInfo());
@@ -2559,6 +2560,24 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 	 * @param {LibCanvas.Point} shift
 	 * @returns {LibCanvas.Canvas2D}
 	 */
+	translateMouse: function (shift) {
+		shift = Point(shift);
+		var elems = this.elems, e, i = elems.length;
+		while (i--) {
+			e = elems[i];
+			if (e.mouseTranslate) {
+				e.mouseTranslate.move( shift );
+			} else {
+				e.mouseTranslate = shift.clone();
+			}
+		}
+		return this;
+	},
+
+	/**
+	 * @param {LibCanvas.Point} shift
+	 * @returns {LibCanvas.Canvas2D}
+	 */
 	addShift: function ( shift, withElements ) {
 		shift = Point( shift );
 		var newShift = this._shift.move( shift );
@@ -2566,15 +2585,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 			'margin-left': newShift.x,
 			'margin-top' : newShift.y
 		});
-		if (withElements) {
-			this.elems.forEach(function (elem) {
-				if (elem.mouseTranslate) {
-					elem.mouseTranslate.move( shift );
-				} else {
-					elem.mouseTranslate = shift.clone();
-				}
-			});
-		}
+		if (withElements) this.translateMouse( shift );
 		return this;
 	},
 
@@ -4571,20 +4582,21 @@ var Keyboard = Class(
 	keyEvent: function (event) {
 		return function (e) {
 			var key = this.self.key(e);
+			e.keyName = key;
+			this.fireEvent( event, [e] );
 			if (event != 'press') {
+				if (event == 'down') this.fireEvent(key, [e]);
+				if (event == 'up')   this.fireEvent(key + ':up', [e]);
 				if (event == 'down') {
 					this.self.keyStates[key] = true;
 				} else if ( key in this.self.keyStates ) {
 					delete this.self.keyStates[key];
 				}
-				if (event == 'down') this.fireEvent(key, [e]);
-				if (event == 'up')   this.fireEvent(key + ':up', [e]);
 			} else {
 				this.fireEvent(key + ':press', [e]);
 			}
 			var prevent = this.prevent(key);
 			if (prevent) e.preventDefault();
-			this.fireEvent( event, [e] );
 			this.debugUpdate();
 			return !prevent;
 		}.bind(this);
@@ -5700,7 +5712,7 @@ Scene.Element = Class(
 
 	renderTo: function () {
 		var shape = this.currentBoundingShape;
-		this.previousBoundingShape = shape.currentBoundingShape ?
+		this.previousBoundingShape = shape.fillToPixel ?
 			shape.fillToPixel() : shape.clone().grow( 2 );
 		return this;
 	}
@@ -6318,7 +6330,7 @@ return Class(
 			this.from = Point(a[0] || a.from);
 			this.to   = Point(a[1] || a.to);
 		}
-		
+
 		return this;
 	},
 	hasPoint : function (point) {
@@ -7680,7 +7692,7 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 	Implements: Class.Events,
 	processed : 0,
 	number: 0,
-	initialize: function (images) {
+	initialize: function (images, suffix) {
 		this.count = {
 			errors : 0,
 			aborts : 0,
@@ -7693,6 +7705,7 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 			}
 			return images[0] + src;
 		});
+		this.suffix    = suffix;
 		this.usrImages = images;
 		this.domImages = this.createDomImages(images);
 		this.images    = {};
@@ -7767,6 +7780,13 @@ var ImagePreloader = LibCanvas.Utils.ImagePreloader = Class({
 		if (match) {
 			url = str.substr(0, str.lastIndexOf(match[0]));
 			coords = coords.map( Number );
+		}
+		if (this.suffix) {
+			if (typeof this.suffix == 'function') {
+				url = this.suffix( url );
+			} else {
+				url += this.suffix;
+			}
 		}
 		
 		return { url: url, coords: coords };
@@ -8096,4 +8116,4 @@ var Translator = LibCanvas.Utils.Translator = Class({
 
 });
 
-}).call(typeof window == 'undefined' ? exports : window, atom, Math, HTMLCanvasElement);
+}).call(typeof window == 'undefined' ? exports : window, atom, Math);
