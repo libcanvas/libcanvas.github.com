@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: progress bar</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var lc = new LibCanvas('canvas', { clear: 'white', fps: 60 })
+		.size( 200, 200, true)
+		.start();
+
+	var PartedCircle = atom.Class({
+		Implements: [ Drawable, Animatable ],
+		initialize: function (libcanvas, shape, acw, onCreated) {
+			libcanvas.addElement( this );
+			this.shape = shape;
+			this.acw   = acw;
+			this.angle = 0;
+
+			this.animate({
+				props: { angle: (360).degree() },
+				time : 40 * this.shape.radius,
+				onProcess: libcanvas.update,
+				onFinish : onCreated
+			});
+		},
+
+		draw: function () {
+			this.libcanvas.ctx
+				.beginPath()
+				.arc({
+					circle: this.shape,
+					angle : [0, this.acw ? -this.angle : this.angle],
+					acw   : this.acw
+				})
+				.stroke( 'black' )
+				.closePath();
+		}
+	});
+
+	var circle = function (radius) {
+		return new Circle(100, 100, radius);
+	};
+
+	new PartedCircle( lc, circle(50), true, function () {
+		new PartedCircle( lc, circle(40), false, function () {
+			new PartedCircle( lc, circle(30), true, function () {
+				new PartedCircle( lc, circle(20), false, function () {
+					new PartedCircle( lc, circle(10), true, function () {
+						new PartedCircle( lc, circle(2), false, function () {
+							new Trace( 'finished' );
+						});
+					});
+				});
+			});
+		});
+	});
+};
+		</script>
+		<script src="/files/js/google-analytics.js"></script>
+	</body>
+</html>

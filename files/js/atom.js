@@ -2100,4 +2100,4 @@ atom.Class.Mutators.Generators = function(properties) {
 
 };
 
-}.call(typeof exports == 'undefined' ? window : exports, Object, Array)); 
+}.call(typeof exports == 'undefined' ? window : exports, Object, Array));
