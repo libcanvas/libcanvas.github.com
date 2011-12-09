@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="utf-8" />
-		<title>LibCanvas :: Ui :: Draggable objects</title>
+		<title>LibCanvas :: Ui :: Mosaic</title>
 		<link href="/files/styles.css" rel="stylesheet" />
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
@@ -18,7 +18,6 @@ new function () {
 
 	var libcanvas = new LibCanvas('canvas', {
 			clear: false,
-			fps  : 60,
 			preloadImages: {
 				woman : 'woman.jpg',
 				hidden: 'woman-hidden.png'
@@ -44,8 +43,6 @@ new function () {
 
 		});
 
-	var trace = new Trace();
-
 	var Viewer = atom.Class({
 		Extends: LibCanvas.Scene.Element,
 
@@ -54,11 +51,7 @@ new function () {
 		initialize: function (scene, options) {
 			this.parent( scene, options );
 
-			trace.value = this.shape;
-
 			this.addEvent( 'moveDrag', function (diff) {
-				trace.value = this.shape;
-
 				// убедимся, что круг находится в пределах изображения
 				var
 					x = 0, y = 0,
