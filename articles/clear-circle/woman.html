@@ -18,12 +18,12 @@ new function () {
 
 	var libcanvas = new LibCanvas('canvas', {
 			clear: false,
+			fps  : 60,
 			preloadImages: {
 				woman : 'woman.jpg',
 				hidden: 'woman-hidden.png'
 			}
 		})
-		.fpsMeter()
 		.listenMouse()
 		.size(600, 400, true)
 		.start()
