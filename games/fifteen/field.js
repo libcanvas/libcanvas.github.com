@@ -22,7 +22,19 @@ Fifteen.Field = atom.Class({
 		this.activate(false);
 		this.shuffle( 100 );
 
+		new Trace(1);
+
 		document.addEventListener( 'touchstart', function (e) {
+			e.preventDefault();
+			return false;
+		});
+
+		document.addEventListener( 'touchmove', function (e) {
+			e.preventDefault();
+			return false;
+		});
+
+		document.addEventListener( 'touchend', function (e) {
 			e.preventDefault();
 			return false;
 		});
