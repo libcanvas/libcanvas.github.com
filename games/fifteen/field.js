@@ -37,7 +37,8 @@ Fifteen.Field = atom.Class({
 			new Trace(offset);
 
 			for (y = tiles.length; y--;) for (x = tiles[y].length; x--;) {
-				t = tiles[x][y];
+				t = tiles[y][x];
+				new Trace(t.shape);
 				if (t && t.shape.hasPoint(offset)) {
 					new Trace(new Point(x, y));
 					this.move(t);
