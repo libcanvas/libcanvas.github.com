@@ -21,6 +21,8 @@ Fifteen.Field = atom.Class({
 
 		this.activate();
 		this.shuffle( 128 );
+
+		libcanvas.mouse.addEvent( ['down', 'up', 'click' ], function (e) { e.preventDefault() });
 	},
 
 	move: function (tile, onFinish, fast) {
