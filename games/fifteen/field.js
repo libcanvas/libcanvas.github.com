@@ -19,8 +19,8 @@ Fifteen.Field = atom.Class({
 		scene = new LibCanvas.Scene.Standard( libcanvas, { intersection: 'manual' });
 		this.generate( scene.createFactory( Fifteen.Tile ) );
 
-		this.activate();
-		this.shuffle( 128 );
+		this.activate(false);
+		this.shuffle( 100 );
 
 		libcanvas.mouse.addEvent( ['down', 'up', 'click' ], function (e) { e.preventDefault() });
 	},
@@ -36,7 +36,7 @@ Fifteen.Field = atom.Class({
 				var newPosition = empty.clone();
 				empty.moveTo( position );
 				position.moveTo( newPosition );
-				this.activate();
+				this.activate( false );
 				this.blocked = false;
 				onFinish && onFinish.call( this, tile );
 			}.bind(this), fast);

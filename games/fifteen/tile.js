@@ -28,12 +28,12 @@ Fifteen.Tile = atom.Class({
 		}
 
 		this.animate({
-			time : fast ? 50 : 200,
+			time : fast ? 70 : 250,
 			fn   : fast ? 'linear' : 'sine-out',
 			props: props,
 			onProcess: this.redraw,
 			onFinish : function () {
-				this.redraw(),
+				this.redraw();
 				onFinish && onFinish.call( this );
 			}
 		});
