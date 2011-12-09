@@ -22,7 +22,10 @@ Fifteen.Field = atom.Class({
 		this.activate(false);
 		this.shuffle( 100 );
 
-		libcanvas.mouse.addEvent( ['down', 'up', 'click' ], function (e) { e.preventDefault() });
+		document.addEventListener( 'touchstart', function (e) {
+			e.preventDefault();
+			return false;
+		});
 	},
 
 	move: function (tile, onFinish, fast) {
