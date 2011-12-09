@@ -22,7 +22,7 @@ Fifteen.Field = atom.Class({
 		this.activate(false);
 		this.shuffle( 100 );
 
-		new Trace(1);
+		new Trace('test');
 
 		document.addEventListener( 'touchstart', function (e) {
 			e.preventDefault();
