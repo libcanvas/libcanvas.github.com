@@ -20,23 +20,12 @@ Fifteen.Field = atom.Class({
 		this.generate( scene.createFactory( Fifteen.Tile ) );
 
 		this.activate(false);
-		this.shuffle( 100 );
+		this.shuffle(100);
 
-		new Trace('test2');
+		new Trace('3');
 
-		document.addEventListener( 'click', function (e) {
-			e.preventDefault();
-			return false;
-		}, false);
-
-		document.addEventListener( 'mousedown', function (e) {
-			e.preventDefault();
-			return false;
-		}, false);
-
-		document.addEventListener( 'mouseup', function (e) {
-			e.preventDefault();
-			return false;
+		document.addEventListener( 'touchstart', function (e) {
+			new Trace(libcanvas.mouse.getOffset(e));
 		}, false);
 	},
 
