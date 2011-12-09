@@ -27,17 +27,17 @@ Fifteen.Field = atom.Class({
 		document.addEventListener( 'touchstart', function (e) {
 			e.preventDefault();
 			return false;
-		});
+		}, false);
 
 		document.addEventListener( 'touchmove', function (e) {
 			e.preventDefault();
 			return false;
-		});
+		}, false);
 
 		document.addEventListener( 'touchend', function (e) {
 			e.preventDefault();
 			return false;
-		});
+		}, false);
 	},
 
 	move: function (tile, onFinish, fast) {
