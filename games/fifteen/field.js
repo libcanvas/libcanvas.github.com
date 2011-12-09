@@ -24,7 +24,7 @@ Fifteen.Field = atom.Class({
 		this.activate(false);
 		this.shuffle(100);
 
-		new Trace('5');
+		new Trace('6');
 	},
 
 	bindTouch: function (mouse) {
@@ -36,7 +36,7 @@ Fifteen.Field = atom.Class({
 
 			new Trace(offset);
 
-			for (y = tiles.length; y--;) for (x = tiles[y].length; x--;) {
+			for (y in tiles) for (x in tiles[y]) {
 				t = tiles[y][x];
 				new Trace(t.shape);
 				if (t && t.shape.hasPoint(offset)) {
