@@ -29,7 +29,7 @@
 		}
 
 		return full;
-	}(3, 6);
+	}(4, 6);
 
 
 	var app = new LibCanvas.App('canvas', {
@@ -47,37 +47,41 @@
 		}
 	}).ready(function () {
 		var scene = app.createScene({ intersection: 'manual' });
-		scene.libcanvas.size( 3050, 1550 );
+		scene.libcanvas.size( 3050, 2050 );
 
 		var ctx = scene.libcanvas.ctx;
 		ctx.fillAll(ctx.createPattern( scene.resources.getImage('sand'), 'repeat' ));
 
+		var clickable = 0;
+
 		buildings = buildings.map(function (args, i) {
-			return new Bulding( scene, {
+			var building = new Bulding( scene, {
 				from  : new Point(args[1]*50, args[2]*50),
 				x     : args[1],
 				y     : args[2],
 				image : scene.resources.getImage(args[0]),
 				index : i,
 				zIndex: i
-			})
-			.clickable()
-			.addEvent( 'statusChanged', function () {
-				this.redraw();
 			});
+			if (args[0] == 'plate') return;
+			clickable++;
+			building
+				.clickable()
+				.addEvent( 'statusChanged', function () {
+					this.redraw();
+				});
 		});
 
 		var drag  = null;
 
 		new Trace( 'Buildings: ' + buildings.length );
+		new Trace( 'Clickable: ' + clickable );
 
 		var stopDrag = function () {
 			if (drag) {
-				var start = Date.now();
 				scene.resources.mouse.start();
 				scene.addElementsShift(drag);
 				scene.start();
-				new Trace( Date.now() - start );
 			}
 			drag = null;
 		};
