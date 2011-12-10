@@ -73,9 +73,11 @@
 
 		var stopDrag = function () {
 			if (drag) {
+				var start = Date.now();
 				scene.resources.mouse.start();
 				scene.addElementsShift(drag);
 				scene.start();
+				new Trace( Date.now() - start );
 			}
 			drag = null;
 		};
