@@ -29,7 +29,7 @@
 		}
 
 		return full;
-	}(4, 6);
+	}(5, 8);
 
 
 	var app = new LibCanvas.App('canvas', {
@@ -47,7 +47,7 @@
 		}
 	}).ready(function () {
 		var scene = app.createScene({ intersection: 'manual' });
-		scene.libcanvas.size( 3050, 2050 );
+		scene.libcanvas.size( 4050, 2550 );
 
 		var ctx = scene.libcanvas.ctx;
 		ctx.fillAll(ctx.createPattern( scene.resources.getImage('sand'), 'repeat' ));
@@ -74,8 +74,8 @@
 
 		var drag  = null;
 
-		new Trace( 'Buildings: ' + buildings.length );
-		new Trace( 'Clickable: ' + clickable );
+		new Trace( 'Elements : ' + buildings.length );
+		new Trace( 'Buildings: ' + clickable );
 
 		var stopDrag = function () {
 			if (drag) {
