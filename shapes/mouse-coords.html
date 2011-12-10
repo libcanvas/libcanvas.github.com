@@ -29,7 +29,7 @@
 		}
 
 		return full;
-	}(2, 5);
+	}(3, 6);
 
 
 	var app = new LibCanvas.App('canvas', {
@@ -47,13 +47,13 @@
 		}
 	}).ready(function () {
 		var scene = app.createScene({ intersection: 'manual' });
-		scene.libcanvas.size( 2550, 1050 );
+		scene.libcanvas.size( 3050, 1550 );
 
 		var ctx = scene.libcanvas.ctx;
 		ctx.fillAll(ctx.createPattern( scene.resources.getImage('sand'), 'repeat' ));
 
 		buildings = buildings.map(function (args, i) {
-			return new Element( scene, {
+			return new Bulding( scene, {
 				from  : new Point(args[1]*50, args[2]*50),
 				x     : args[1],
 				y     : args[2],
@@ -98,7 +98,14 @@
 		});
 	});
 
-	var Element = atom.Class({
+	var fastMoveRect = function (rect, shift) {
+		rect.from.x += shift.x;
+		rect.from.y += shift.y;
+		rect.to.x += shift.x;
+		rect.to.y += shift.y;
+	};
+
+	var Bulding = atom.Class({
 		Extends: LibCanvas.Scene.Element,
 
 		Implements: Clickable,
@@ -106,6 +113,12 @@
 		initialize: function (scene, options) {
 			this.shape = new Rectangle({ from: options.from, size: options.image });
 			this.parent( scene, options );
+		},
+
+		addShift: function (shift) {
+			fastMoveRect( this.shape, shift );
+			fastMoveRect( this.previousBoundingShape, shift );
+			return this;
 		},
 
 		renderTo: function (ctx) {
