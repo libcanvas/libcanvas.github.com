@@ -5688,6 +5688,7 @@ LibCanvas.App = Class(
 	},
 
 	/**
+	 * @constructs
 	 * @returns {LibCanvas.App}
 	 */
 	initialize: function (canvas, options) {
@@ -5715,13 +5716,32 @@ LibCanvas.App = Class(
 		return this;
 	},
 
+	/**
+	 * @param {string} [name=null]
+	 * @param {number} [zIndex=Infinity]
+	 * @param {object} [options={}]
+	 * @returns {LibCanvas.Scene.Standard}
+	 */
 	createScene: function (name, zIndex, options) {
+		if (name != null && typeof name != 'string') {
+			options = zIndex;
+			zIndex  = name;
+			name    = null;
+		}
 		if (typeof zIndex == 'object') {
 			options = zIndex;
 			zIndex  = Infinity;
 		}
 
-		var layer = this.libcanvas.createLayer( name );
+		var layer = this.libcanvas;
+		if (name) {
+			if (layer.layerExists(name)) {
+				layer = layer.layer(name);
+			} else {
+				layer = layer.createLayer(name);
+			}
+		}
+
 		var scene = new LibCanvas.Scene.Standard( layer, options );
 
 		this.scenes.push( scene );
@@ -5730,10 +5750,19 @@ LibCanvas.App = Class(
 		return scene;
 	},
 
+	/**
+	 * @param {string} name
+	 * @returns {boolean}
+	 */
 	sceneExists: function (name) {
 		return name in this.scenesIndexed;
 	},
 
+	/**
+	 * @param {string} name
+	 * @throws {Error}
+	 * @returns {LibCanvas.Scene.Standard}
+	 */
 	scene: function (name) {
 		if (this.sceneExists(name)) {
 			return this.scenesIndexed[name];
@@ -5742,6 +5771,7 @@ LibCanvas.App = Class(
 		}
 	},
 
+	/** @private */
 	sortScenes: function () {
 		this.scenes.sort( function (left, right) {
 			return left.libcanvas.zIndex < right.libcanvas.zIndex ? -1 : 1;
@@ -5749,11 +5779,16 @@ LibCanvas.App = Class(
 		return this.scenes;
 	},
 
-	ready: function (fn) {
-		this.libcanvas.addEvent( 'ready', fn.bind(this) );
+	/**
+	 * @param {function} callback
+	 * @returns {LibCanvas.App}
+	 */
+	ready: function (callback) {
+		this.libcanvas.addEvent( 'ready', callback.bind(this) );
 		return this;
 	},
 
+	/** @private */
 	bindMouse: function (mouse) {
 		var app = this;
 		var events = function (method, types) {
@@ -5770,6 +5805,7 @@ LibCanvas.App = Class(
 		events('event'     , [ 'down', 'up', 'move', 'out' ]);
 	},
 
+	/** @property {LibCanvas.Shapes.Rectangle} rectangle */
 	get rectangle () {
 		var size = this.libcanvas.getAppSize();
 		return new Rectangle( 0, 0, size.width, size.height );
@@ -5844,6 +5880,12 @@ Scene.Element = Class(
 
 	hasPoint: function (point) {
 		return this.shape.hasPoint( point );
+	},
+
+	addShift: function (shift) {
+		this.shape.move( shift );
+		this.previousBoundingShape.move( shift );
+		return this;
 	},
 
 	redraw: function () {
@@ -6233,6 +6275,25 @@ Scene.Standard = Class(
 		this.resources = new Scene.Resources( this );
 		this.elements       = [];
 		this.redrawElements = [];
+		this.shift = new Point(0, 0);
+		return this;
+	},
+
+	/** @private */
+	stopped: false,
+
+	/** @returns {LibCanvas.Scene.Standard} */
+	start: function () {
+		if (this.stopped) {
+			this.libcanvas.update();
+			this.stopped = false;
+		}
+		return this;
+	},
+
+	/** @returns {LibCanvas.Scene.Standard} */
+	stop: function () {
+		this.stopped = true;
 		return this;
 	},
 
@@ -6254,6 +6315,41 @@ Scene.Standard = Class(
 			scene.addElement( element );
 			return element;
 		};
+	},
+
+	/**
+	 * @private
+	 * @property {LibCanvas.Point}
+	 */
+	shift: null,
+
+	/**
+	 * @param {LibCanvas.Point} shift
+	 * @returns {LibCanvas.Scene.Standard}
+	 */
+	addElementsShift: function (shift) {
+		this.elements.invoke( 'addShift', Point(shift) );
+		return this;
+	},
+
+	/**
+	 * @param {LibCanvas.Point} shift
+	 * @returns {LibCanvas.Scene.Standard}
+	 */
+	addShift: function ( shift, withElements ) {
+		shift = Point( shift );
+		this.shift.move( shift );
+		this.libcanvas.addShift( shift );
+		this.libcanvas.ctx.translate( shift, true );
+		if (withElements) this.addElementsShift( shift );
+		return this;
+	},
+
+	/**
+	 * @returns {LibCanvas.Point}
+	 */
+	getShift: function () {
+		return this.shift;
 	},
 
 	/**
@@ -6293,6 +6389,8 @@ Scene.Standard = Class(
 
 	/** @private */
 	update: function (time) {
+		if (this.stopped) return this;
+
 		this.elements.sortBy( 'zIndex' ).invoke( 'onUpdate', time, this.resources );
 
 		return this.fireEvent( 'update', [ time, this.resources ]);
@@ -6317,6 +6415,8 @@ Scene.Standard = Class(
 
 	/** @private */
 	draw: function () {
+		if (this.stopped) return this;
+		
 		var i, l, elem,
 			clear     = [],
 			elements  = this.elements,

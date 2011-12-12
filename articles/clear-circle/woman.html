@@ -30,8 +30,10 @@ new function () {
 				scene = this.createScene( 'hidden', { intersection: 'manual' }),
 				resources = scene.resources;
 
+			// background
 			this.libcanvas.ctx.drawImage( resources.getImage('woman') );
 
+			// cover
 			scene.libcanvas.ctx.drawImage( resources.getImage('hidden') );
 
 			new Viewer( scene, {
