@@ -8,9 +8,9 @@ ExtendedCurves.Grip = atom.Class({
 		this.point     = new Point(point);
 		this.shaper    = libcanvas.createShaper({
 			shape : new Circle(this.point, 5),
-			fill  : 'rgba(0,192,0,0.1)',
-			stroke: 'rgba(0,192,0,0.1)',
-			hover: { fill: 'rgba(0,192,0,0.1)', stroke: 'rgba(0,192,0,0.1)'}
+			fill  : 'rgba(0,192,0,0.2)',
+			stroke: 'rgba(0,192,0,0.2)',
+			hover: { fill: 'rgba(0,192,0,0.2)', stroke: 'rgba(0,192,0,0.2)'}
 		})
 		.setZIndex(2)
 		.clickable()
@@ -23,8 +23,9 @@ ExtendedCurves.Grip = atom.Class({
 	link: function (grip) {
 		this.libcanvas.createShaper({
 			shape : new Line( this.point, grip.point ),
-			stroke: 'rgba(0,192,0,0.1)'
+			stroke: 'rgba(0,192,0,0.2)'
 		}).setZIndex(1);
+		this.shaper.link( grip.shaper );
 	}
 });
 

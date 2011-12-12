@@ -10,10 +10,10 @@ atom.dom(function (atom, $) {
 	var to   = new Grip([ 388, 270 ], libcanvas);
 	var cpFr = new Grip([ 120, 100 ], libcanvas);
 	var cpTo = new Grip([ 320, 350 ], libcanvas);
-	
+
 	from.link(cpFr);
 	to  .link(cpTo);
-	
+
 	var curveLayer = libcanvas.createLayer('curve');
 	curveLayer.zIndex = 0;
 	
@@ -41,4 +41,7 @@ atom.dom(function (atom, $) {
 	curveLayer.addElement( curve );
 	
 	[from, to, cpFr, cpTo].invoke('addEvent', 'update', curveLayer.update);
+
+	curveLayer.update();
+
 });
