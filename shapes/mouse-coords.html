@@ -41,9 +41,6 @@
 	});
 
 	var scene = app.createScene({ intersection: 'manual' });
-
-	scene.libcanvas.mouse.debug(true);
-
 	scene.libcanvas.size( 4200, 2100 );
 	var ctx = scene.libcanvas.ctx;
 	ctx.fillAll( ctx.createGradient( ctx.rectangle, {
@@ -68,6 +65,8 @@
 	});
 
 	var drag  = null;
+
+	new Trace( 'Buildings: ' + buildings.length );
 
 	var stopDrag = function () {
 		if (drag) {
@@ -108,6 +107,8 @@
 	[ 520,  240, 100, 100],
 	[ 520,  120,  40, 100],
 	[ 630,  240,  40, 100],
+	[ 600,   50,  50,  50],
+	[ 450,  700, 250,  30],
 	[  20,  320, 100,  50],
 	[  20,  380, 100,  50],
 	[  70,  440, 100,  50],
