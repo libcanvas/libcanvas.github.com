@@ -13,10 +13,11 @@ var Element = atom.Class({
 		this
 			.clickable()
 			.draggable()
+			.addEvent( 'moveDrag', this.redraw())
 			.addEvent( 'statusChanged', this.redraw )
-			.addEvent( 'moveDrag', this.redraw )
 			.addEvent( 'contextmenu', function (event) {
-				event.stop().prevent();
+				event.fall();
+				event.prevent();
 				this.destroy().redraw();
 			});
 	},

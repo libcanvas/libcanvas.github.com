@@ -9,14 +9,23 @@ var Element = atom.Class({
 	],
 
 	initialize: function () {
+
+		var fall = function (e) {
+			if (this.options.fall) e.fall()
+		};
+
 		this.parent.apply( this, arguments );
 		this
 			.clickable()
 			.draggable()
-			.addEvent( 'statusChanged', this.redraw )
-			.addEvent( 'moveDrag'     , this.redraw )
-			.addEvent( 'click', function () {
-				new Trace( 'Click: ' + this.options.name );
+			.addEvent({
+				'statusChanged': this.redraw,
+				'moveDrag'     : this.redraw,
+				'mousedown'    : fall,
+				'mouseup'      : fall,
+				'click'        : function (e) {
+					new Trace( 'Click: ' + this.options.name );
+				}
 			});
 	},
 
@@ -29,7 +38,11 @@ var Element = atom.Class({
 			color = this.active ? '#0f0' : '#060';
 		}
 
-		ctx.fill( this.shape, color );
+		var stroke = this.shape.clone();
+		stroke.from.move([.5, .5]);
+		stroke.to.move([-.5, -.5]);
+
+		ctx.fill( this.shape, color ).stroke( stroke, 'black' );
 		ctx.text({
 			text: this.options.name,
 			to  : this.shape,
@@ -42,35 +55,37 @@ var Element = atom.Class({
 });
 
 atom.dom(function (atom, $) {
-	var libcanvas = new LibCanvas( 'canvas', {
-		invoke: true,
-		fps: 60,
-		clear: false
-	})
-	.listenMouse()
-	.fpsMeter()
-	.start();
 
-	var scene1 = new LibCanvas.Scene.Standard( libcanvas );
+	var app = new LibCanvas.App( 'canvas', {
+		fpsMeter: true,
+		mouse   : true
+	});
+
+	var scene1 = app.createScene('first');
 
 	new Element( scene1, {
 		name  : '1/first',
+		zIndex: 1,
 		shape : new Rectangle( 100, 100, 100, 100 )
 	});
 	new Element( scene1, {
 		name  : '1/second',
+		zIndex: 2,
 		shape : new Rectangle( 250, 100, 100, 100 )
 	});
 
 
-	var scene2 = new LibCanvas.Scene.Standard( libcanvas.createLayer('second') );
+	var scene2 = app.createScene('second');
 
 	new Element( scene2, {
 		name  : '2/third',
+		zIndex: 3,
+		fall  : true,
 		shape : new Rectangle( 100, 250, 100, 100 )
 	});
 	new Element( scene2, {
 		name  : '2/forth',
-		shape : new Rectangle( 250, 250, 100, 100 )
+		zIndex: 4,
+		shape : new Rectangle( 300, 150, 100, 100 )
 	});
 });

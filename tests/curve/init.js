@@ -23,14 +23,14 @@ atom.dom(function (atom, $) {
 	
 	var curve = new Curve({
 		gradient:{
-			from:'#c00000',
-			to:'#0015FF',
+			from:'rgba(255,255,0,1)',
+			to:'rgba(255,0,0,1)',
 			fn:'linear'
 		},
 		width:{
-			from:40,
-			to:10,
-			fn:'linear'
+			from:15,
+			to:5,
+			fn:'expo-out'
 		},
 		from: from.point,
 		to  : to.point,
