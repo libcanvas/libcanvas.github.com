@@ -12,19 +12,16 @@ Arkanoid.Controller = atom.Class(
 
 	/** @constructs */
 	initialize: function () {
-		this.libcanvas = new LibCanvas( 'canvas', {
-				clear : false,
-				invoke: true,
-				fps: 60
-			})
-			.start()
-			.listenKeyboard()
-			.size( 300, 450, true );
+		var app = new LibCanvas.App( 'canvas', {
+				keyboard: true,
+				width   : 300,
+				height  : 450
+			});
 
-		this.drawBackground( this.libcanvas.ctx );
+		this.drawBackground( app.libcanvas.ctx );
 
-		this.cellsScene  = new LibCanvas.Scene.Standard( this.libcanvas.createLayer( 'cells'  ), { intersection: 'manual' });
-		this.activeScene = new LibCanvas.Scene.Standard( this.libcanvas.createLayer( 'active' ) );
+		this.cellsScene  = app.createScene( 'cells', { intersection: 'manual' });
+		this.activeScene = app.createScene( 'active' );
 		this.cells    = this.createCells();
 		this.platform = this.createPlatform(new Point( 150, 430 ));
 		this.createBall(new Point( 150, 420 ));
