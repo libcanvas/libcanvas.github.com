@@ -9,11 +9,6 @@ var Element = atom.Class({
 	],
 
 	initialize: function () {
-
-		var fall = function (e) {
-			if (this.options.fall) e.fall()
-		};
-
 		this.parent.apply( this, arguments );
 		this
 			.clickable()
@@ -21,12 +16,19 @@ var Element = atom.Class({
 			.addEvent({
 				'statusChanged': this.redraw,
 				'moveDrag'     : this.redraw,
-				'mousedown'    : fall,
-				'mouseup'      : fall,
 				'click'        : function (e) {
 					new Trace( 'Click: ' + this.options.name );
 				}
 			});
+
+		if (this.options.fall) {
+			var fall = function (e) { e.fall() };
+			this.addEvent({
+				'mousedown': fall,
+				'mouseup'  : fall,
+				'mousemove': fall
+			});
+		}
 	},
 
 	renderTo: function (ctx) {
@@ -39,9 +41,11 @@ var Element = atom.Class({
 		}
 
 		var stroke = this.shape.clone();
-		stroke.from.move([.5, .5]);
-		stroke.to.move([-.5, -.5]);
+		stroke.from.move([0.5, 0.5]);
+		stroke.to.move([-0.5, -0.5]);
 
+		ctx.save();
+		if (this.options.fall) ctx.set( 'globalAlpha', 0.5 );
 		ctx.fill( this.shape, color ).stroke( stroke, 'black' );
 		ctx.text({
 			text: this.options.name,
@@ -49,6 +53,7 @@ var Element = atom.Class({
 			align: 'center',
 			weight: 'bold'
 		});
+		ctx.restore();
 
 		return this.parent( ctx );
 	}
@@ -58,7 +63,9 @@ atom.dom(function (atom, $) {
 
 	var app = new LibCanvas.App( 'canvas', {
 		fpsMeter: true,
-		mouse   : true
+		mouse   : true,
+		width   : 800,
+		height  : 400
 	});
 
 	var scene1 = app.createScene('first');

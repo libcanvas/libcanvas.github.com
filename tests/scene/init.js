@@ -13,7 +13,7 @@ var Element = atom.Class({
 		this
 			.clickable()
 			.draggable()
-			.addEvent( 'moveDrag', this.redraw())
+			.addEvent( 'moveDrag', this.redraw)
 			.addEvent( 'statusChanged', this.redraw )
 			.addEvent( 'contextmenu', function (event) {
 				event.fall();
@@ -38,28 +38,24 @@ var Element = atom.Class({
 });
 
 atom.dom(function (atom, $) {
-	var libcanvas = new LibCanvas( 'canvas', {
-		invoke: true,
-		fps: 60,
-		clear: false
-	})
-	.listenMouse()
-	.fpsMeter()
-	.start();
+	var app = new LibCanvas.App( 'canvas', {
+		mouse   : true,
+		fpsMeter: true,
+		width   : 800,
+		height  : 400
+	});
 
-	var scene = new LibCanvas.Scene.Standard( libcanvas );
+	var scene = app.createScene( 'objects' );
 
 	scene.libcanvas.ctx.fillAll( '#999' );
 
-	var factory = scene.createFactory( Element );
-
 	for (var i = 0; i < 5; i++) {
 		var y = 50 + i * 100;
-		factory({
+		new Element( scene, {
 			shape: new Rectangle( 50, y-25, 50, 50 ),
 			color: 'rgba(255,0,0,0.8)',
 			zIndex: 0
-		}).redraw(),
+		}),
 		[ 'rgba(0,0,255,0.8)'
 		, 'rgba(0,255,255,0.8)'
 		, 'rgba(255,0,255,0.8)'
@@ -70,11 +66,11 @@ atom.dom(function (atom, $) {
 		, 'rgba(255,255,0,0.8)'
 		, 'rgba(0,0,255,0.8)'
 		].forEach(function (color, i) {
-			factory({
+			new Element( scene, {
 				shape: new Circle( 200+i*60, y, 40 ),
 				color: color,
 				zIndex: i+1
-			}).redraw()
+			})
 		});
 	}
 });
