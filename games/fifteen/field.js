@@ -3,23 +3,20 @@ Fifteen.Field = atom.Class({
 	Extends: atom.Class.Options,
 
 	initialize: function (options) {
-		var libcanvas, scene;
+		var app, scene;
 
 		this.setOptions( options );
 
-		libcanvas = new LibCanvas( 'canvas', {
-				invoke: true,
-				fps   : 40,
-				clear : false
-			})
-			.listenMouse()
-			.size( this.size( 'width' ), this.size( 'height' ), true )
-			.start();
+		app = new LibCanvas.App( 'canvas', {
+				mouse : true,
+				width : this.size('width'),
+				height: this.size('height')
+			});
 		
-		scene = new LibCanvas.Scene.Standard( libcanvas, { intersection: 'manual' });
-		this.generate( scene.createFactory( Fifteen.Tile ) );
+		scene = app.createScene( 'cells', { intersection: 'manual' });
+		this.generate( scene );
 
-		this.bindTouch(libcanvas.mouse);
+		this.bindTouch(app.libcanvas.mouse);
 
 		this.activate(false);
 		this.shuffle(100);
@@ -107,7 +104,7 @@ Fifteen.Field = atom.Class({
 		return (diff.x == 0 && diff.y.abs() == 1) || (diff.y == 0 && diff.x.abs() == 1);
 	},
 
-	generate: function (factory) {
+	generate: function (scene) {
 		var
 			y, x, position, index,
 			tiles = {},
@@ -118,7 +115,7 @@ Fifteen.Field = atom.Class({
 				position = new Point( x, y );
 				if (indexes.length) {
 					index = indexes.shift();
-					tiles[y][x] = this.createTile( factory, index, position );
+					tiles[y][x] = this.createTile( scene, index, position );
 				} else {
 					this.empty = position;
 				}
@@ -129,8 +126,8 @@ Fifteen.Field = atom.Class({
 		return this;
 	},
 
-	createTile: function (factory, index, position) {
-		var tile = factory({
+	createTile: function (scene, index, position) {
+		var tile = new Fifteen.Tile( scene, {
 			position: position,
 			shape: this.tileShape(position),
 			index: index
