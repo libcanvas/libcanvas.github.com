@@ -29,7 +29,7 @@ atom.dom(function (atom, $) {
 		},
 		width:{
 			from:15,
-			to:5,
+			to:1,
 			fn:'expo-out'
 		},
 		from: from.point,
