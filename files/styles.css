@@ -2,12 +2,16 @@ html, body {
 	color: #ccc;
 	background: #111;
 	font: 16px/24px sans-serif;
+	-webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 a {
 	color: royalblue;
 }
 a:visited {
 	color: #cc33cc;
+}
+*:focus {
+	outline: none;
 }
 #app, .libcanvas-layers-container {
 	border: 1px solid #666;

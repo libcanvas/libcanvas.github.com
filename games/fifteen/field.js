@@ -19,8 +19,32 @@ Fifteen.Field = atom.Class({
 		scene = new LibCanvas.Scene.Standard( libcanvas, { intersection: 'manual' });
 		this.generate( scene.createFactory( Fifteen.Tile ) );
 
-		this.activate();
-		this.shuffle( 128 );
+		this.bindTouch(libcanvas.mouse);
+
+		this.activate(false);
+		this.shuffle(100);
+	},
+
+	bindTouch: function (mouse) {
+		var tiles = this.tiles;
+		document.addEventListener( 'touchstart', function (e) {
+			var
+				offset = mouse.getOffset(e),
+				y, x, t;
+
+			for (y in tiles) for (x in tiles[y]) {
+				t = tiles[y][x];
+				if (t && t.shape.hasPoint(offset)) {
+					this.move(t);
+					break;
+				}
+			}
+			e.preventDefault();
+		}.bind(this), false);
+
+		var prevent = function(e){e.preventDefault()};
+		document.addEventListener( 'touchmove', prevent, false );
+		document.addEventListener( 'touchend' , prevent, false );
 	},
 
 	move: function (tile, onFinish, fast) {
@@ -34,7 +58,7 @@ Fifteen.Field = atom.Class({
 				var newPosition = empty.clone();
 				empty.moveTo( position );
 				position.moveTo( newPosition );
-				this.activate();
+				this.activate( false );
 				this.blocked = false;
 				onFinish && onFinish.call( this, tile );
 			}.bind(this), fast);
@@ -100,6 +124,7 @@ Fifteen.Field = atom.Class({
 				}
 			}
 		}
+
 		this.tiles = tiles;
 		return this;
 	},
@@ -115,6 +140,7 @@ Fifteen.Field = atom.Class({
 			e.prevent().stop();
 			this.move( tile );
 		}.bind(this));
+
 		return tile;
 	},
 
