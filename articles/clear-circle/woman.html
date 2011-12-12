@@ -16,32 +16,31 @@ new function () {
 
 	LibCanvas.extract();
 
-	var libcanvas = new LibCanvas('canvas', {
-			clear: false,
-			fps  : 60,
+	new LibCanvas.App( 'canvas', {
 			preloadImages: {
 				woman : 'woman.jpg',
 				hidden: 'woman-hidden.png'
-			}
+			},
+			mouse  : true,
+			width  : 600,
+			height : 400
 		})
-		.listenMouse()
-		.size(600, 400, true)
-		.start()
-		.addEvent('ready', function () {
-			this.createLayer('bg', 0).ctx.drawImage( this.getImage('woman') );
+		.ready(function () {
+			var
+				scene = this.createScene( 'hidden', { intersection: 'manual' }),
+				resources = scene.resources;
 
-			this.ctx.drawImage( this.getImage('hidden') );
+			this.libcanvas.ctx.drawImage( resources.getImage('woman') );
 
-			var scene = new LibCanvas.Scene.Standard( libcanvas, { intersection: 'manual' });
+			scene.libcanvas.ctx.drawImage( resources.getImage('hidden') );
 
 			new Viewer( scene, {
 				shape: new Circle(465, 165, 100),
-				image: this.getImage('hidden')
+				image: resources.getImage('hidden')
 			})
 			.draggable();
-
-
-		});
+		})
+		.start();
 
 	var Viewer = atom.Class({
 		Extends: LibCanvas.Scene.Element,
