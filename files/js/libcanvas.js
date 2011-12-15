@@ -5809,16 +5809,17 @@ LibCanvas.App = Class(
 
 	/** @private */
 	bindMouse: function (mouse) {
-		this.mouseEvents.forEach(function (type) {
+		var app = this;
+		app.mouseEvents.forEach(function (type) {
 			mouse.addEvent( type, function (e) {
 				var
-					scenes = this.sortScenes(),
+					scenes = app.sortScenes(),
 					stopped = false;
 				for (var i = scenes.length; i--;) {
 					stopped = scenes[i].resources.mouse.event( type, e, stopped );
 				}
 			});
-		}.bind(this));
+		});
 	},
 
 	/** @property {LibCanvas.Shapes.Rectangle} rectangle */
