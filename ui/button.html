@@ -85,9 +85,7 @@ new function () {
 	
 	var button = new Button( new RoundedRectangle(50, 50, 150, 30).setRadius(10) );
 	libcanvas.addElement(button);
-	button.listenMouse().clickable().draggable();
-
-	button.addEvent(['statusChanged', 'moveDrag'], libcanvas.update);
+	button.listenMouse().clickable(libcanvas.update).draggable(libcanvas.update);
 
 	libcanvas.update();
 };

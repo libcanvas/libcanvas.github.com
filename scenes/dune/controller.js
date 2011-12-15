@@ -45,7 +45,7 @@ Dune.Controller = atom.Class({
 				zIndex: i
 			});
 			if (building.type != 'plate') {
-				building.clickable( building.redraw );
+				building.listenMouse().clickable( building.redraw );
 			}
 			return building;
 		});

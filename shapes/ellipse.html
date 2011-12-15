@@ -24,9 +24,9 @@ new function () {
 	var center = ellipse.center;
 
 	UiCore.createShaper( ellipse, 2 )
+		.listenMouse()
 		.clickable()
-		.draggable()
-		.addEvent('moveDrag', function (diff) {
+		.draggable(function (diff) {
 			angle.shape.move( diff );
 			center.move( diff );
 		});
@@ -51,9 +51,9 @@ new function () {
 			lineWidth: 0.5
 		})
 		.setZIndex(10)
+		.listenMouse()
 		.clickable()
-		.draggable()
-		.addEvent('moveDrag', reRotate);
+		.draggable(reRotate);
 
 	UiCore.libcanvas
 		.createShaper({
@@ -73,9 +73,9 @@ new function () {
 				lineWidth: 0.5
 			})
 			.setZIndex(i + 3)
+			.listenMouse()
 			.clickable()
-			.draggable()
-			.addEvent('moveDrag', function (diff) {
+			.draggable(function (diff) {
 				center.moveTo( ellipse.center );
 				reRotate();
 			});

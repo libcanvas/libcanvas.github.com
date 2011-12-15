@@ -11,10 +11,9 @@ var Element = atom.Class({
 	initialize: function () {
 		this.parent.apply( this, arguments );
 		this
-			.clickable()
-			.draggable()
-			.addEvent( 'moveDrag', this.redraw)
-			.addEvent( 'statusChanged', this.redraw )
+			.listenMouse()
+			.clickable(this.redraw)
+			.draggable(this.redraw)
 			.addEvent( 'contextmenu', function (event) {
 				event.fall();
 				event.prevent();

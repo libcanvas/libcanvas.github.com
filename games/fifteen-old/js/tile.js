@@ -37,8 +37,7 @@ var Tile = atom.Class({
 		this.position = position;
 
 		this.addEvent('libcanvasSet', function () {
-			this.clickable();
-			this.addEvent('statusChanged', this.redraw.bind(this, false));
+			this.listenMouse().clickable(this.redraw.bind(this, false));
 		});
 
 		this.addEvent('click', field.move.bind(field, this));

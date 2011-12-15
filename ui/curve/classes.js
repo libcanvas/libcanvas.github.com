@@ -13,9 +13,9 @@ ExtendedCurves.Grip = atom.Class({
 			hover: { fill: 'rgba(0,192,0,0.2)', stroke: 'rgba(0,192,0,0.2)'}
 		})
 		.setZIndex(2)
+		.listenMouse()
 		.clickable()
-		.draggable()
-		.addEvent('moveDrag', function () {
+		.draggable(function () {
 			if (realtime.checked) this.fireEvent('update');
 		}.bind(this))
 		.addEvent('stopDrag', this.fireEvent.bind(this, 'update'));

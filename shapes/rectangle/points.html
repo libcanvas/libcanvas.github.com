@@ -45,6 +45,7 @@ new function () {
 			fill   : 'rgba(153, 0, 0, 0.4)',
 			stroke : 'rgba(255, 0, 0, 0.4)'
 		})
+		.listenMouse()
 		.clickable()
 		.draggable();
 	
@@ -58,6 +59,7 @@ new function () {
 				active : { fill : "#090", stroke : "#0f0"},
 				lineWidth: 0.5
 			})
+			.listenMouse()
 			.setZIndex(i + 1)
 			.clickable()
 			.draggable();

@@ -21,10 +21,12 @@ new function () {
 		.size(400, 250, true);
 
 	UiCore.createShaper( rect, 1 )
+		.listenMouse()
 		.clickable()
 		.draggable();
 
 	UiCore.createShaper( ellipse, 2 )
+		.listenMouse()
 		.clickable()
 		.draggable();
 

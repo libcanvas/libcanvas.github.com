@@ -22,11 +22,11 @@ Solitaire.Deck = atom.Class({
 		}.bind(this));
 
 		this
-			.addEvent('statusChanged', function () {
-				if (!this.cards.length) this.draw();
-			})
+			.listenMouse()
 			.addEvent('click', this.click)
-			.clickable();
+			.clickable(function () {
+				if (!this.cards.length) this.draw();
+			});
 
 		this.addEvent('libcanvasSet', function () {
 			this.libcanvas.addElement( this.opened = new Solitaire.Opened() );

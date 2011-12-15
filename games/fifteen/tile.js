@@ -13,7 +13,7 @@ Fifteen.Tile = atom.Class({
 			'hover'   : this.renderSprite( 'hover' )
 		};
 
-		this.clickable().addEvent( 'statusChanged', this.redraw );
+		this.listenMouse().clickable( this.redraw );
 	},
 
 	moveTo: function (destination, onFinish, fast) {

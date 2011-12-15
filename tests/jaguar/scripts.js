@@ -77,7 +77,7 @@ var MenuItem = atom.Class({
 	activate: function () {
 		var update = this.libcanvas.update;
 		update();
-		this.clickable().addEvent({ statusChanged: update });
+		this.listenMouse().clickable( update );
 	},
 
 	draw: function () {

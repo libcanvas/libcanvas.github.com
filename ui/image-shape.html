@@ -34,9 +34,7 @@ atom.dom(function () {
 				this.libcanvas.update();
 			}.bind(this));
 
-			this.addEvent( 'statusChanged', libcanvas.update );
-
-			this.draggable().clickable()
+			this.listenMouse().draggable().clickable(libcanvas.update)
 		},
 
 		draw: function () {
