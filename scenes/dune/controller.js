@@ -17,6 +17,7 @@ Dune.Controller = atom.Class({
 			height: 600,
 			mouse : true,
 			fpsMeter: true,
+			invoke  : false,
 			preloadImages: this.images
 		}).ready(this.start.bind(this));
 	},
