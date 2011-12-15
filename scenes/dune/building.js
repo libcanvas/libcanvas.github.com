@@ -8,6 +8,10 @@ Dune.Bulding = atom.Class({
 		this.parent( scene, options );
 	},
 
+	get type () {
+		return this.options.type;
+	},
+
 	/** @private */
 	fastMoveRect: function (rect, shift) {
 		rect.from.x += shift.x;

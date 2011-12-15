@@ -37,15 +37,17 @@ Dune.Controller = atom.Class({
 		return Dune.buildingsList.map(function (args, i) {
 			var building = new Dune.Bulding( scene, {
 				from  : new Point(args[1]*50, args[2]*50),
+				type  : args[1],
 				x     : args[1],
 				y     : args[2],
 				image : scene.resources.getImage(args[0]),
 				index : i,
 				zIndex: i
 			});
-			if (args[0] == 'plate') return;
-
-			building.clickable( building.redraw );
+			if (building.type != 'plate') {
+				building.clickable( building.redraw );
+			}
+			return building;
 		});
 	},
 
