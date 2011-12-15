@@ -1680,14 +1680,35 @@ var setValFn = function (object, name, val) {
 return Class({
 	Extends: MouseListener,
 
-	clickable : function () { 
+	clickable : function (stop, callback) {
+		if (typeof stop == 'function') {
+			callback = stop;
+			stop = false;
+		}
+
+		if (callback) this.addEvent( 'statusChanged', callback );
+
 		this.listenMouse();
 
-		this.addEvent('mouseover', setValFn(this, 'hover' , true ));
-		this.addEvent('mouseout' , setValFn(this, 'hover' , false));
-		this.addEvent('mousedown', setValFn(this, 'active', true ));
-		this.addEvent(['mouseup', 'away:mouseout', 'away:mouseup'],
-			setValFn(this, 'active', false));
+		var callbacks = this['clickable.callbacks'];
+
+		if (!callbacks) {
+			var deactivate = setValFn(this, 'active', false);
+			callbacks = this['clickable.callbacks'] = {
+				'mouseover': setValFn(this, 'hover' , true),
+				'mouseout' : setValFn(this, 'hover' , false),
+				'mousedown': setValFn(this, 'active', true ),
+				'mouseup'      : deactivate,
+				'away:mouseout': deactivate,
+				'away:mouseup' : deactivate
+			};
+		}
+
+		if (stop) {
+			this.removeEvent(callbacks);
+		} else {
+			this.addEvent(callbacks);
+		}
 		return this;
 	}
 });
@@ -1757,7 +1778,14 @@ var initDraggable = function () {
 return Class({
 	Extends: MouseListener,
 
-	draggable : function (stopDrag) {
+	draggable : function (stop, callback) {
+		if (typeof stop == 'function') {
+			callback = stop;
+			stop = false;
+		}
+
+		if (callback) this.addEvent( 'moveDrag', callback );
+
 		if (! ('draggable.isDraggable' in this) ) {
 			if (this.libcanvas) {
 				initDraggable.call( this );
@@ -1765,7 +1793,7 @@ return Class({
 				this.addEvent('libcanvasSet', initDraggable);
 			}
 		}
-		this['draggable.isDraggable'] = !stopDrag;
+		this['draggable.isDraggable'] = !stop;
 		return this;
 	}
 });
