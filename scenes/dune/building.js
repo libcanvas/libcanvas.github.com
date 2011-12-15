@@ -37,7 +37,7 @@ Dune.Bulding = atom.Class({
 			ctx.fill( this.shape, 'rgba(255,255,0,0.1)' );
 			ctx.text({
 				color: 'white',
-				text : o.index + ':' + o.x + '*' + o.y,
+				text : '[' + o.x + ':' + o.y + ']',
 				overflow: 'hidden',
 				to   : this.shape,
 				shadow : '0 0 1 black',

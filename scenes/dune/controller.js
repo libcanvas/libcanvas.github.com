@@ -12,10 +12,11 @@ Dune.Controller = atom.Class({
 
 	initialize: function () {
 		this.app = new LibCanvas.App('canvas', {
-			fps   : 40,
-			width : 1000,
-			height: 500,
+			fps   : 60,
+			width : 1200,
+			height: 600,
 			mouse : true,
+			fpsMeter: true,
 			preloadImages: this.images
 		}).ready(this.start.bind(this));
 	},
@@ -28,27 +29,22 @@ Dune.Controller = atom.Class({
 		ctx.fillAll(ctx.createPattern( scene.resources.getImage('sand'), 'repeat' ));
 
 		var buildings = this.createBuildings(scene);
-		new Trace( 'Buildings : ' + buildings.length );
+		new Trace( 'Buildings : ' + buildings.reduce(function (value, b) {
+			return value + b.childrenElements.length;
+		}, 0));
 
 		this.makeMapDraggable( scene );
 	},
 
 	createBuildings: function (scene) {
-		return Dune.buildingsList.map(function (args, i) {
-			var building = new Dune.Bulding( scene, {
-				from  : new Point(args[1]*50, args[2]*50),
-				type  : args[1],
-				x     : args[1],
-				y     : args[2],
-				image : scene.resources.getImage(args[0]),
-				index : i,
-				zIndex: i
-			});
-			if (building.type != 'plate') {
-				building.listenMouse().clickable( building.redraw );
-			}
-			return building;
-		});
+		var bases = [];
+		for (var x = 8; x--;) for (var y = 5; y--;) {
+			bases.push(new Dune.Base( scene, {
+				shape: new Rectangle( x * 500, y * 500, 500, 500 ),
+				buildings: Dune.buildingsList.random
+			}));
+		}
+		return bases;
 	},
 
 	makeMapDraggable: function (scene) {
