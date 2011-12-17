@@ -4,13 +4,13 @@ Isometric.Controller = atom.Class(
 {
 	Static: {
 		map: {
-			proj : new Isometric.Projection([ 0.866, 0.5, 1 ]),
-			size : new Isometric.Point3D( 13, 13, 7 ),
+			proj : new LibCanvas.Engines.IsometricProjection([ 0.866, 0.5, 1 ]),
+			size : new LibCanvas.Point3D( 13, 13, 7 ),
 			shift: new Point( 40 , 380 ),
 			cell : 32
 		},
 		box: {
-			coords: new Isometric.Point3D( 6, 1, 0.12 ),
+			coords: new LibCanvas.Point3D( 6, 1, 0.12 ),
 			colors: [ '#eaa', '#a66', '#733' ]
 		}
 	},
@@ -46,7 +46,7 @@ Isometric.Controller = atom.Class(
 
 	/**
 	 * @private
-	 * @param {Isometric.Point3D} coord
+	 * @param {LibCanvas.Point3D} coord
 	 * @returns {Isometric.Box}
 	 */
 	createGhost: function (coord) {

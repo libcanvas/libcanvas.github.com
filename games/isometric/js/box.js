@@ -1,9 +1,9 @@
 Isometric.Box = atom.Class(
-/** @lends Isometric.Box.prototype */
+/** @lends Isometric.Box# */
 {
 	Implements: [Drawable, Animatable],
 
-	/** @property {Isometric.Point3D} */
+	/** @property {LibCanvas.Point3D} */
 	coords: null,
 
 	/** @property {Isometric.Map} */
@@ -20,11 +20,11 @@ Isometric.Box = atom.Class(
 
 	/**
 	 * @constructs
-	 * @param {Isometric.Point3D} coordinates
+	 * @param {LibCanvas.Point3D} coordinates
 	 * @param map
 	 */
 	initialize: function (coordinates, map) {
-		this.coords = Isometric.Point3D( coordinates );
+		this.coords = LibCanvas.Point3D( coordinates );
 		this.map    = map;
 		this.currentShift = new Point(0, 0);
 		this.createShapes();
@@ -77,11 +77,11 @@ Isometric.Box = atom.Class(
 	},
 
 	/**
-	 * @param {Isometric.Point3D} shift
+	 * @param {LibCanvas.Point3D} shift
 	 * @returns {Isometric.Box}
 	 */
 	move: function (shift, onProcess, onFinish) {
-		shift = Isometric.Point3D( shift );
+		shift = LibCanvas.Point3D( shift );
 		var newCoords = this.coords.clone().move( shift );
 		if (newCoords.z < 0.02) newCoords.z = 0.02;
 
@@ -113,7 +113,7 @@ Isometric.Box = atom.Class(
 
 	/**
 	 * @private
-	 * @param {Isometric.Point3D} distance
+	 * @param {LibCanvas.Point3D} distance
 	 * @returns {number}
 	 */
 	getTime: function (distance) {

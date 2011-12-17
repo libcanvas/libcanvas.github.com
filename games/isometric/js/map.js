@@ -12,7 +12,7 @@ Isometric.Map = atom.Class(
 	 */
 	polygons: null,
 
-	/** @property {Isometric.Projection} */
+	/** @property {LibCanvas.Engines.IsometricProjection} */
 	projection: null,
 
 	/**
@@ -21,10 +21,10 @@ Isometric.Map = atom.Class(
 	 */
 	currentShift: null,
 
-	/** @property {Isometric.Point3D} */
+	/** @property {LibCanvas.Point3D} */
 	size: null,
 
-	/** @property {Number} */
+	/** @property {int} */
 	cellSize: 0,
 
 	/** @constructs */
@@ -32,7 +32,7 @@ Isometric.Map = atom.Class(
 		atom.Class.bindAll( this, 'toIsometric' );
 
 		this.projection = projection;
-		this.size       = Isometric.Point3D( mapSize );
+		this.size       = LibCanvas.Point3D( mapSize );
 		this.cellSize   = cellSize;
 
 		this.polygons = [];
