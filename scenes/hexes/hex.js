@@ -18,9 +18,18 @@ Hexes.Hex = atom.Class({
 		})
 	},
 
+	fastPointsMove: function (points, shift) {
+		for (var p, i = points.length; i--;) {
+			p = points[i];
+			p.x += shift.x;
+			p.y += shift.y;
+		}
+	},
+
 	addShift: function (shift) {
-		this.parent( shift );
-		this.options.center.move(shift);
+		this.fastPointsMove( this.shape.points, shift );
+		this.fastPointsMove( this.previousBoundingShape.points, shift );
+		this.fastPointsMove( [this.options.center], shift );
 		return this;
 	},
 
