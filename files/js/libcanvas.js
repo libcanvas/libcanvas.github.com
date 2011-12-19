@@ -6681,7 +6681,7 @@ provides: Scene.Standard
 
 Scene.Standard = Class(
 /**
- * @lends LibCanvas.Scene.Standard#
+ * @lends Scene.Standard#
  * @augments Drawable
  */
 {
@@ -6690,8 +6690,8 @@ Scene.Standard = Class(
 	Implements: Class.Options,
 
 	/**
-	 * @param {LibCanvas.Canvas2D} libcanvas
-	 * @returns {LibCanvas.Scene.Standard}
+	 * @param {Canvas2D} libcanvas
+	 * @returns {Scene.Standard}
 	 */
 	initialize: function (libcanvas, options) {
 		Class.bindAll( this, 'redrawElement' );
@@ -6705,13 +6705,14 @@ Scene.Standard = Class(
 		this.elements       = [];
 		this.redrawElements = [];
 		this.shift = new Point(0, 0);
+		this.elementsShift = new Point(0, 0);
 		return this;
 	},
 
 	/** @private */
 	stopped: false,
 
-	/** @returns {LibCanvas.Scene.Standard} */
+	/** @returns {Scene.Standard} */
 	start: function () {
 		if (this.stopped) {
 			this.libcanvas.update();
@@ -6720,7 +6721,7 @@ Scene.Standard = Class(
 		return this;
 	},
 
-	/** @returns {LibCanvas.Scene.Standard} */
+	/** @returns {Scene.Standard} */
 	stop: function () {
 		this.stopped = true;
 		return this;
@@ -6748,28 +6749,61 @@ Scene.Standard = Class(
 
 	/**
 	 * @private
-	 * @property {LibCanvas.Point}
+	 * @property {Point}
 	 */
 	shift: null,
 
 	/**
+	 * @private
+	 * @property {Point}
+	 */
+	elementsShift: null,
+
+	/**
 	 * @param {LibCanvas.Point} shift
-	 * @returns {LibCanvas.Scene.Standard}
+	 * @returns {Scene.Standard}
 	 */
 	addElementsShift: function (shift) {
-		shift = Point(shift);
+		if (!shift) {
+			shift = this.elementsShift.diff(this.shift);
+		} else {
+			shift = Point(shift);
+		}
 		var e = this.elements, i = e.length;
 		while (i--) e[i].addShift(shift);
+		this.elementsShift.move(shift);
 		return this;
 	},
 
 	/**
-	 * @param {LibCanvas.Point} shift
-	 * @returns {LibCanvas.Scene.Standard}
+	 * @private
+	 * @property {LibCanvas.Shapes.Rectangle}
+	 */
+	limitShift: null,
+
+	/**
+	 * @param {LibCanvas.Shapes.Rectangle} limitShift
+	 * @returns {Scene.Standard}
+	 */
+	setLimitShift: function (limitShift) {
+		this.limitShift = limitShift ? Rectangle(limitShift) : null;
+		return this;
+	},
+
+	/**
+	 * @param {Point} shift
+	 * @returns {Scene.Standard}
 	 */
 	addShift: function ( shift, withElements ) {
-		shift = Point( shift );
-		this.shift.move( shift );
+		shift = new Point( shift );
+
+		var limit = this.limitShift, current = this.shift;
+		if (limit) {
+			shift.x = shift.x.limit(limit.from.x - current.x, limit.to.x - current.x);
+			shift.y = shift.y.limit(limit.from.y - current.y, limit.to.y - current.y);
+		}
+
+		current.move( shift );
 		this.libcanvas.addShift( shift );
 		this.libcanvas.ctx.translate( shift, true );
 		if (withElements) this.addElementsShift( shift );
@@ -6777,15 +6811,15 @@ Scene.Standard = Class(
 	},
 
 	/**
-	 * @param {LibCanvas.Point} shift
-	 * @returns {LibCanvas.Scene.Standard}
+	 * @param {Point} shift
+	 * @returns {Scene.Standard}
 	 */
 	setShift: function (shift, withElements) {
 		return this.addShift( this.shift.diff(shift), withElements );
 	},
 
 	/**
-	 * @returns {LibCanvas.Point}
+	 * @returns {Point}
 	 */
 	getShift: function () {
 		return this.shift;
@@ -6793,7 +6827,7 @@ Scene.Standard = Class(
 
 	/**
 	 * @param {Drawable} element
-	 * @returns {LibCanvas.Scene.Standard}
+	 * @returns {Scene.Standard}
 	 */
 	addElement: function (element, force) {
 		if (force || !this.elements.contains(element)) {
@@ -6806,7 +6840,7 @@ Scene.Standard = Class(
 	/**
 	 * @private
 	 * @param {Drawable} element
-	 * @returns {LibCanvas.Scene.Standard}
+	 * @returns {Scene.Standard}
 	 */
 	redrawElement: function (element, force) {
 		if (force || this.elements.contains( element )) {
@@ -6820,7 +6854,7 @@ Scene.Standard = Class(
 
 	/**
 	 * @param {Drawable} element
-	 * @returns {LibCanvas.Scene.Standard}
+	 * @returns {Scene.Standard}
 	 */
 	rmElement: function (element) {
 		this.redrawElement ( element );

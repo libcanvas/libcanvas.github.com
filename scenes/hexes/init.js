@@ -27,12 +27,10 @@ atom.dom(function () {
 			baseLength : 74,
 			chordLength: 37,
 			hexHeight  : 98,
-			start: new Point(700, 700)
+			start: new Point(750, 750)
 		});
 
-		scene.libcanvas.ctx.fillAll( 'black' );
-
-		scene.libcanvas.size( 1500, 1400 );
+		scene.libcanvas.size( 1500, 1500 );
 
 		hexes.forEach(function (data) {
 			var
@@ -49,32 +47,33 @@ atom.dom(function () {
 			hex.listenMouse().clickable( hex.redraw );
 		});
 
-
+		scene.setLimitShift({ from: [-400, -800], to: [50, 50] });
 		scene.addShift( new Point(-200, -200), true );
 
-		var drag  = null;
+		var drag  = false, shift = new Trace();
 
 		var stopDrag = function () {
 			if (drag) {
 				scene.resources.mouse.start();
-				scene.addElementsShift(drag);
+				scene.addElementsShift();
 				scene.start();
+				drag = false;
 			}
-			drag = null;
 		};
 
 		app.libcanvas.mouse.addEvent({
 			'down': function () {
 				scene.resources.mouse.stop();
 				scene.stop();
-				drag = new Point(0, 0);
+				drag = true;
 			},
 			'up'  : stopDrag,
 			'out' : stopDrag,
 			'move': function (e) {
-				if (!drag) return;
-				drag.move( e.deltaOffset );
-				scene.addShift( e.deltaOffset );
+				if (drag) {
+					scene.addShift( e.deltaOffset );
+					shift.value = scene.getShift();
+				}
 			}
 		});
 
@@ -86,8 +85,8 @@ atom.dom(function () {
 var hexes = [
 	[ 0,  0,  0, 'city1'    ],
 	[ 0,  1, -1, 'city2'    ],
-	[ 1,  0, -1, 'ruins1'   ],
-	[ 0, -1,  1, 'ruins2'   ],
+	[ 1,  0, -1, 'ruins2'   ],
+	[ 0, -1,  1, 'city2'   ],
 	[ 1, -1,  0, 'ruins1'   ],
 	[-1,  0,  1, 'village2' ],
 	[-1,  1,  0, 'village1' ],
@@ -124,14 +123,14 @@ var hexes = [
 	[-3, -1,  4, 'village1' ],
 	[-3, -2,  5, 'city1'    ],
 	[-3, -3,  6, 'city2'    ],
-	[-3, -4,  7, 'ruins1'   ],
+	[-3, -4,  7, 'village1' ],
 	[-2,  5, -3, 'city1'    ],
 	[-2,  4, -2, 'village1' ],
 	[-2,  3, -1, 'village2' ],
 	[-2, -1,  3, 'city1'    ],
 	[-2, -2,  4, 'city2'    ],
-	[-2, -3,  5, 'ruins1'   ],
-	[-2, -4,  6, 'ruins2'   ],
+	[-2, -3,  5, 'village1' ],
+	[-2, -4,  6, 'ruins1'   ],
 	[-1,  5, -4, 'city2'    ],
 	[-1,  4, -3, 'village2' ],
 	[-1,  3, -2, 'city1'    ],
@@ -163,7 +162,7 @@ var hexes = [
 	[ 3,  4, -7, 'village1' ],
 	[ 3,  3, -6, 'city1'    ],
 	[ 3,  2, -5, 'city2'    ],
-	[ 3,  1, -4, 'ruins1'   ],
+	[ 3,  1, -4, 'city1'    ],
 	[ 3,  0, -3, 'village2' ],
 	[ 3, -1, -2, 'village1' ],
 	[ 3, -2, -1, 'village2' ],
@@ -174,7 +173,7 @@ var hexes = [
 	[ 4,  3, -7, 'village2' ],
 	[ 4,  2, -6, 'city1'    ],
 	[ 4,  1, -5, 'ruins1'   ],
-	[ 4,  0, -4, 'village2' ],
+	[ 4,  0, -4, 'city1'    ],
 	[ 4, -1, -3, 'village1' ],
 	[ 4, -2, -2, 'city2'    ],
 	[ 4, -3, -1, 'village2' ],
@@ -183,7 +182,7 @@ var hexes = [
 	[ 5,  4, -9, 'city2'    ],
 	[ 5,  3, -8, 'village2' ],
 	[ 5,  2, -7, 'village2' ],
-	[ 5,  1, -6, 'ruins1'   ],
+	[ 5,  1, -6, 'city1'    ],
 	[ 5,  0, -5, 'city1'    ],
 	[ 5, -1, -4, 'village2' ],
 	[ 5, -2, -3, 'city2'    ],
