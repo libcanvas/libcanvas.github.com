@@ -26,11 +26,15 @@ atom.dom(function () {
 		var projection = new LibCanvas.Engines.HexProjection({
 			baseLength : 74,
 			chordLength: 37,
-			hexHeight  : 98,
-			start: new Point(750, 750)
+			hexHeight  : 98
 		});
 
-		scene.libcanvas.size( 1500, 1500 );
+		var sizes = projection.sizes(8);
+		hexes.forEach(function (data) {
+			sizes.add(data);
+		});
+		scene.libcanvas.size( sizes.size() );
+		projection.setOptions({ start: sizes.center() });
 
 		hexes.forEach(function (data) {
 			var
@@ -47,7 +51,7 @@ atom.dom(function () {
 			hex.listenMouse().clickable( hex.redraw );
 		});
 
-		scene.setLimitShift({ from: [-400, -800], to: [50, 50] });
+		scene.setLimitShift({ from: [-252, -606], to: [64, 64] });
 		scene.addShift( new Point(-200, -200), true );
 
 		var drag  = false, shift = new Trace();
