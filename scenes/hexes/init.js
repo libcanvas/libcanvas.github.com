@@ -51,36 +51,15 @@ atom.dom(function () {
 			hex.listenMouse().clickable( hex.redraw );
 		});
 
+
 		scene.setLimitShift({ from: [-252, -606], to: [64, 64] });
 		scene.addShift( new Point(-200, -200), true );
+		scene.startDraggableLayer();
 
-		var drag  = false, shift = new Trace();
-
-		var stopDrag = function () {
-			if (drag) {
-				scene.resources.mouse.start();
-				scene.addElementsShift();
-				scene.start();
-				drag = false;
-			}
-		};
-
-		app.libcanvas.mouse.addEvent({
-			'down': function () {
-				scene.resources.mouse.stop();
-				scene.stop();
-				drag = true;
-			},
-			'up'  : stopDrag,
-			'out' : stopDrag,
-			'move': function (e) {
-				if (drag) {
-					scene.addShift( e.deltaOffset );
-					shift.value = scene.getShift();
-				}
-			}
+		var shift = new Trace();
+		scene.addEvent( 'layerStopDrag', function () {
+			shift.value = scene.getShift();
 		});
-
 	});
 
 
