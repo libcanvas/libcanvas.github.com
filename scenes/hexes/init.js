@@ -51,15 +51,16 @@ atom.dom(function () {
 			hex.listenMouse().clickable( hex.redraw );
 		});
 
-
 		scene.setLimitShift({ from: [-252, -606], to: [64, 64] });
 		scene.addShift( new Point(-200, -200), true );
-		scene.startDraggableLayer();
 
 		var shift = new Trace();
-		scene.addEvent( 'layerStopDrag', function () {
-			shift.value = scene.getShift();
-		});
+		new LibCanvas.Scene.Dragger( app.libcanvas.mouse )
+			.addScene( scene )
+			.start()
+			.addEvent( 'stop', function () {
+				shift.value = scene.getShift();
+			});
 	});
 
 
