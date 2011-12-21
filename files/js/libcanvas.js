@@ -1630,7 +1630,7 @@ var MouseListener = LibCanvas.Behaviors.MouseListener = Class({
 
 	listenMouse : function (stopListen) {
 		if (this.scene) {
-			this.scene.resources.mouse[stopListen ? 'unsubscribe' : 'subscribe']( this );
+			this.scene.mouse[stopListen ? 'unsubscribe' : 'subscribe']( this );
 			return this;
 		}
 
@@ -6172,7 +6172,7 @@ LibCanvas.App = Class(
 			if (layer.layerExists(name)) {
 				layer = layer.layer(name);
 			} else {
-				layer = layer.createLayer(name);
+				layer = layer.createLayer(name, zIndex);
 			}
 		} else {
 			name = layer.options.name;
@@ -6236,7 +6236,7 @@ LibCanvas.App = Class(
 					scenes = app.sortScenes(),
 					stopped = false;
 				for (var i = scenes.length; i--;) {
-					stopped = scenes[i].resources.mouse.event( type, e, stopped );
+					stopped = scenes[i].mouse.event( type, e, stopped );
 				}
 			});
 		});
@@ -6318,6 +6318,15 @@ Scene.Standard = Class(
 	stop: function () {
 		this.stopped = true;
 		return this;
+	},
+
+	_mouse: null,
+
+	get mouse () {
+		if (this._mouse == null) {
+			this._mouse = new Scene.Mouse( this.resources.mouse );
+		}
+		return this._mouse;
 	},
 
 	/** @private */
@@ -6597,7 +6606,7 @@ Scene.Dragger = Class({
 
 		for (var i = this.scenes.length; i--;) {
 			var scene = this.scenes[i];
-			scene.resources.mouse.stop();
+			scene.mouse.stop();
 			scene.stop();
 		}
 		this.drag = true;
@@ -6609,7 +6618,7 @@ Scene.Dragger = Class({
 
 		for (var i = this.scenes.length; i--;) {
 			var scene = this.scenes[i];
-			scene.resources.mouse.start();
+			scene.mouse.start();
 			scene.addElementsShift();
 			scene.start();
 		}
@@ -6628,7 +6637,7 @@ Scene.Dragger = Class({
 	shouldStartDrag: function (e) {
 		if (!this.started) return false;
 
-		return this.callback ? this.callback(e.offset) : true;
+		return this.callback ? this.callback(e) : true;
 	}
 
 });
@@ -7043,7 +7052,7 @@ Scene.Mouse = Class(
 			elem.fireEvent( type, event );
 			children = elem.childrenElements;
 			if (children.length) {
-				elem.forceEvent(type, event, stopped, children);
+				this.forceEvent(type, event, stopped, children);
 			}
 			if (!event.checkFalling()) {
 				stopped = true;
@@ -7103,14 +7112,8 @@ Scene.Resources = Class(
 		return this.lc.imageExists( name );
 	},
 
-	/** @private */
-	_mouse: null,
-
 	get mouse () {
-		if (this._mouse == null) {
-			this._mouse = new Scene.Mouse( this.lc.mouse );
-		}
-		return this._mouse;
+		return this.lc.mouse;
 	},
 
 	get keyboard () {

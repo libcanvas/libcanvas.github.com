@@ -49,31 +49,9 @@ Dune.Controller = atom.Class({
 	},
 
 	makeMapDraggable: function (scene) {
-		var drag  = null;
-
-		var stopDrag = function () {
-			if (drag) {
-				scene.resources.mouse.start();
-				scene.addElementsShift(drag);
-				scene.start();
-			}
-			drag = null;
-		};
-
-		this.app.libcanvas.mouse.addEvent({
-			'down': function () {
-				scene.resources.mouse.stop();
-				scene.stop();
-				drag = new Point(0, 0);
-			},
-			'up'  : stopDrag,
-			'out' : stopDrag,
-			'move': function (e) {
-				if (!drag) return;
-				drag.move( e.deltaOffset );
-				scene.addShift( e.deltaOffset );
-			}
-		});
+		new LibCanvas.Scene.Dragger( scene.resources.mouse )
+			.addScene( scene )
+			.start();
 	}
 
 });

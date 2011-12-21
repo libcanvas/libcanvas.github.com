@@ -72,20 +72,20 @@ new function () {
 		var app = new LibCanvas.App( 'canvas', {
 			fpsMeter: true,
 			mouse   : true,
-			width   : 800,
-			height  : 400
+			width   : 600,
+			height  : 300
 		});
 
 		var scene1 = app.createScene('first');
 		new Element( scene1, {
 			name  : '1/first',
 			zIndex: 1,
-			shape : new Rectangle( 100, 100, 100, 100 )
+			shape : new Rectangle( 150, 50, 100, 100 )
 		});
 		new Element( scene1, {
 			name  : '1/second',
 			zIndex: 2,
-			shape : new Rectangle( 250, 100, 100, 100 )
+			shape : new Rectangle( 300, 50, 100, 100 )
 		});
 
 		var scene2 = app.createScene('second');
@@ -93,12 +93,12 @@ new function () {
 			name  : '2/third',
 			zIndex: 3,
 			fall  : true,
-			shape : new Rectangle( 100, 250, 100, 100 )
+			shape : new Rectangle( 100, 100, 100, 100 )
 		});
 		new Element( scene2, {
 			name  : '2/forth',
 			zIndex: 4,
-			shape : new Rectangle( 300, 150, 100, 100 )
+			shape : new Rectangle( 350, 100, 100, 100 )
 		});
 	});
 }
