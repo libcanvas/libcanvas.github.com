@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html class="dark">
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<title>LibCanvas - JavaScript Canvas Framework</title>
+	</head>
+	<body class="lite">
+<script src="mootools.js"></script>
+<style>
+html {
+	background : black;
+	color : white;
+	font-size : 14px;
+}
+h3, ul, li {
+	padding : 0;
+	margin : 0;
+	list-style : none;
+}
+#grafiti {
+	float    : left;
+	width    : 777px;
+	height   : 640px;
+	display  : block;
+}
+#grafiti-actions h3 {
+	font-size   : 1.5em;
+	font-weight : bold;
+	text-align  : center;
+}
+#grafiti-actions ul ul li {
+	margin-left : 20px;
+}
+#grafiti-actions {
+	color : black;
+	float  : left;
+	background : white;
+	width  : 200px;
+	height : 630px;
+	padding-top : 10px;
+}
+#grafiti-actions span,
+#grafiti-actions em {
+	background : white;
+	color : black;
+
+	display : block;
+	padding : 2px 8px;
+	margin  : 2px;
+	border  : 1px solid #069;
+
+	border-radius : 3px 0 0 3px;
+	-moz-border-radius : 3px 0 0 3px;
+	-webkit-border-radius : 3px 0 0 3px;
+	cursor : pointer;
+}
+#grafiti-actions em {
+
+}
+#grafiti-actions em.opened {
+	
+}
+#grafiti-actions span:hover {
+	color : #2062a2;
+	border-color : #2062a2;
+}
+#grafiti-actions > ul > li > span {
+	margin-bottom: 4px;
+}
+#grafiti-actions li.input {
+	padding-bottom : 2px;
+}
+#grafiti-actions input {
+	border  : 1px solid #069;
+	background : white;
+	color : black;
+	text-align: right;
+}
+#grafiti-actions a {
+	color : #069;
+	font-weight : bold;
+}
+#grafiti-actions a:hover {
+	cursor : pointer;
+	text-decoration : underline;
+}
+#grafiti-actions .loadUrl {
+	margin  : 3px;
+	padding : 2px 8px;
+}
+#grafiti-actions .loadUrl input {
+	width : 85px;
+}
+</style>
+
+<div style="width:977px;height:640px; margin:10px auto;">
+	<canvas width="777" height="640" app="Grafiti" id="grafiti"></canvas>
+	<div id="grafiti-actions">
+		<h3>Filters:</h3>
+		<ul>
+
+			<li><span processor="Invert">Invert colors</span></li>
+			<li class="cat"><em>HSB Shift</em>
+
+				<ul>
+					<li class="input" manProcessor="HSB">
+						<a title="decrease" action="decrease">&minus;</a>
+						<input type="text" rel="hue" size="3" maxlength="3" value="0" />
+						<a title="increase" action="increase">+</a>
+
+						&nbsp;(hue)</li>
+					<li class="input" manProcessor="HSB">
+
+						<a title="decrease" action="decrease">&minus;</a>
+						<input type="text" rel="sat" size="3" maxlength="3" value="0" />
+						<a title="increase" action="increase">+</a>
+						&nbsp;(saturation)</li>
+					<li class="input" manProcessor="HSB">
+
+						<a title="decrease" action="decrease">&minus;</a>
+						<input type="text" rel="bri" size="3" maxlength="3" value="0" />
+
+						<a title="increase" action="increase">+</a>
+						&nbsp;(brightness)</li>
+				</ul>
+			</li>
+			<li class="cat"><em>Grayscale</em>
+
+				<ul>
+					<li><span processor="Grayscale.luminance">luminance</span></li>
+
+					<li><span processor="Grayscale.average"  >average</span></li>
+					<li><span processor="Grayscale.red"      >red</span></li>
+					<li><span processor="Grayscale.green"    >green</span></li>
+					<li><span processor="Grayscale.blue"     >blue</span></li>
+
+					<li><span processor="Grayscale.default"  >default</span></li>
+				</ul>
+
+			</li>
+		</ul>
+		<h3>Brushes:</h3>
+		<ul>
+			<li><span brush="standard">Standard</span></li>
+
+			<li><span brush="soft">Soft</span></li>
+			<li><span brush="softer">Softer</span></li>
+
+			<li><span brush="calligraphic">Calligraphic</span></li>
+			<li><span brush="sparks">Sparks</span></li>
+		</ul>
+	</div>
+
+</div>
+		<div style="clear:both" /></div>
+	</div>
+		
+	<script>
+		new Accordion($('grafiti-actions'), '.cat em', '.cat ul', {
+			opacity : false,
+			display : -1,
+			alwaysHide : true,
+			onActive: function(toggler, element){
+				toggler.addClass('opened');
+			},
+			onBackground: function(toggler, element){
+				toggler.removeClass('opened');
+			}
+		});
+		window.Grafiti = {};
+	</script>
+	<script src="libcanvas.js"></script>
+	<script src="Actions.js"></script>
+	<script src="Brushes.js"></script>
+	<script src="Button.js"></script>
+	<script src="Color.js"></script>
+	<script src="Drawer.js"></script>
+	<script src="Example.js"></script>
+	<script src="Init.js"></script>
+	<script src="Slider.js"></script>
+	<script src="Start.js"></script>
+	<script> Grafiti.Start(new LibCanvas.Canvas2D( $$('canvas')[0] )); </script>
+	<script src="/files/js/google-analytics.js"></script>
+</body>
+</html>
