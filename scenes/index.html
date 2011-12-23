@@ -32,6 +32,9 @@ new function () {
 				.draggable(this.redraw)
 				.addEvent('click', function (e) {
 					new Trace( 'Click: ' + this.options.name );
+				})
+				.addEvent('dblclick', function (e) {
+					new Trace( 'dblClick: ' + this.options.name );
 				});
 
 			if (this.options.fall) {
