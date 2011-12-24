@@ -5,16 +5,27 @@ Mines.Controller = atom.Class({
 	options: {
 		 tileSize : { width: 24, height: 24 },
 		fieldSize : { width: 30, height: 16 },
+		switcher  : false,
 		mines: 99
 	},
+
+	$switcher: null,
 
 	initialize: function (canvas, options) {
 		this.setOptions( options );
 
 		var libcanvas = new LibCanvas(canvas, {
-				backBuffer: 'off',
-				preloadImages: { field : 'im/flag-mine.png' }
-			}).listenMouse();
+			preloadImages: { field : 'im/flag-mine.png' }
+		}).listenMouse();
+
+		if (this.options.switcher) {
+			this.$switcher = atom
+				.dom('.action-switcher')
+				.removeClass('hidden')
+				.bind('click', function () {
+					this.$switcher.toggleClass( 'active' );
+				}.bind(this));
+		}
 
 		libcanvas.addEvent('ready', this.start.bind(this, libcanvas));
 	},
@@ -23,7 +34,6 @@ Mines.Controller = atom.Class({
 		var field = new Mines.Field( libcanvas, this.options );
 
 		libcanvas.mouse.addEvent({
-			// wheel : function () {},
 			click      : this.eventListener(field, false),
 			contextmenu: this.eventListener(field, true)
 		});
@@ -31,33 +41,31 @@ Mines.Controller = atom.Class({
 		this.showStats(field);
 	},
 
-	isTouch: function () {
-		try {
-			document.createEvent("TouchEvent");
-			return true;
-		} catch (e) {
-			return false;
-		}
-	},
-
 	eventListener: function (field, flags) {
+		var controller = this;
 		return function (e) {
-			field.action( e.offset , flags || e.button > 0 );
+			if (flags || e.button == 0) {
+				field.action( e.offset , controller.isFlagAction(flags) );
+			}
 			e.preventDefault();
 		};
 	},
 
-	showStats: function (field) {
-		var $stat  = atom.dom('.stat'),
-		    $tiles = $stat.find('.tiles-left em'),
-		    $mines = $stat.find('.mines-left em'),
-		    $time  = $stat.find('.time em');
+	isFlagAction: function (force) {
+		if (force) return true;
+		return this.$switcher && this.$switcher.hasClass('active');
+	},
 
-		(function () {
-			$tiles.html( field.closed );
-			$mines.html( field.minesLeft );
-			//$time .html( field.time || 'waiting' );
-		}.periodical(200, this));
+	showStats: function (field) {
+		var $stat = atom.dom('.stat'), $elems = {
+			closed   : $stat.find('.tiles-left em'),
+			minesLeft: $stat.find('.mines-left em'),
+			time     : $stat.find('.time em')
+		};
+
+		field.addEvent( 'change', function (property) {
+			$elems[property].html( field[property] );
+		});
 	}
 
 });

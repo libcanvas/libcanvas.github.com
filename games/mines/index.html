@@ -13,9 +13,37 @@
 			.stat span {
 				padding-right: 40px;
 			}
+			.action-switcher-wrapper {
+				position: absolute;
+				right : 8px;
+				top   : 8px;
+				width : 80px;
+				height: 80px;
+			}
+			.action-switcher {
+				z-index: 200;
+				position: fixed;
+				width : 48px;
+				height: 48px;
+				padding: 16px;
+				background: rgba(0,0,0,0.5);
+			}
+			.action-switcher em {
+				display: block;
+				width : 48px;
+				height: 48px;
+				background: url('im/flag-mine.png') no-repeat rgba(255,255,255,0.5) -48px 0;
+			}
+			.action-switcher.active em {
+				background-position: 0 0;
+			}
+			.hidden { display: none }
 		</style>
 	</head>
 	<body>
+		<div class="action-switcher-wrapper">
+			<div class="action-switcher hidden"><em></em></div>
+		</div>
 		<form action="index.html" type="get">
 			<p>
 				Width : <input type="text" name="width"  maxlength="2" size="2" />
