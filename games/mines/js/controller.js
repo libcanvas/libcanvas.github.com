@@ -28,6 +28,7 @@ Mines.Controller = atom.Class({
 				.dom('.action-switcher')
 				.bind('touchstart', toggle)
 				.bind('click', toggle);
+			libcanvas.listenMouse(true);
 		} else {
 			libcanvas.listenMouse();
 		}

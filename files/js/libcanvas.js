@@ -1378,7 +1378,7 @@ var Mouse = LibCanvas.Mouse = Class(
 		}
 	},
 	
-	initialize : function (elem) {
+	initialize : function (elem, fake) {
 		this.inCanvas = false;
 		this.point = new Point(null, null);
 		/** @private */
@@ -1387,6 +1387,8 @@ var Mouse = LibCanvas.Mouse = Class(
 		this.diff  = new Point(null, null);
 
 		this.elem = elem;
+
+		if (fake) return;
 
 		this.events = new MouseEvents(this);
 
@@ -2695,7 +2697,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 	listenMouse : function (elem) {
 		if (!this._mouse) {
 			this._mouse = LibCanvas.isLibCanvas(elem) ?
-				elem.mouse : new Mouse(this.wrapper);
+				elem.mouse : new Mouse(this.wrapper, /** fake ? */ elem);
 		}
 		return this;
 	},
