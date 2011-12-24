@@ -25,7 +25,7 @@ Mines.Controller = atom.Class({
 				e.preventDefault();
 			};
 			var $switcher = this.$switcher = atom.dom('.action-switcher');
-			$switcher.find('em').bind('touchend', toggle);
+			$switcher.find('em').bind('touchstart', toggle);
 		} else {
 			libcanvas.listenMouse();
 		}
