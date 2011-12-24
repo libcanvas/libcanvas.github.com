@@ -16,7 +16,7 @@ Mines.Controller = atom.Class({
 
 		var libcanvas = new LibCanvas(canvas, {
 			preloadImages: { field : 'im/flag-mine.png' }
-		}).listenMouse();
+		});
 
 		if (this.options.switcher) {
 			atom.dom('.action-switcher-wrapper').removeClass('hidden');
@@ -28,6 +28,8 @@ Mines.Controller = atom.Class({
 				.dom('.action-switcher')
 				.bind('touchstart', toggle)
 				.bind('click', toggle);
+		} else {
+			libcanvas.listenMouse();
 		}
 
 		libcanvas.addEvent('ready', this.start.bind(this, libcanvas));
