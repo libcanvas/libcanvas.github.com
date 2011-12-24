@@ -7,6 +7,7 @@
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
 		<style>
+			.config { overflow: hidden; }
 			.stat {
 				padding-left: 25px;
 			}
@@ -14,11 +15,9 @@
 				padding-right: 40px;
 			}
 			.action-switcher-wrapper {
-				position: absolute;
-				right : 8px;
-				top   : 8px;
-				width : 80px;
-				height: 80px;
+				float : left;
+				width : 96px;
+				height: 96px;
 			}
 			.action-switcher {
 				z-index: 200;
@@ -41,25 +40,27 @@
 		</style>
 	</head>
 	<body>
-		<div class="action-switcher-wrapper">
-			<div class="action-switcher hidden"><em></em></div>
-		</div>
-		<form action="index.html" type="get">
+		<div class="config">
+			<div class="action-switcher-wrapper hidden">
+				<div class="action-switcher"><em></em></div>
+			</div>
+			<form action="index.html" type="get">
+				<p>
+					Width : <input type="text" name="width"  maxlength="2" size="2" />
+					Height: <input type="text" name="height" maxlength="2" size="2" />
+					Mines : <input type="text" name="mines"  maxlength="3" size="3" />
+					<input type="submit" value="New game!" />
+				</p>
+			</form>
 			<p>
-				Width : <input type="text" name="width"  maxlength="2" size="2" />
-				Height: <input type="text" name="height" maxlength="2" size="2" />
-				Mines : <input type="text" name="mines"  maxlength="3" size="3" />
-				<input type="submit" value="New game!" />
+				<a href="index.html?width=8&height=8&mines=10">
+					<button>Beginner</button></a>
+				<a href="index.html?width=16&height=16&mines=40">
+					<button>Intermediate</button></a>
+				<a href="index.html?width=30&height=16&mines=99">
+					<button>Expert</button>	</a>
 			</p>
-		</form>
-		<p>
-			<a href="index.html?width=8&height=8&mines=10">
-				<button>Beginner</button></a>
-			<a href="index.html?width=16&height=16&mines=40">
-				<button>Intermediate</button></a>
-			<a href="index.html?width=30&height=16&mines=99">
-				<button>Expert</button>	</a>
-		</p>
+		</div>
 		<canvas></canvas>
 		<p class="stat">
 			<span class="tiles-left">Tiles: <em>0</em></span>

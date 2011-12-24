@@ -19,9 +19,9 @@ Mines.Controller = atom.Class({
 		}).listenMouse();
 
 		if (this.options.switcher) {
+			atom.dom('.action-switcher-wrapper').removeClass('hidden');
 			this.$switcher = atom
 				.dom('.action-switcher')
-				.removeClass('hidden')
 				.bind('click', function () {
 					this.$switcher.toggleClass( 'active' );
 				}.bind(this));
