@@ -60,7 +60,7 @@ Mines.Controller = atom.Class({
 			try {
 				new Trace(LibCanvas.Mouse.getOffset(e));
 			} catch (er) {
-				new Trace( e );
+				new Trace( e.changedTouches ? e.changedTouches[0] : e );
 				new Trace( er + '!' );
 			}
 				field.action( LibCanvas.Mouse.getOffset(e) , controller.isFlagAction() );
