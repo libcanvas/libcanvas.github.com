@@ -21,14 +21,11 @@ Mines.Controller = atom.Class({
 		if (this.options.switcher) {
 			atom.dom('.action-switcher-wrapper').removeClass('hidden');
 			var toggle = function (e) {
-				if (e.target.tagName == 'EM') {
-					$switcher.toggleClass( 'active' );
-					e.preventDefault();
-				}
+				$switcher.toggleClass( 'active' );
+				e.preventDefault();
 			};
-			var $switcher = this.$switcher = atom
-				.dom('.action-switcher')
-				.bind('touchend', toggle);
+			var $switcher = this.$switcher = atom.dom('.action-switcher');
+			$switcher.find('em').bind('touchend', toggle);
 		} else {
 			libcanvas.listenMouse();
 		}
