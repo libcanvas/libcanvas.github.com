@@ -47,14 +47,15 @@ Mines.Controller = atom.Class({
 	},
 
 	bindTouch: function (field, libcanvas) {
-		libcanvas.wrapper.bind( 'touchstart', function (e) {
-			field.action( libcanvas.mouse.getOffset(e) , this.isFlagAction() );
-			e.preventDefault();
-		}.bind(this));
-
+		var controller = this;
 		var prevent = function(e){e.preventDefault()};
-		libcanvas.wrapper.bind( 'touchmove', prevent );
-		libcanvas.wrapper.bind( 'touchend' , prevent );
+
+		// libcanvas.wrapper.bind( 'touchstart', prevent );
+		// libcanvas.wrapper.bind( 'touchmove', prevent );
+		libcanvas.wrapper.bind( 'touchend' , function (e) {
+			field.action( libcanvas.mouse.getOffset(e) , controller.isFlagAction() );
+			e.preventDefault();
+		});
 	},
 
 	eventListener: function (field, flags) {
