@@ -28,7 +28,6 @@ Mines.Controller = atom.Class({
 				.dom('.action-switcher')
 				.bind('touchstart', toggle)
 				.bind('click', toggle);
-			libcanvas.listenMouse(true);
 		} else {
 			libcanvas.listenMouse();
 		}
@@ -58,7 +57,7 @@ Mines.Controller = atom.Class({
 		// libcanvas.wrapper.bind( 'touchstart', prevent );
 		// libcanvas.wrapper.bind( 'touchmove', prevent );
 		libcanvas.wrapper.bind( 'touchend' , function (e) {
-			field.action( libcanvas.mouse.getOffset(e) , controller.isFlagAction() );
+			field.action( LibCanvas.Mouse.getOffset(e) , controller.isFlagAction() );
 			e.preventDefault();
 		});
 	},

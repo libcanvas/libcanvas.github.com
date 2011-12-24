@@ -1375,10 +1375,21 @@ var Mouse = LibCanvas.Mouse = Class(
 				mouseup    : set(false),
 				blur       : set(false, 'all')
 			});
+		},
+		getOffset: function (event) {
+			if (!event.offset) {
+				var source = event.changedTouches ? event.changedTouches[0] : e;
+				if (source.offsetX != null) {
+					event.offset = new Point(source.offsetX, source.offsetY);
+				} else {
+					event.offset = new Point(source.layerX, source.layerY);
+				}
+			}
+			return event.offset;
 		}
 	},
 	
-	initialize : function (elem, fake) {
+	initialize : function (elem) {
 		this.inCanvas = false;
 		this.point = new Point(null, null);
 		/** @private */
@@ -1387,8 +1398,6 @@ var Mouse = LibCanvas.Mouse = Class(
 		this.diff  = new Point(null, null);
 
 		this.elem = elem;
-
-		if (fake) return;
 
 		this.events = new MouseEvents(this);
 
@@ -1469,8 +1478,6 @@ var Mouse = LibCanvas.Mouse = Class(
 		return e;
 	},
 	setEvents : function () {
-
-		new Trace('test');
 
 		// e.previousOffset = prev.clone();
 		// e.deltaOffset    = prev.diff( this.point );
@@ -2699,7 +2706,7 @@ var Canvas2D = LibCanvas.Canvas2D = Class(
 	listenMouse : function (elem) {
 		if (!this._mouse) {
 			this._mouse = LibCanvas.isLibCanvas(elem) ?
-				elem.mouse : new Mouse(this.wrapper, /** fake ? */ elem);
+				elem.mouse : new Mouse(this.wrapper);
 		}
 		return this;
 	},
