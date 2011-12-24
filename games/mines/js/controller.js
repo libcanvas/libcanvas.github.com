@@ -21,7 +21,10 @@ Mines.Controller = atom.Class({
 		if (this.options.switcher) {
 			atom.dom('.action-switcher-wrapper').removeClass('hidden');
 			var toggle = function (e) {
-				$switcher.toggleClass( 'active' );
+				if (e.target.tagName == 'EM') {
+					$switcher.toggleClass( 'active' );
+					e.preventDefault();
+				}
 			};
 			var $switcher = this.$switcher = atom
 				.dom('.action-switcher')
