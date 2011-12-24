@@ -156,6 +156,8 @@ Mines.Field = atom.Class({
 			this.open( point );
 
 		if (redraw) this.engine.update();
+
+		return redraw;
 	},
 
 	generate: function (point) {
