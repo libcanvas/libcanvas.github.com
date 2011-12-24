@@ -1470,6 +1470,8 @@ var Mouse = LibCanvas.Mouse = Class(
 	},
 	setEvents : function () {
 
+		new Trace('test');
+
 		// e.previousOffset = prev.clone();
 		// e.deltaOffset    = prev.diff( this.point );
 		var mouse = this,
