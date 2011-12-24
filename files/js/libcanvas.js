@@ -1397,22 +1397,18 @@ var Mouse = LibCanvas.Mouse = Class(
 				top  = box.top  + scrollTop  - clientTop;
 				left = box.left + scrollLeft - clientLeft;
 
-				offset = { top: top.round(), left: left.round() };
+				return { top: top.round(), left: left.round() };
 			} else {
 				while(elem) {
 					top  = top  + parseInt(elem.offsetTop);
 					left = left + parseInt(elem.offsetLeft);
 					elem = elem.offsetParent;
 				}
-				offset = { top: top, left: left };
+				return { top: top, left: left };
 			}
-			return new Point({
-				x: e.page.x - offset.left,
-				y: e.page.y - offset.top
-			});
 		},
 		expandEvent: function (e) {
-			var from = e;
+			var from = e.changedTouches ? e.changedTouches[0] : e;
 			if (!('page' in e) || !('offset' in e)) {
 				e.page = from.page || {
 					x: 'pageX' in from ? from.pageX : from.clientX + document.scrollLeft,
@@ -1421,7 +1417,11 @@ var Mouse = LibCanvas.Mouse = Class(
 				if ('offsetX' in from) {
 					e.offset = new Point(from.offsetX, from.offsetY);
 				} else {
-					e.offset = LibCanvas.Mouse.createOffset(from.target);
+					var offset = LibCanvas.Mouse.createOffset(from.target);
+					e.offset = new Point({
+						x: e.page.x - offset.left,
+						y: e.page.y - offset.top
+					});
 					e.offsetX = e.offset.x;
 					e.offsetY = e.offset.y;
 				}
