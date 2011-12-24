@@ -1411,7 +1411,7 @@ var Mouse = LibCanvas.Mouse = Class(
 				y: e.page.y - offset.top
 			});
 		},
-		expandEvent: function (event) {
+		expandEvent: function (e) {
 			var from = e.changedTouches ? e.changedTouches[0] : e;
 			if (!('page' in e) || !('offset' in e)) {
 				e.page = from.page || {
