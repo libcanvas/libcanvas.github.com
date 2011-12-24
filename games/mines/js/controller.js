@@ -57,14 +57,8 @@ Mines.Controller = atom.Class({
 		// libcanvas.wrapper.bind( 'touchstart', prevent );
 		// libcanvas.wrapper.bind( 'touchmove', prevent );
 		libcanvas.wrapper.bind( 'touchend' , function (e) {
-			try {
-				new Trace(LibCanvas.Mouse.getOffset(e));
-			} catch (er) {
-				new Trace( e.changedTouches ? e.changedTouches[0] : e );
-				new Trace( er + '!' );
-			}
-				field.action( LibCanvas.Mouse.getOffset(e) , controller.isFlagAction() );
-				e.preventDefault();
+			field.action( LibCanvas.Mouse.getOffset(e) , controller.isFlagAction() );
+			e.preventDefault();
 		});
 	},
 
