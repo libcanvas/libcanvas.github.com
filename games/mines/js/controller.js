@@ -20,11 +20,13 @@ Mines.Controller = atom.Class({
 
 		if (this.options.switcher) {
 			atom.dom('.action-switcher-wrapper').removeClass('hidden');
-			this.$switcher = atom
+			var toggle = function () {
+				$switcher.toggleClass( 'active' );
+			};
+			var $switcher = this.$switcher = atom
 				.dom('.action-switcher')
-				.bind('click', function () {
-					this.$switcher.toggleClass( 'active' );
-				}.bind(this));
+				.bind('touchstart', toggle)
+				.bind('click', toggle);
 		}
 
 		libcanvas.addEvent('ready', this.start.bind(this, libcanvas));
@@ -38,7 +40,20 @@ Mines.Controller = atom.Class({
 			contextmenu: this.eventListener(field, true)
 		});
 
+		this.bindTouch( field, libcanvas.mouse );
+
 		this.showStats(field);
+	},
+
+	bindTouch: function (field, mouse) {
+		document.addEventListener( 'touchstart', function (e) {
+			field.action( mouse.getOffset(e) , this.isFlagAction() );
+			e.preventDefault();
+		}.bind(this), false);
+
+		var prevent = function(e){e.preventDefault()};
+		document.addEventListener( 'touchmove', prevent, false );
+		document.addEventListener( 'touchend' , prevent, false );
 	},
 
 	eventListener: function (field, flags) {
