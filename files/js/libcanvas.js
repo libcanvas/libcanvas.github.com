@@ -1412,7 +1412,7 @@ var Mouse = LibCanvas.Mouse = Class(
 			});
 		},
 		expandEvent: function (e) {
-			var from = e.changedTouches ? e.changedTouches[0] : e;
+			var from = e;
 			if (!('page' in e) || !('offset' in e)) {
 				e.page = from.page || {
 					x: 'pageX' in from ? from.pageX : from.clientX + document.scrollLeft,
