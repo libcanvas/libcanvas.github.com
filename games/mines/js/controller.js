@@ -52,11 +52,8 @@ Mines.Controller = atom.Class({
 
 	bindTouch: function (field, libcanvas) {
 		var controller = this;
-		var prevent = function(e){e.preventDefault()};
 
-		libcanvas.wrapper.bind( 'touchstart', prevent );
-		// libcanvas.wrapper.bind( 'touchmove', prevent );
-		libcanvas.wrapper.bind( 'touchend' , function (e) {
+		libcanvas.wrapper.bind( 'touchstart', function (e) {
 			field.action( LibCanvas.Mouse.getOffset(e) , controller.isFlagAction() );
 			e.preventDefault();
 		});
