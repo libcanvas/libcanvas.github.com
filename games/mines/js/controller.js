@@ -59,11 +59,11 @@ Mines.Controller = atom.Class({
 		libcanvas.wrapper.bind( 'touchend' , function (e) {
 			try {
 				new Trace(LibCanvas.Mouse.getOffset(e));
+			} catch (er) {
+				new Trace( er + '!' );
+			}
 				field.action( LibCanvas.Mouse.getOffset(e) , controller.isFlagAction() );
 				e.preventDefault();
-			} catch (e) {
-				new Trace( e + '' );
-			}
 		});
 	},
 
