@@ -53,7 +53,7 @@ Mines.Controller = atom.Class({
 		var controller = this;
 
 		libcanvas.wrapper.bind( 'touchstart', function (e) {
-			if (!field.action( LibCanvas.Mouse.getOffset(e) , controller.isFlagAction() )) {
+			if (field.action( LibCanvas.Mouse.getOffset(e) , controller.isFlagAction() )) {
 				e.preventDefault();
 			}
 		});
