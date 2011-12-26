@@ -31,11 +31,14 @@ Solitaire.Controller = atom.Class({
 			field.cards.last.isClosed = false;
 			layer.addElement( field );
 			fieldsArray.push( field );
+			field.cards.invoke( 'draw' );
 		}
 
 		layer.addElement( new Solitaire.Deck(deck) );
 
 		libcanvas.addElement( new Solitaire.Table() );
+
+		deck.invoke( 'draw' );
 	},
 
 	createCards: function (libcanvas) {

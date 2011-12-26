@@ -30,6 +30,7 @@ Solitaire.Deck = atom.Class({
 
 		this.addEvent('libcanvasSet', function () {
 			this.libcanvas.addElement( this.opened = new Solitaire.Opened() );
+			this.cards.invoke( 'draw' );
 		});
 	},
 
