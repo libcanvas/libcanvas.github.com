@@ -31,6 +31,15 @@ Mines.Controller = atom.Class({
 		this.showStats(field);
 	},
 
+	isTouch: function () {
+		try {
+			document.createEvent("TouchEvent");
+			return true;
+		} catch (e) {
+			return false;
+		}
+	},
+
 	eventListener: function (field, flags) {
 		return function (e) {
 			field.action( e.offset , flags || e.button > 0 );
