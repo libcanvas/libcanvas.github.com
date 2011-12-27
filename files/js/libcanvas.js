@@ -3897,8 +3897,19 @@ var Context2D = Class(
 		return this;
 	},
 	/** @returns {Context2D} */
-	scale : function () {
-		return office.originalPoint.call(this, 'scale', arguments);
+	scale : function (power, pivot) {
+		if (typeof pivot == 'number') {
+			power = new Point(power, pivot);
+			pivot = null;
+		} else {
+			power = Point(power);
+		}
+		if (power.x != 1 || power.y != 1) {
+			if (pivot) this.translate(pivot);
+			this.original('scale', [power.x, power.y]);
+			if (pivot) this.translate(pivot, true);
+		}
+		return this;
 	},
 	/** @returns {Context2D} */
 	transform : function () {
@@ -4073,6 +4084,16 @@ var Context2D = Class(
 		if (!a.image) throw new TypeError('No image');
 		var center, from = a.center || a.from;
 
+		var transform = function (a, center) {
+			if (a.angle) this.rotate(a.angle, center);
+			if (a.flipX || a.flipY) {
+				this.scale( new Point(
+					a.flipX ? -1 : 1,
+					a.flipY ? -1 : 1
+				), center );
+			}
+		}.bind(this);
+
 		this.save();
 		if (from) {
 			from = Point(from);
@@ -4080,12 +4101,12 @@ var Context2D = Class(
 				x : from.x - a.image.width/2,
 				y : from.y - a.image.height/2
 			};
-			if (a.angle) {
+			if (a.angle || a.flipX || a.flipY) {
 				center = a.center || {
 					x : from.x + a.image.width/2,
 					y : from.y + a.image.height/2
 				};
-				this.rotate(a.angle, center);
+				transform(a, center);
 			} else if (a.optimize) {
 				from = { x: from.x.round(), y: from.y.round() }
 			}
@@ -4094,7 +4115,9 @@ var Context2D = Class(
 			]);
 		} else if (a.draw) {
 			var draw = Rectangle(a.draw);
-			if (a.angle) this.rotate(a.angle, draw.center);
+			if (a.angle || a.flipX || a.flipY) {
+				transform(a, draw.center);
+			}
 
 			if (a.crop) {
 				var crop = Rectangle(a.crop);

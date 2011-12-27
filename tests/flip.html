@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Flip image test</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	<body>
+		<canvas width=500 height=200 style="background:#999"></canvas>
+		<script>
+			atom.dom(function () {
+				var ctx = atom.dom('canvas').first.getContext('2d-libcanvas');
+
+				var img = new Image;
+				img.src = "/files/img/sprite-ok.png";
+				img.onload = function () {
+					ctx.drawImage({
+						image : img,
+						center: [50, 50]
+					});
+					ctx.drawImage({
+						image : img,
+						center: [100, 50],
+						flipX: true
+					});
+					ctx.drawImage({
+						image : img,
+						center: [150, 50],
+						flipY: true
+					});
+					ctx.drawImage({
+						image : img,
+						center: [200, 50],
+						flipX: true,
+						flipY: true
+					});
+					ctx.drawImage({
+						image : img,
+						center: [250, 50],
+						angle : (25).degree()
+					});
+					ctx.drawImage({
+						image : img,
+						center: [300, 50],
+						flipX : true,
+						angle : (25).degree()
+					});
+
+				};
+			});
+		</script>
+	</body>
+</html>
