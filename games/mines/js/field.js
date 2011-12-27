@@ -1,6 +1,6 @@
 
 Mines.Field = atom.Class({
-	Implements: [ atom.Class.Options ],
+	Implements: [ atom.Class.Options, atom.Class.Events ],
 	
 	Generators: {
 		size: function () {
@@ -50,9 +50,8 @@ Mines.Field = atom.Class({
 	},
 
 	startTime: function () {
-		if (!this.stopWatch) {
-			this.stopWatch = new StopWatch(true);
-		}
+		if (this.stopWatch) return;
+		this.stopWatch = new StopWatch(true);
 	},
 
 	getTile: function (point) {
@@ -64,7 +63,7 @@ Mines.Field = atom.Class({
 	openClosed: function (tile, value) {
 		if (value == 'mine') {
 			this.fail( tile );
-			return;
+			return false;
 		}
 
 		if (value == 0) {
@@ -74,7 +73,10 @@ Mines.Field = atom.Class({
 			tile.value = value;
 		}
 
-		if (--this.closed <= this.options.mines) this.win();
+		if (--this.closed <= this.options.mines) {
+			this.win();
+		}
+		return true;
 	},
 
 	openFlood: function (tiles) {
@@ -94,7 +96,9 @@ Mines.Field = atom.Class({
 	open: function (tile, sub) {
 		var value = this.field[tile.y][tile.x];
 		if (tile.value == 'closed') {
-			this.openClosed( tile, value );
+			if (this.openClosed( tile, value )) {
+				this.fireEvent( 'change', [ 'closed' ]);
+			}
 			return !sub;
 		} else if (!sub && this.openNeighbours( tile, Number(value) )) {
 			return true;
@@ -128,6 +132,7 @@ Mines.Field = atom.Class({
 		if (value) {
 			if (value == 'flag'  ) this.marked++;
 			if (value == 'closed') this.marked--;
+			this.fireEvent( 'change', [ 'minesLeft' ]);
 			return true;
 		}
 		return false;
@@ -151,9 +156,12 @@ Mines.Field = atom.Class({
 			this.open( point );
 
 		if (redraw) this.engine.update();
+
+		return redraw;
 	},
 
 	generate: function (point) {
-		this.field = new Mines.Generator( this.options.fieldSize, this.options.mines, 'mine' ).generate( point );
+		this.field = new Mines.Generator( this.options.fieldSize, this.options.mines, 'mine' )
+			.generate( point );
 	}
 });

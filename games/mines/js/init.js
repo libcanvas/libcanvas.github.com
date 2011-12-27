@@ -15,7 +15,21 @@ atom.dom(function () {
 			};
 			this.mines = uri.mines;
 		}
+
+		if (isTouch()) {
+			this.tileSize = { width: 48, height: 48 };
+			this.switcher = true;
+		}
 	};
+
+	function isTouch() {
+		try {
+			document.createEvent("TouchEvent");
+			return true;
+		} catch (e) {
+			return false;
+		}
+	}
 
 	new Mines.Controller('canvas', options);
 });

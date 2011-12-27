@@ -10,7 +10,7 @@ a {
 a:visited {
 	color: #cc33cc;
 }
-*:focus {
+* {
 	outline: none;
 }
 #app, .libcanvas-layers-container {

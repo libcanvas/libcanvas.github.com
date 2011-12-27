@@ -43,14 +43,15 @@ Mines.Draw = atom.Class({
 	},
 
 	drawNumber: function (number, ctx, rectangle) {
+		var size = rectangle.height * 0.75;
 		ctx
 			.fill  ( rectangle, '#999' )
 			.stroke( rectangle, '#ccc' )
 			.text({
 				text  : number,
 				color : this.numbers[number] || 'black',
-				size  : 18,
-				lineHeight: 18,
+				size  : size,
+				lineHeight: size,
 				weight: 'bold',
 				align : 'center',
 				to    : rectangle
