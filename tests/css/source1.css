@@ -1,0 +1,10 @@
+[libcanvas] .test {
+	background-color: #ff0;
+	fill: red;
+	stroke: black;
+	color: white;
+}
+
+[not-libcanvas] .test {
+	ignore: this;
+}
