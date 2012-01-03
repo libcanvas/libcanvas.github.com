@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>CSS</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+		<style >
+			.libcanvas-layers-container {
+				border: 1px dashed green;
+			}
+			[libcanvas] .test {
+				background-color: #ff0;
+				fill: red;
+				stroke: black;
+				color: white;
+			}
+		</style>
+	</head>
+	<body style="background: #333">
+		<script>
+			var map = function (rules) {
+				var result = {};
+				for (var i = rules.length; i--;) {
+					result[rules[i]] = rules[ rules[i] ];
+				}
+				return result;
+			}(document.styleSheets[1].cssRules[1].style);
+			new LibCanvas.Utils.Trace(document.styleSheets[1].cssRules[1].selectorText);
+			new LibCanvas.Utils.Trace(map);
+		</script>
+	</body>
+</html>
