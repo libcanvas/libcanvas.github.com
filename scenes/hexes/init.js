@@ -61,6 +61,12 @@ atom.dom(function () {
 			.addEvent( 'stop', function () {
 				shift.value = scene.getShift();
 			});
+
+		var coordTr = new Trace();
+		scene.libcanvas.mouse.addEvent('move', function (e) {
+			var realCoord = e.offset.clone().move(scene.getShift(), true);
+			coordTr.value = projection.pointToRgb(realCoord).join(' ');
+		});
 	});
 
 
