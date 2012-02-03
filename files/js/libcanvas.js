@@ -154,6 +154,8 @@ LibCanvas.Animation.Sprite = Class({
 
 	initialize: function () {
 		this.sprites = {};
+		this._queue  = [];
+		this.animations = {};
 	},
 	addSprite : function (index, sprite) {
 		this.sprites[index] = sprite;
@@ -1056,7 +1058,7 @@ return Class(
 				y = x.y;
 				x = x.x;
 			} else {
-				//atom.log('Wrong Arguments In Point.Set:', arguments);
+				//console.log('Wrong Arguments In Point.Set:', arguments);
 				throw new TypeError('Wrong Arguments In Point.Set: [' + atom.toArray(arguments).join(', ') + ']');
 			}
 		}
@@ -1829,10 +1831,12 @@ var Drawable = LibCanvas.Behaviors.Drawable = function () {
 	
 var start = function () {
 	this.libcanvas.addElement(this);
+	// todo: dont use removeEvent
 	return 'removeEvent';
 };
 var stop = function () {
 	this.libcanvas.rmElement(this);
+	// todo: dont use removeEvent
 	return 'removeEvent';
 };
 
@@ -2333,7 +2337,7 @@ var DownloadingProgress = LibCanvas.Inner.DownloadingProgress = Class({
 				this.imagePreloader = new ImagePreloader(this.options.preloadImages, this.options.imagesSuffix)
 					.addEvent('ready', function (preloader) {
 						this.images = preloader.images;
-						atom.log(preloader.getInfo());
+						console.log(preloader.getInfo());
 						this.readyEvent('ready');
 						this.update();
 					}.bind(this));
@@ -3678,7 +3682,7 @@ var Context2D = Class(
 			var result = this.ctx2d[method].apply(this.ctx2d, args || []);
 			if (returnResult) return result;
 		} catch (e) {
-			atom.log('Error in context2d.original(', method, ',', (args || []), ')');
+			console.log('Error in context2d.original(', method, ',', (args || []), ')');
 			throw e;
 		}
 		return this;
@@ -5017,29 +5021,27 @@ LibCanvas.Engines.HexProjection = atom.Class({
 	 */
 	pointToRgb: function (point) {
 		var
-			red     = 0,
-			green   = 0,
-			blue    = 0,
 			options = this.options,
 			base    = options.baseLength,
 			chord   = options.chordLength,
 			height  = options.hexHeight,
-			start   = options.start;
+			start   = options.start,
+			// counting coords
+			red   = (point.x - start.x) / (base + chord),
+			blue  = (point.y - start.y - red * height / 2) / height,
+			green = 0 - red - blue;
 
 		var dist = function (c) {
 			return Math.abs(c[0] - red) + Math.abs(c[1] - green) + Math.abs(c[2] - blue);
 		};
-
-		red   = (point.x - start.x) / (base + chord);
-		blue  = (point.y - start.y - red * height / 2) / height;
-		green = 0 - red - blue;
 
 		var
 			rF = red  .floor(), rC = red  .ceil(),
 			gF = green.floor(), gC = green.ceil(),
 			bF = blue .floor(), bC = blue .ceil();
 
-		var variants = [
+		return [
+			// we need to find closest integer coordinates
 			[rF, gF, bF],
 			[rF, gC, bF],
 			[rF, gF, bC],
@@ -5049,12 +5051,13 @@ LibCanvas.Engines.HexProjection = atom.Class({
 			[rC, gF, bC],
 			[rC, gC, bC]
 		].filter(function (v) {
+			// only correct variants - sum must be equals to zero
 			return v.sum() == 0;
 		})
 		.sort(function (left, right) {
+			// we need coordinates with the smallest distance
 			return dist(left) < dist(right) ? -1 : 1;
-		});
-		return variants[0];
+		})[0];
 	},
 
 	/**
@@ -6668,6 +6671,12 @@ Scene.Dragger = Class({
 		return this;
 	},
 
+	addShift: function (delta) {
+		this.addLayersShift(delta);
+		this.closeLayersShift(false);
+		return this;
+	},
+
 	/** @private */
 	dragStart: function (e) {
 		if (!this.shouldStartDrag(e)) return;
@@ -6683,22 +6692,30 @@ Scene.Dragger = Class({
 	/** @private */
 	dragStop: function (e) {
 		if (!this.drag) return;
-
-		for (var i = this.scenes.length; i--;) {
-			var scene = this.scenes[i];
-			scene.mouse.start();
-			scene.addElementsShift();
-			scene.start();
-		}
-
+		this.closeLayersShift(true);
 		this.drag = false;
 		this.fireEvent( 'stop', [ e ]);
 	},
 	/** @private */
 	dragMove: function (e) {
-		if (!this.drag) return;
+		if (this.drag) {
+			this.addLayersShift(e.deltaOffset);
+		}
+	},
+	closeLayersShift: function (start) {
 		for (var i = this.scenes.length; i--;) {
-			this.scenes[i].addShift(e.deltaOffset);
+			var scene = this.scenes[i];
+			scene.addElementsShift();
+			if (start) {
+				scene.mouse.start();
+				scene.start();
+			}
+		}
+	},
+	/** @private */
+	addLayersShift: function (point) {
+		for (var i = this.scenes.length; i--;) {
+			this.scenes[i].addShift(point);
 		}
 	},
 	/** @private */
@@ -8447,12 +8464,12 @@ var Trace = LibCanvas.Utils.Trace = Class({
 	events : function (remove) {
 		var trace = this;
 		// add events unbind
-		!remove || this.node.bind({
+		!remove || trace.node.bind({
 			mouseover : function () {
-				this.css('background', '#222');
+				trace.node.css('background', '#222');
 			},
 			mouseout  : function () {
-				this.css('background', '#000');
+				trace.node.css('background', '#000');
 			},
 			mousedown : function () {
 				trace.blocked = true;
@@ -8461,7 +8478,7 @@ var Trace = LibCanvas.Utils.Trace = Class({
 				trace.blocked = false;
 			}
 		});
-		return this.node;
+		return trace.node;
 	},
 	destroy : function () {
 		this.node.css('background', '#300');
