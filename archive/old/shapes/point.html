@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Draggable objects</title>
+		<link href="/archive/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/files/js/atom.js"></script>
+		<script src="/archive/old/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var libcanvas = new LibCanvas('canvas', { clear: '#efebe7' })
+		.listenMouse()
+		.size({
+			width : 400,
+			height: 250
+		}, true);
+
+	var mouse   = libcanvas.mouse.addEvent('move', libcanvas.update),
+	    center  = libcanvas.ctx.rectangle.center,
+	    cursor  = center.clone(),
+	    cirFrom = new Circle( center, 4 ),
+	    cirTo   = new Circle( cursor, 4 ),
+	    line    = new Line( center, cursor );
+
+
+	libcanvas.start(function () {
+		var ctx = libcanvas.ctx.fill( cirFrom, '#090' );
+
+		if (mouse.inCanvas) {
+			cursor.moveTo( mouse.point );
+
+			ctx
+				.fill  ( cirTo, '#090' )
+				.stroke( line , '#090' )
+				.set  ({ font : '16px monospace' })
+				.fillText('A', cursor.x + 6, cursor.y - 6)
+				.fillText('O', center.x + 6, center.y - 6)
+				.fillText('angleTo : ' + cursor.angleTo(center).getDegree(0) + '°', 15, 25)
+				.fillText('distance: ' + cursor.distanceTo(center).round()        , 15, 45)
+				.fillText('diff.x  : ' + cursor.diff(center).x                    , 15, 65)
+				.fillText('diff.y  : ' + cursor.diff(center).y                    , 15, 85)
+				;
+		}
+	});
+
+	libcanvas.update();
+};
+		</script>
+		<script src="/archive/old/files/js/google-analytics.js"></script>
+	</body>
+</html>

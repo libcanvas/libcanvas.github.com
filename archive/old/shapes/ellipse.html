@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Ellipse</title>
+		<link href="/archive/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/files/js/atom.js"></script>
+		<script src="/archive/old/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script src="/archive/old/files/js/ui-core.js"></script>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var ellipse = new Ellipse(120.5, 130.5, 150, 60);
+
+	UiCore.libcanvas = new LibCanvas('canvas')
+		.listenMouse()
+		.size(400, 250, true);
+
+	var center = ellipse.center;
+
+	UiCore.createShaper( ellipse, 2 )
+		.listenMouse()
+		.clickable()
+		.draggable(function (diff) {
+			angle.shape.move( diff );
+			center.move( diff );
+		});
+
+
+	UiCore.libcanvas
+		.createShaper({
+			shape : new Rectangle(ellipse),
+			stroke: "#044"
+		});
+
+	var reRotate = function () {
+		ellipse.angle = angle.shape.center.angleTo(ellipse.center);
+	};
+
+	var angle = UiCore.libcanvas
+		.createShaper({
+			shape  : new Circle(ellipse.center.clone().move([100, 0]), 5),
+			fill   : "#033",
+			stroke : "#099",
+			hover  : { fill : "#333", stroke : "#999"},
+			lineWidth: 0.5
+		})
+		.setZIndex(10)
+		.listenMouse()
+		.clickable()
+		.draggable(reRotate);
+
+	UiCore.libcanvas
+		.createShaper({
+			shape : new Line(center, angle.shape.center),
+			stroke: "#060"
+		})
+		.setZIndex(4);
+
+	[ellipse.from, ellipse.to].forEach(function (point, i) {
+		UiCore.libcanvas
+			.createShaper({
+				shape  : new Circle(point, 5),
+				fill   : "#300",
+				stroke : "#f00",
+				hover  : { fill : "#900", stroke : "#f00"},
+				active : { fill : "#090", stroke : "#0f0"},
+				lineWidth: 0.5
+			})
+			.setZIndex(i + 3)
+			.listenMouse()
+			.clickable()
+			.draggable(function (diff) {
+				center.moveTo( ellipse.center );
+				reRotate();
+			});
+	});
+
+	UiCore.libcanvas.start().update();
+
+};
+		</script>
+		<script src="/archive/old/files/js/google-analytics.js"></script>
+	</body>
+</html>

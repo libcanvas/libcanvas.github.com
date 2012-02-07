@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<script src="/archive/old/filesve/old/files/js/atom.js"></script>
+		<script src="/archive/old/filesve/old/files/js/libcanvas.js"></script>
+		<script>
+LibCanvas.extract();
+
+atom.dom(function() {
+	var canvas  = atom.dom('canvas').first;
+	var context = canvas.getContext('2d-libcanvas');
+
+	context
+		.fillAll( '#efebe7' )
+		.fill( new Rectangle( 75, 75, 30, 30 ), 'green' )
+		.fill( new Circle   ( 50, 50, 20 )    , '#c00'  );
+});
+		</script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<script src="/archive/old/filesve/old/files/js/google-analytics.js"></script>
+	</body>
+</html>

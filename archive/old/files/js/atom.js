@@ -24,10 +24,11 @@ inspiration:
 var
 	toString  = Object.prototype.toString,
 	hasOwn    = Object.prototype.hasOwnProperty,
-	slice     = Array .prototype.slice,
-	atom = this.atom = function () {
-		if (atom.initialize) return atom.initialize.apply(this, arguments);
-	};
+	slice     = Array .prototype.slice;
+
+var atom = this.atom = function () {
+	if (atom.initialize) return atom.initialize.apply(this, arguments);
+};
 
 atom.global = this;
 
@@ -221,22 +222,6 @@ new function () {
 			return this;
 		};
 	}
-	function overloadGetter (fn, ignoreEmpty) {
-		return function (properties) {
-			if (Array.isArray(properties)) {
-				var result = {}, name, value;
-				for (var i = properties.length; i--;) {
-					name = properties[i];
-					value = fn.call(this, name);
-					if (!ignoreEmpty || typeof value !== 'undefined') {
-						result[name] = value;
-					}
-				}
-				return result;
-			}
-			return fn.call(this, properties);
-		};
-	}
 	/**
 	 * Returns function that calls callbacks.get
 	 * if first parameter is primitive & second parameter is undefined
@@ -267,11 +252,10 @@ new function () {
 		eraseAll  : coreEraseAll,
 		toArray   : coreToArray,
 		append    : coreAppend,
-		isArrayLike   : coreIsArrayLike,
-		includeUnique : includeUnique,
-		slickAccessor : slickAccessor,
-		overloadSetter: overloadSetter,
-		overloadGetter: overloadGetter,
+		isArrayLike  : coreIsArrayLike,
+		includeUnique: includeUnique,
+		slickAccessor     : slickAccessor,
+		overloadSetter    : overloadSetter,
 		ensureObjectSetter: ensureObjectSetter
 	};
 
@@ -534,16 +518,6 @@ provides: dom
 		parent : function(step) {
 			return findParentByLevel(this.first, step);
 		},
-		contains: function (child) {
-			var parent = this.first;
-			child = atom.dom(child).first;
-			if ( child ) while ( child = child.parentNode ) {
-				if( child == parent ) {
-					return true;
-				}
-			}
-			return false;
-		},
 		filter: function (selector) {
 			var property = null;
 			// speed optimization for "tag" & "id" filtering
@@ -726,25 +700,6 @@ provides: dom
 				result = true;
 			});
 			return result;
-		},
-		offset: function () {
-			var element = this.first;
-			if (element.offsetX != null) {
-				return { x: element.offsetX, y: element.offsetY };
-			}
-
-			var box = element.getBoundingClientRect(),
-				body    = document.body,
-				docElem = document.documentElement,
-				scrollLeft = window.pageXOffset || docElem.scrollLeft || body.scrollLeft,
-				scrollTop  = window.pageYOffset || docElem.scrollTop  || body.scrollTop,
-				clientLeft = docElem.clientLeft || body.clientLeft || 0,
-				clientTop  = docElem.clientTop  || body.clientTop  || 0;
-
-			return {
-				x: Math.round(box.left + scrollLeft - clientLeft),
-				y: Math.round(box.top  + scrollTop  - clientTop )
-			};
 		},
 		log : function () {
 			console.log('atom.dom: ', this.elems);
@@ -1294,10 +1249,6 @@ var wrap = function(self, key, method){
 };
 
 var getInstance = function(Class){
-	if (atom.declare && Class instanceof atom.declare) {
-		return atom.declare.config.methods.proto(Class);
-	}
-
 	prototyping = true;
 	var proto = new Class;
 	prototyping = false;
@@ -1751,9 +1702,14 @@ declare = function (declareName, params) {
 		};
 	}
 
+	// we need this for shorter line in chrome debugger;
+	function make (a) {
+		return methods.construct.call(this, Constructor, a);
+	}
+
 	// line break for more user-friendly debug string
 	function Constructor()
-	{ return methods.construct.call(this, Constructor, arguments) }
+	{ return make.call(this, arguments) }
 
 	for (var i = 0, l = mutators.length; i < l; i++) {
 		mutators[i].fn( Constructor, params[mutators[i].name] );
@@ -1783,10 +1739,6 @@ declare.prototype.bindMethods = function (methods) {
 
 	for (i = methods.length; i--;) this.bindMethods( methods[i] );
 	return this;
-};
-
-declare.prototype.toString = function () {
-	return '[object ' + (this.constructor.NAME || 'Declare') + ']';
 };
 
 declare.NAME = 'atom.declare';
@@ -1850,11 +1802,13 @@ methods = {
 		prototyping = false;
 		return result;
 	},
+	fetchArgs: function (args) {
+		args = slice.call(factory ? args[0] : args);
+		factory = false;
+		return args;
+	},
 	construct: function (Constructor, args) {
-		if (factory) {
-			args = args[0];
-			factory = false;
-		}
+		args = methods.fetchArgs(args);
 
 		if (prototyping) return this;
 
@@ -2041,7 +1995,7 @@ provides: Events
 ...
 */
 
-var Events = declare( 'atom.Events',
+declare( 'atom.Events',
 /** @class atom.Events */
 {
 
@@ -2249,7 +2203,9 @@ provides: Settings
 ...
 */
 
-var Settings = declare( 'atom.Settings',
+
+declare( 'atom.Settings',
+/** @class atom.Settings */
 {
 	/** @private */
 	recursive: false,
@@ -2282,24 +2238,24 @@ var Settings = declare( 'atom.Settings',
 	},
 
 	/**
-	 * @param {string|Array} name
+	 * @param {String} name
 	 */
-	get: atom.core.overloadGetter(function (name) {
+	get: function (name) {
 		return this.values[name];
-	}, true),
+	},
 
 	/**
 	 * @param {Object} options
 	 * @return atom.Options
 	 */
-	set: atom.core.ensureObjectSetter(function (options) {
+	set: function (options) {
 		var method = this.recursive ? 'extend' : 'append';
 		if (this.isValidOptions(options)) {
 			atom.core[method](this.values, options);
 		}
 		this.invokeEvents();
 		return this;
-	}),
+	},
 
 	/**
 	 * @param {String} name
@@ -3163,7 +3119,7 @@ atom.array = {
 	 * sort array by property value or method returns
 	 * @param {Array} array
 	 * @param {string} method
-	 * @param {boolean} [reverse=false] (if true) first - smallest, last - biggest
+	 * @param {boolean} [reverse=false]
 	 * @returns {Array}
 	 */
 	sortBy : function (array, method, reverse) {
@@ -3715,184 +3671,6 @@ declare( 'atom.Color.Shift',
 /*
 ---
 
-name: "Keyboard"
-
-description: ""
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-requires:
-	- declare
-	- Events
-
-provides: Keyboard
-
-...
-*/
-
-var Keyboard = function () {
-
-var keyName,
-	codeNames = {},
-	keyCodes  = {
-		// Alphabet
-		a:65, b:66, c:67, d:68, e:69,
-		f:70, g:71, h:72, i:73, j:74,
-		k:75, l:76, m:77, n:78, o:79,
-		p:80, q:81, r:82, s:83, t:84,
-		u:85, v:86, w:87, x:88, y:89, z:90,
-		// Numbers
-		n0:48, n1:49, n2:50, n3:51, n4:52,
-		n5:53, n6:54, n7:55, n8:56, n9:57,
-		// Controls
-		tab:  9, enter:13, shift:16, backspace:8,
-		ctrl:17, alt  :18, esc  :27, space    :32,
-		menu:93, pause:19, cmd  :91,
-		insert  :45, home:36, pageup  :33,
-		'delete':46, end :35, pagedown:34,
-		// F*
-		f1:112, f2:113, f3:114, f4 :115, f5 :116, f6 :117,
-		f7:118, f8:119, f9:120, f10:121, f11:122, f12:123,
-		// numpad
-		np0: 96, np1: 97, np2: 98, np3: 99, np4:100,
-		np5:101, np6:102, np7:103, np8:104, np9:105,
-		npslash:11,npstar:106,nphyphen:109,npplus:107,npdot:110,
-		// Lock
-		capslock:20, numlock:144, scrolllock:145,
-
-		// Symbols
-		equals: 61, hyphen   :109, coma  :188, dot:190,
-		gravis:192, backslash:220, sbopen:219, sbclose:221,
-		slash :191, semicolon: 59, apostrophe: 222,
-
-		// Arrows
-		aleft:37, aup:38, aright:39, adown:40
-	};
-
-for (keyName in keyCodes) codeNames[ keyCodes[keyName] ] = keyName;
-
-return declare( 'atom.Keyboard',
-{
-	own: {
-		keyCodes : keyCodes,
-		codeNames: codeNames,
-		keyName: function (code) {
-			if (code && code.keyCode != null) {
-				code = code.keyCode;
-			}
-
-			var type = typeof code;
-
-			if (type == 'number') {
-				return this.codeNames[code.keyCode];
-			} else if (type == 'string' && code in this.keyCodes) {
-				return code;
-			}
-
-			return null;
-		}
-	},
-	prototype: {
-		initialize : function (element, preventDefault) {
-			if (Array.isArray(element)) {
-				preventDefault = element;
-				element = null;
-			}
-			if (element == null) element = window;
-
-			if (element == window) {
-				if (this.constructor.instance) {
-					return this.constructor.instance;
-				}
-				this.constructor.instance = this;
-			}
-
-			this.events = new Events(this);
-			this.keyStates = {};
-			this.preventDefault = preventDefault;
-
-			atom.dom(element).bind({
-				keyup:    this.keyEvent('up'),
-				keydown:  this.keyEvent('down'),
-				keypress: this.keyEvent('press')
-			});
-		},
-		/** @private */
-		keyEvent: function (event) {
-			return this.onKeyEvent.bind(this, event);
-		},
-		/** @private */
-		onKeyEvent: function (event, e) {
-			var key = this.constructor.keyName(e),
-				prevent = this.prevent(key);
-
-			e.keyName = key;
-
-			if (prevent) e.preventDefault();
-			this.events.fire( event, [e] );
-			
-			if (event == 'down') {
-				this.events.fire(key, [e]);
-				this.keyStates[key] = true;
-			} else if (event == 'up') {
-				this.events.fire(key + ':up', [e]);
-				delete this.keyStates[key];
-			} else if (event == 'press') {
-				this.events.fire(key + ':press', [e]);
-			}
-			
-			return !prevent;
-		},
-		/** @private */
-		prevent : function (key) {
-			var pD = this.preventDefault;
-			return pD && (pD === true || pD.indexOf(key) >= 0);
-		},
-		key: function (keyName) {
-			return !this.keyStates[ this.constructor.keyName(keyName) ];
-		}
-	}
-});
-
-}();
-
-
-/*
----
-
-name: "Registry"
-
-description: ""
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-requires:
-	- declare
-
-provides: Registry
-
-...
-*/
-
-var Registry = declare( 'atom.Registry', {
-	initialize: function () {
-		this.items = {};
-	},
-	set: atom.core.overloadSetter(function (name, value) {
-		this.items[name] = value;
-	}),
-	get: atom.core.overloadGetter(function (name) {
-		return this.items[name];
-	})
-});
-
-/*
----
-
 name: "trace"
 
 description: ""
@@ -3980,7 +3758,7 @@ atom.trace = declare( 'atom.trace', {
 		destroy : function (force) {
 			var trace = this;
 			if (force) this.stop();
-			trace.node.addClass('atom-trace-node-destroy');
+			trace.node.css('background', '#300');
 			trace.timeout = setTimeout(function () {
 				if (trace.node) {
 					trace.node.destroy();
@@ -3996,9 +3774,19 @@ atom.trace = declare( 'atom.trace', {
 		},
 		/** @private */
 		getContainer : function () {
-			var cont = atom.dom('#atom-trace-container');
+			var cont = atom.dom('#traceContainer');
 			return cont.length ? cont :
-				atom.dom.create('div', { 'id' : 'atom-trace-container'})
+				atom.dom.create('div', { 'id' : 'traceContainer'})
+					.css({
+						'zIndex'   : '87223',
+						'position' : 'fixed',
+						'top'      : '3px',
+						'right'    : '6px',
+						'maxWidth' : '70%',
+						'maxHeight': '100%',
+						'overflowY': 'auto',
+						'background': 'rgba(0,192,0,0.2)'
+					})
 					.appendTo('body');
 		},
 		/** @deprecated */
@@ -4007,25 +3795,58 @@ atom.trace = declare( 'atom.trace', {
 			return this;
 		},
 		/** @private */
+		events : function (remove) {
+			var trace = this;
+			// add events unbind
+			!remove || trace.node.bind({
+				mouseover : function () {
+					trace.node.css('background', '#222');
+				},
+				mouseout  : function () {
+					trace.node.css('background', '#000');
+				},
+				mousedown : function () {
+					trace.blocked = true;
+				},
+				mouseup : function () {
+					trace.blocked = false;
+				}
+			});
+			return trace.node;
+		},
+		/** @private */
 		createNode : function () {
 			var trace = this, node = trace.node;
 
 			if (node) {
 				if (trace.timeout) {
 					clearTimeout(trace.timeout);
-					node.removeClass('atom-trace-node-destroy');
+					trace.events(node);
+					node.css('background', '#000');
 				}
 				return node;
 			}
 
-			return trace.node = atom.dom
+			trace.node = atom.dom
 				.create('div')
-				.addClass('atom-trace-node')
+				.css({
+					background : '#000',
+					border     : '1px dashed #0c0',
+					color      : '#0c0',
+					cursor     : 'pointer',
+					fontFamily : 'monospace',
+					margin     : '1px',
+					minWidth   : '200px',
+					overflow   : 'auto',
+					padding    : '3px 12px',
+					whiteSpace : 'pre'
+				})
 				.appendTo(trace.getContainer())
 				.bind({
 					click    : function () { trace.destroy(0) },
 					dblclick : function () { trace.destroy(1) }
 				});
+			return trace.events();
 		}
 	}
 });

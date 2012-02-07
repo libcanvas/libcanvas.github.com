@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Projective Image</title>
+		<link href="/archive/old/filesve/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/filesve/old/files/js/atom.js"></script>
+		<script src="/archive/old/filesve/old/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+LibCanvas.extract();
+atom.dom(function () {
+
+	var Projective = atom.Class({
+		Extends: Drawable,
+
+		initialize: function () {
+			this.shape = new LibCanvas.Shapes.Polygon([
+				[200, 140],
+				[400,  10],
+				[400, 490],
+				[200, 360]
+			]);
+		},
+
+		draw: function () {
+			this.libcanvas.ctx.projectiveImage({
+				image: this.libcanvas.getImage('test'),
+				to: this.shape,
+				patchSize: 27,
+				limit: 5
+			})
+			.stroke( this.shape, 'rgba(255, 0, 0, 0.3)' );
+		}
+	});
+
+	var libcanvas = new LibCanvas('canvas', {
+		preloadImages: { test: '/files/img/html5-logo.png' }
+	})
+	.size(800, 500, true)
+	.listenMouse()
+	.start()
+	.addEvent( 'ready', function () {
+
+		var proj = new Projective;
+
+		libcanvas.addElement( proj ).update();
+
+		proj.shape.points.forEach(function (p) {
+			libcanvas.createShaper({
+				shape: new Circle(p, 5),
+				fill: 'red'
+			})
+			.draggable();
+		});
+	})
+	.update();
+});
+		</script>
+		<script src="/archive/old/filesve/old/files/js/google-analytics.js"></script>
+	</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Draggable objects</title>
+		<link href="/archive/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/files/js/atom.js"></script>
+		<script src="/archive/old/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<p>Mouse Wheel - rotating</p>
+		<p>Z + Mouse Wheel - scaling</p>
+		<script src="/archive/old/files/js/ui-core.js"></script>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	UiCore.libcanvas = new LibCanvas('canvas')
+		.listenMouse()
+		.listenKeyboard()
+		.size(600, 300, true)
+		.start();
+
+	var first = new Polygon([
+		[120,  30],
+		[200,  10],
+		[240, 120],
+		[150, 150],
+		[100, 100]
+	]);
+	var second = new Polygon([
+		[420,  50],
+		[500,  10],
+		[440, 120],
+		[550, 150],
+		[400, 200],
+		[300,  10]
+	]);
+
+	var checkTrace = new Trace(false);
+
+	var check = function () {
+		var intersect = first.intersect(second);
+		first.shaper.lineWidth = second.shaper.lineWidth = intersect ? 4 : 1;
+		checkTrace.value = intersect;
+	};
+
+	[first, second].forEach(function (poly, i) {
+		poly.shaper = UiCore.libcanvas
+			.createShaper({
+				shape : poly,
+				fill   : 'rgba( 50, 0, 0, 0.65)',
+				stroke : 'rgba(100, 0, 0, 0.65)',
+				hover  : { fill : 'rgba(100, 0, 0, 0.65)', stroke : 'rgba(150, 0, 0, 0.65)' },
+				active : { fill : 'rgba(0, 100, 0, 0.65)', stroke : 'rgba(0, 150, 0, 0.65)' }
+			})
+			.listenMouse()
+			.clickable()
+			.draggable(check)
+			.setZIndex(i + 1);
+	});
+
+	[].append(first.points, second.points).forEach(function (point, i) {
+		UiCore.libcanvas
+			.createShaper({
+				shape  : new Circle(point, 4),
+				stroke : "#f00",
+				hover  : { stroke : "#f66" },
+				active : { stroke : "#0f0" },
+				lineWidth: 0.5
+			})
+			.listenMouse()
+			.setZIndex(i + 4)
+			.clickable()
+			.draggable();
+	});
+
+	UiCore.libcanvas.mouse.addEvent('wheel', function (e) {
+		var poly = first.shaper.hover ? first : second.shaper.hover ? second : null;
+		if (poly) {
+			if (UiCore.libcanvas.getKey('z')) {
+				poly.scale( e.down ? 1.3 : 0.7, e.offset );
+			} else {
+				poly.rotate( e.delta * (6).degree(), e.offset );
+			}
+			UiCore.libcanvas.update();
+			e.preventDefault();
+		}
+	});
+
+	UiCore.libcanvas.update();
+};
+		</script>
+		<script src="/archive/old/files/js/google-analytics.js"></script>
+	</body>
+</html>

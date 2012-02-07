@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Rounded rectangle, ellipse</title>
+		<link href="/archive/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/files/js/atom.js"></script>
+		<script src="/archive/old/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script src="/archive/old/files/js/ui-core.js"></script>
+		<script>
+new function () {
+	var rect = new LibCanvas.Shapes.RoundedRectangle(50, 50, 150, 40).setRadius(10),
+		ellipse = new LibCanvas.Shapes.Ellipse(120, 130, 150, 60);
+
+	UiCore.libcanvas = new LibCanvas('canvas')
+		.listenMouse()
+		.size(400, 250, true);
+
+	UiCore.createShaper( rect, 1 )
+		.listenMouse()
+		.clickable()
+		.draggable();
+
+	UiCore.createShaper( ellipse, 2 )
+		.listenMouse()
+		.clickable()
+		.draggable();
+
+	UiCore.libcanvas.start().update();
+
+};
+		</script>
+		<script src="/archive/old/files/js/google-analytics.js"></script>
+	</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Plain Image</title>
+		<link href="/archive/old/filesve/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/filesve/old/files/js/atom.js"></script>
+		<script src="/archive/old/filesve/old/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+LibCanvas.extract();
+atom.dom(function () {
+
+	var ImageDrawer = atom.Class({
+		Extends: DrawableSprite,
+
+		Implements: Draggable,
+
+		initialize: function (libcanvas, spriteName, shape) {
+			libcanvas.addElement( this );
+			this.sprite = libcanvas.getImage( spriteName );
+			this.shape  = Rectangle(shape);
+			this.zIndex = 0;
+		}
+	});
+
+	new LibCanvas('canvas', {
+		preloadImages: { html5: '/files/img/html5-logo.png' }
+	})
+	.listenMouse()
+	.size(800, 500, true)
+	.start()
+	.addEvent('ready', function () {
+		var drawer = new ImageDrawer( this, 'html5', [64, 64, 256, 256] );
+
+		drawer.draggable().addEvent( 'moveDrag', this.update );
+
+		[drawer.shape.from, drawer.shape.to].forEach(function (point, i) {
+			var shaper = this.createShaper({
+				shape: new Circle(point, 5),
+				fill : 'red'
+			}).draggable();
+			shaper.zIndex = i+1;
+		}.bind(this));
+	})
+	.update();
+});
+		</script>
+		<script src="/archive/old/filesve/old/files/js/google-analytics.js"></script>
+	</body>
+</html> 

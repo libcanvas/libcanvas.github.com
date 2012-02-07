@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Gradients</title>
+		<link href="/archive/old/filesve/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/filesve/old/files/js/atom.js"></script>
+		<script src="/archive/old/filesve/old/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var libcanvas = new LibCanvas('canvas')
+		.listenMouse()
+		.size(400, 250, true)
+		.start();
+
+	var LinearGradient = atom.Class({
+		Implements: [ Drawable, Draggable ],
+
+		method: 'createLinearGradient',
+
+		initialize: function (shape) {
+			this.shape = shape;
+
+			this.addEvent('libcanvasSet', function () {
+				this.draggable().addEvent('moveDrag', this.libcanvas.update);
+			});
+		},
+
+		draw: function () {
+			var ctx = this.libcanvas.ctx;
+			ctx.fill(this.shape, ctx
+				[this.method]( this.shape )
+				.addColorStop({
+					'0.0' : 'white',
+					'0.3' : 'blue',
+					'0.5' : 'yellow',
+					'0.7' : 'green',
+					'1.0' : 'red'
+				})
+			);
+
+		}
+	});
+
+	var RectangleGradient = atom.Class({
+		Extends: LinearGradient,
+		method: 'createRectangleGradient'
+	});
+
+	var RadialGradient = atom.Class({
+		Extends: LinearGradient,
+
+		initialize: function (outer, inner) {
+			this.parent( outer );
+			this.inner = inner;
+		},
+
+		fixed: function () {
+			this.shape.addEvent('move', function (diff) {
+				this.inner.move( diff );
+			}.bind(this));
+			return this;
+		},
+
+		draw: function () {
+			var ctx = this.libcanvas.ctx;
+			ctx.fill( this.shape, ctx
+				.createRadialGradient(this.inner, this.shape)
+				.addColorStop({
+					'0.0' : 'black',
+					'0.3' : 'blue',
+					'0.7' : 'green',
+					'1.0' : 'red'
+				})
+			);
+		}
+	});
+
+	[
+		new RadialGradient(
+			new Circle(340, 170, 50),
+			new Circle(340, 170, 10)
+		),
+		new RadialGradient(
+			new Circle(320, 55, 50),
+			new Circle(320, 55, 10)
+		).fixed(),
+		new LinearGradient( new Rectangle(20, 20, 200, 100) ),
+		new RectangleGradient( new Rectangle(80, 140, 200, 100) )
+	].forEach(function (gradient, z) {
+		gradient.zIndex = z;
+		libcanvas.addElement( gradient );
+		if (gradient.shape instanceof Rectangle) {
+			[gradient.shape.from, gradient.shape.to].forEach(function (point) {
+				libcanvas.createShaper({
+					shape: new Circle(point, 4),
+					stroke: 'white',
+					lineWidth: 2
+				})
+				.setZIndex(z+0.5)
+				.draggable();
+			});
+		}
+	});
+
+	libcanvas.update();
+};
+		</script>
+		<script src="/archive/old/filesve/old/files/js/google-analytics.js"></script>
+	</body>
+</html>

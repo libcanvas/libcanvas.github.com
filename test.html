@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: context «2d-libcanvas»</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+		<style>
+			.libcanvas-layers-container {
+				background: #333 url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAAXNSR0IArs4c6QAAAAZQTFRFIiIiMzMzM69ZzAAAAAFiS0dEAIgFHUgAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfbDA8HExBQqfxoAAAAGXRFWHRDb21tZW50AENyZWF0ZWQgd2l0aCBHSU1QV4EOFwAAABVJREFUCNdj+P+fgYGBigRVDfv/HwDtvT/BRFwEIAAAAABJRU5ErkJggg==');
+			}
+		</style>
+	</head>
+	<body>
+		<div id="app"> </div>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+
+	LibCanvas.extract();
+
+	var helper = new LibCanvas.App.Light({
+		name    : 'test',
+		size    : new Size(600, 400),
+		mouse   : true,
+		invoke  : true,
+		appendTo: '#app'
+	});
+
+	[ ['#b22222', new Circle(200, 100, 60)]
+	, ['#009900', new Circle(200, 200, 45)]
+	, ['#3366cc', new Circle(200, 300, 75)]
+	].forEach(function (data, i) {
+		var element = helper.createVector({
+			behaviors: [ 'Draggable', 'Clickable' ],
+
+			shape : data[1],
+			zIndex: i,
+
+			fill   : data[0],
+			opacity: 0.5,
+			hover  : { opacity: 0.8 }
+		});
+
+		element.listenMouse();
+		element.behaviors.get('draggable').start();
+		element.behaviors.get('clickable').start();
+	});
+};
+		</script>
+	</body>
+</html>

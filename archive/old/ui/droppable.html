@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Droppable objects</title>
+		<link href="/archive/old/filesve/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/filesve/old/files/js/atom.js"></script>
+		<script src="/archive/old/filesve/old/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<p>Drop rectangle to circle</p>
+		<script src="/archive/old/filesve/old/files/js/ui-core.js"></script>
+		<script>
+new function () {
+	UiCore.libcanvas = new LibCanvas('canvas')
+		.listenMouse()
+		.size({
+			width : 400,
+			height: 250
+		}, true)
+		.start();
+
+	var shaper = function (type, z) {
+		return UiCore
+			.createShaper(UiCore.randomShape(type), z)
+			.listenMouse()
+			.clickable()
+			.draggable();
+	};
+
+	var circ = shaper('circle', 1);
+	var rect = shaper('rectangle', 2);
+
+	rect.drop(circ);
+
+	rect.addEvent('dropped', function (to) {
+		trace(to ?
+			'Rectangle dropped to circle' :
+			'Rectangle dropped NOT to circle'
+		);
+	});
+
+	UiCore.libcanvas.update();
+};
+		</script>
+		<script src="/archive/old/filesve/old/files/js/google-analytics.js"></script>
+	</body>
+</html>

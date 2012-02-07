@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Сцена</title>
+		<link href="/archive/old/filesve/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/filesve/old/files/js/atom.js"></script>
+		<script src="/archive/old/filesve/old/files/js/libcanvas.js"></script>
+		<style>
+			.libcanvas-layers-container {
+				border: 1px dashed green;
+				background: #333 url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAAXNSR0IArs4c6QAAAAZQTFRFIiIiMzMzM69ZzAAAAAFiS0dEAIgFHUgAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfbDA8HExBQqfxoAAAAGXRFWHRDb21tZW50AENyZWF0ZWQgd2l0aCBHSU1QV4EOFwAAABVJREFUCNdj+P+fgYGBigRVDfv/HwDtvT/BRFwEIAAAAABJRU5ErkJggg==');
+			}
+		</style>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var logEvent = function (event) {
+		return function (e) {
+			new Trace( event + ': ' + this.options.name );
+			e.prevent();
+		};
+	};
+
+
+	var Element = atom.Class({
+		Extends: LibCanvas.Scene.Element,
+
+		Implements: [ Clickable, Draggable ],
+
+		initialize: function () {
+			this.parent.apply( this, arguments );
+			this
+				.clickable(this.redraw)
+				.draggable(this.redraw)
+				.addEvent({
+					click: logEvent( 'click' ),
+					dblclick: logEvent( 'dblclick' ),
+					contextmenu: logEvent( 'contextmenu' )
+				});
+
+			if (this.options.fall) {
+				this.addEvent(
+					['mousedown', 'mouseup', 'mousemove', 'dblclick'],
+					function (e) { e.fall() }
+				);
+			}
+		},
+
+		renderTo: function (ctx) {
+			var color;
+
+			if (this.hover) {
+				color = this.active ? '#f00' : '#600';
+			} else {
+				color = this.active ? '#0f0' : '#060';
+			}
+
+			ctx.save();
+			if (this.options.fall) ctx.set( 'globalAlpha', 0.5 );
+			ctx
+				.fill( this.shape, color )
+				.stroke( this.shape.clone().snapToPixel(), 'black' )
+				.text({
+					text: this.options.name,
+					to  : this.shape,
+					align: 'center',
+					weight: 'bold'
+				});
+			ctx.restore();
+
+			return this.parent( ctx );
+		}
+	});
+
+	atom.dom(function (atom, $) {
+		var app = new LibCanvas.App( 'canvas', {
+			fpsMeter: true,
+			mouse   : true,
+			width   : 600,
+			height  : 300
+		});
+
+		var scene1 = app.createScene('first');
+		new Element( scene1, {
+			name  : '1/first',
+			zIndex: 1,
+			shape : new Rectangle( 150, 50, 100, 100 )
+		});
+		new Element( scene1, {
+			name  : '1/second',
+			zIndex: 2,
+			shape : new Rectangle( 300, 50, 100, 100 )
+		});
+
+		var scene2 = app.createScene('second');
+		new Element( scene2, {
+			name  : '2/third',
+			zIndex: 3,
+			fall  : true,
+			shape : new Rectangle( 100, 100, 100, 100 )
+		});
+		new Element( scene2, {
+			name  : '2/forth',
+			zIndex: 4,
+			shape : new Rectangle( 350, 100, 100, 100 )
+		});
+	});
+}
+		</script>
+	</body>
+</html>

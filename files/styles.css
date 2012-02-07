@@ -5,15 +5,12 @@ html, body {
 	-webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 a {
-	color: royalblue;
+	color: #4169e1;
 }
 a:visited {
 	color: #cc33cc;
 }
-* {
-	outline: none;
-}
-#app, .libcanvas-layers-container {
+.libcanvas-layers-container {
 	border: 1px solid #666;
 	margin: 12px;
 }
@@ -22,4 +19,32 @@ input {
 	background: black;
 	border:  1px solid #666;
 	padding:  2px 10px;
+}
+
+#atom-trace-container {
+	z-index   : 87223;
+	position  : fixed;
+	top       : 3px;
+	right     : 6px;
+	max-width : 70%;
+	max-height: 100%;
+	overflow-y: auto;
+	background: rgba(0,192,0,0.2);
+}
+
+.atom-trace-node {
+	background : #000;
+	border     : 1px dashed #0c0;
+	color      : #0c0;
+	cursor     : pointer;
+	font-family: monospace;
+	margin     : 1px;
+	min-width  : 200px;
+	overflow   : auto;
+	padding    : 3px 12px;
+	white-space: pre;
+}
+
+.atom-trace-node-destroy {
+	background : #300;
 }

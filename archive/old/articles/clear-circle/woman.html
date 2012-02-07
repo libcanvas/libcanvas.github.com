@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Mosaic</title>
+		<link href="/archive/old/filesve/old/files/styles.css" rel="stylesheet" />
+		<script src="/archive/old/filesve/old/files/js/atom.js"></script>
+		<script src="/archive/old/filesve/old/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p>Drag the circle</p>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+
+	LibCanvas.extract();
+
+	new LibCanvas.App( 'canvas', {
+			preloadImages: {
+				woman : 'woman.jpg',
+				hidden: 'woman-hidden.png'
+			},
+			mouse  : true,
+			width  : 600,
+			height : 400
+		})
+		.ready(function () {
+			var
+				scene = this.createScene( 'hidden', { intersection: 'manual' }),
+				resources = scene.resources;
+
+			// background
+			this.libcanvas.ctx.drawImage( resources.getImage('woman') );
+
+			// cover
+			scene.libcanvas.ctx.drawImage( resources.getImage('hidden') );
+
+			new Viewer( scene, {
+				shape: new Circle(465, 165, 100),
+				image: resources.getImage('hidden')
+			})
+			.draggable();
+		});
+
+	var Viewer = atom.Class({
+		Extends: LibCanvas.Scene.Element,
+
+		Implements: LibCanvas.Behaviors.Draggable,
+
+		initialize: function (scene, options) {
+			this.parent( scene, options );
+
+			this.addEvent( 'moveDrag', function (diff) {
+				// убедимся, что круг находится в пределах изображения
+				var
+					x = 0, y = 0,
+					rect  = this.currentBoundingShape,
+					image = this.image;
+
+				if (rect.from.x < 0) x = -rect.from.x;
+				if (rect.from.y < 0) y = -rect.from.y;
+				if (rect.to.x > image.width ) x = image.width-rect.to.x;
+				if (rect.to.y > image.height) y = image.height-rect.to.y;
+
+				if (x || y) this.shape.center.move([x, y]);
+
+				this.redraw();
+			});
+		},
+
+		get image () {
+			return this.options.image;
+		},
+
+		get currentBoundingShape () {
+			return this.shape
+				.getBoundingRectangle()
+				.fillToPixel();
+		},
+
+		clearPrevious: function ( ctx ) {
+			var shape = this.previousBoundingShape;
+
+			ctx.drawImage({
+				image: this.image,
+				draw : shape,
+				crop : shape
+			});
+			return this;
+		},
+
+		renderTo: function (ctx) {
+			ctx.clear( this.shape );
+			this.parent( ctx );
+		}
+	});
+};
+		</script>
+		<script src="/archive/old/filesve/old/files/js/google-analytics.js"></script>
+	</body>
+</html>
