@@ -662,8 +662,8 @@ var Color = LibCanvas.Utils.Color = Class({
 		];
 		if ((color.a != null) || (this.a != null)) {
 			result.push(
-				color.a == null ? 1 : color.a -
-				this .a == null ? 1 : this .a
+				(color.a == null ? 1 : color.a) -
+				(this .a == null ? 1 : this .a)
 			);
 		}
 		return result;
