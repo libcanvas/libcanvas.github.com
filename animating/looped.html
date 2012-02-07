@@ -36,12 +36,12 @@ new function () {
 			stroke: '#4c4c4c',
 			lineWidth: 1
 		},
-		time : 900,
+		time : 800,
 		onFinish: function (prevAnim, prevProps) {
 			shaper.animate({
 				props: prevProps,
 				fn : 'bounce-out',
-				time : 600,
+				time : 800,
 				onFinish: prevAnim.repeat
 			});
 		}
