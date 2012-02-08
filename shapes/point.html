@@ -8,41 +8,29 @@
 		<script src="/files/js/libcanvas.js"></script>
 	</head>
 	<body>
-		<div id="app"></div>
 		<p><a href="/">Return to index</a></p>
 		<script>
 new function () {
+	var helper, center, cursor, vectors, text;
+
 	LibCanvas.extract();
 
-	var helper = new LibCanvas.App.Light({
-		name    : 'test',
-		size    : new Size(600, 400),
-		mouse   : true,
-		invoke  : true,
-		appendTo: '#app'
-	});
+	helper = new LibCanvas.App.Light(new Size(600, 400));
 
-	var center  = helper.app.container.rectangle.center,
-	    cursor  = center.clone(),
-	    cirFrom = new Circle( center, 5 ),
-	    cirTo   = new Circle( cursor, 3 ),
-	    line    = new Line( center, cursor );
+	center = helper.app.rectangle.center;
+	cursor = center.clone();
 
-	var vectors = [
-		helper.createVector({ shape: cirFrom, fill  : '#876' }),
-		helper.createVector({ shape: cirTo  , fill  : '#876' }),
-		helper.createVector({ shape: line   , stroke: '#543' })
+	vectors = [
+		helper.createVector(new Circle( center, 5 )   ).setStyle({ fill  : '#876' }),
+		helper.createVector(new Circle( cursor, 3 )   ).setStyle({ fill  : '#876' }),
+		helper.createVector(new Line( center, cursor )).setStyle({ stroke: '#543' })
 	];
 
-	var text = helper.createText({
-		shape: new Rectangle(16, 8, 150, 80),
-		style: {
-			family: 'monospace',
-			color : '#eda'
-		}
+	text = helper.createText(new Rectangle(16, 8, 150, 80), {
+		family: 'monospace', color : '#eda'
 	});
 
-	helper.app.resources.get( 'mouse' ).events.add({
+	helper.mouse.events.add({
 		move: function () {
 			cursor.set(this.point);
 			text.content = [
@@ -60,6 +48,5 @@ new function () {
 	});
 };
 		</script>
-		<script src="/archive/old/files/js/google-analytics.js"></script>
 	</body>
 </html>

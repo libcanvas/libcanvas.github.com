@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Polygon</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<p><a href="/">Return to index</a></p>
+		<p>Mouse Wheel - rotating</p>
+		<p>Z + Mouse Wheel - scaling</p>
+		<script>
+new function () {
+	var helper, first, second, keyboard = new atom.Keyboard(), vv;
+
+	LibCanvas.extract();
+
+	helper = new LibCanvas.App.Light(new Size(600, 400));
+
+
+	first = new Polygon([
+		[120,  30],
+		[200,  10],
+		[240, 120],
+		[150, 150],
+		[100, 100]
+	]);
+	second = new Polygon([
+		[420,  50],
+		[500,  10],
+		[440, 120],
+		[550, 150],
+		[400, 200],
+		[300,  10]
+	]);
+
+
+
+	[first, second].forEach(function (poly, i) {
+		var vector = helper.createVector(poly)
+			.setStyle({ opacity: 0.65, fill: '#300', stroke: '#600' })
+			.setStyle( 'hover' ,     { fill: '#600', stroke: '#900' })
+			.setStyle( 'active',     { fill: '#060', stroke: '#090' });
+		
+		vector.zIndex = i;
+		vector.behaviors.get('clickable').start();
+		vector.behaviors.get('draggable').start();
+		vector.events.add( 'wheel', function (e) {
+			if (keyboard.key('z')) {
+				poly.scale( e.delta < 0 ? 1.3 : 0.7, helper.mouse.point );
+			} else {
+				poly.rotate( e.delta * (6).degree(), helper.mouse.point );
+			}
+			vector.redraw();
+			e.preventDefault();
+		});
+
+		vv = vector;
+	});
+
+	[].append(first.points, second.points).forEach(function (point, i) {
+		var vector = helper.createVector(new Circle(point, 5))
+			.setStyle({opacity: 0, stroke: '#f66' })
+			.setStyle('hover' , { opacity: 1 })
+			.setStyle('active', { stroke : '#0f0' });
+
+		vector.zIndex = i+4;
+		vector.behaviors.get('clickable').start();
+		vector.behaviors.get('draggable').start();
+	});
+};
+		</script>
+	</body>
+</html>

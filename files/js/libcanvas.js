@@ -124,6 +124,10 @@ var App = declare( 'LibCanvas.App', {
 		atom.frame.add( this.tick );
 	},
 
+	get rectangle () {
+		return this.container.rectangle;
+	},
+
 	/**
 	 * return "-1" if left is higher, "+1" if right is higher & 0 is they are equals
 	 * @param {App.Element} left
@@ -275,6 +279,8 @@ App.Element = declare( 'LibCanvas.App.Element', {
 
 	/** @constructs */
 	initialize: function (scene, settings) {
+		this.bindMethods( 'redraw' );
+
 		this.events = new Events(this);
 		this.settings = new Settings({ hidden: false })
 			.set(settings)
@@ -829,7 +835,8 @@ App.Scene = declare( 'LibCanvas.App.Scene', {
 		var i = this.elements.length, e;
 		while (i--) {
 			e = this.elements[i];
-			if (e != elem && e.isVisible() && e.currentBoundingShape.intersect( shape )) {
+			// check if we need also `e.currentBoundingShape.intersect( shape )`
+			if (e != elem && e.isVisible() && e.previousBoundingShape.intersect( shape )) {
 				fn.call( this, e );
 			}
 		}
@@ -961,6 +968,7 @@ return declare( 'LibCanvas.Behaviors.Clickable', {
 		start: function () {
 			if (!this.changeStatus(true)) return this;
 
+			this.eventArgs(arguments, 'statusChange');
 			this.events.add(this.callbacks);
 		},
 
@@ -1031,6 +1039,7 @@ declare( 'LibCanvas.Behaviors.Draggable', {
 		start: function () {
 			if (!this.changeStatus(true)) return this;
 
+			this.eventArgs(arguments, 'moveDrag');
 			this.events.add( 'mousedown', this.onStart );
 		},
 
@@ -4111,10 +4120,16 @@ provides: App.Light
 
 App.Light = declare( 'LibCanvas.App.Light', {
 
-	initialize: function (settings) {
+	initialize: function (size, settings) {
 		var mouse, mouseHandler;
 
-		this.settings = new Settings({ name: 'main' }).set(settings);
+		this.settings = new Settings({
+			size    : Size(size),
+			name    : 'main',
+			mouse   : true,
+			invoke  : false,
+			appendTo: 'body'
+		}).set(settings || {});
 		this.app   = new App( this.settings.get(['size', 'appendTo']) );
 		this.scene = this.app.createScene(this.settings.get(['name','invoke']));
 		if (this.settings.get('mouse') === true) {
@@ -4125,12 +4140,19 @@ App.Light = declare( 'LibCanvas.App.Light', {
 		}
 	},
 
-	createVector: function (settings) {
+	createVector: function (shape, settings) {
+		settings = atom.append({ shape:shape }, settings || {});
+
 		return new App.Light.Vector(this.scene, settings);
 	},
 
-	createText: function (settings) {
-		return new App.Light.Text  (this.scene, settings);
+	createText: function (shape, style, settings) {
+		settings = atom.append({ shape: shape, style: style }, settings);
+		return new App.Light.Text(this.scene, settings);
+	},
+
+	get mouse () {
+		return this.app.resources.get( 'mouse' );
 	}
 
 });
@@ -4169,6 +4191,8 @@ App.Light.Text = atom.declare( 'LibCanvas.App.Light.Text', {
 		},
 
 		set content (c) {
+			if (Array.isArray(c)) c = c.join('\n');
+			
 			if (c != this.content) {
 				this.redraw();
 				this.settings.set('content', String(c) || '');
@@ -4220,15 +4244,18 @@ App.Light.Vector = atom.declare( 'LibCanvas.App.Light.Vector', {
 
 	prototype: {
 		configure: function () {
-			var
-				behaviors = this.settings.get('behaviors'),
-				i = behaviors && behaviors.length;
+			var behaviors = this.settings.get('behaviors');
 
-			if (i) {
-				this.behaviors = new Behaviors(this);
-				while (i--) {
-					this.behaviors.add(behaviors[i], this.redraw);
-				}
+			this.style       = {};
+			this.styleActive = {};
+			this.styleHover  = {};
+			
+			this.animate = new atom.Animatable(this).animate;
+			this.behaviors = new Behaviors(this);
+			this.behaviors.add('Draggable', this.redraw);
+			this.behaviors.add('Clickable', this.redraw);
+			if (this.settings.get('mouse') !== false) {
+				this.listenMouse();
 			}
 		},
 
@@ -4241,15 +4268,45 @@ App.Light.Vector = atom.declare( 'LibCanvas.App.Light.Vector', {
 			this.redraw();
 		},
 
-		getStyle: function (type) {
-			var s = this.settings;
-			return (this.active && s.get('active') && s.get('active')[type]) ||
-			       (this.hover  && s.get('hover')) && s.get('hover') [type]  ||
-								  s.get(type)  || null;
+		setStyle: function (key, values) {
+			if (typeof key == 'object') {
+				values = key;
+				key = '';
+			}
+			key = 'style' + atom.string.ucfirst(key);
+
+			atom.core.append( this[key], values );
+			return this.redraw();
 		},
+
+		getStyle: function (type) {
+			if (!this.style) return null;
+
+			var
+				active = (this.active || null) && this.styleActive[type],
+				hover  = (this.hover || null)  && this.styleHover [type],
+				plain  = this.style[type];
+
+			return active != null ? active :
+			       hover  != null ? hover  :
+			       plain  != null ? plain  : null;
+		},
+
+		/**
+		 * Override by Animatable method
+		 */
+		animate: function(){},
 
 		listenMouse: function () {
 			return this.scene.app.resources.get('mouseHandler').subscribe(this);
+		},
+
+		get currentBoundingShape () {
+			var
+				br = this.shape.getBoundingRectangle(),
+				lw = this.getStyle('stroke') && (this.getStyle('lineWidth') || 1);
+
+			return lw ? br.fillToPixel().grow(2 * Math.ceil(lw)) : br;
 		},
 
 		renderTo: function (ctx) {
@@ -4258,11 +4315,15 @@ App.Light.Vector = atom.declare( 'LibCanvas.App.Light.Vector', {
 			    lineW   = this.getStyle('lineWidth'),
 			    opacity = this.getStyle('opacity');
 
+			if (opacity === 0) return this;
+			
 			ctx.save();
-			if (lineW  ) ctx.lineWidth   = lineW;
-			if (opacity) ctx.globalAlpha = opacity;
-			if (fill   ) ctx.fill  (this.shape, fill  );
-			if (stroke ) ctx.stroke(this.shape, stroke);
+			if (opacity) ctx.globalAlpha = atom.number.round(opacity, 3);
+			if (fill) ctx.fill(this.shape, fill);
+			if (stroke ) {
+				ctx.lineWidth = lineW || 1;
+				ctx.stroke(this.shape, stroke);
+			}
 			ctx.restore();
 			return this;
 		}

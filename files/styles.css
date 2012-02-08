@@ -14,6 +14,11 @@ a:visited {
 	border: 1px solid #666;
 	margin: 12px;
 }
+
+body.chess .libcanvas-layers-container {
+	border: 1px dashed green;
+	background: #333 url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAAXNSR0IArs4c6QAAAAZQTFRFIiIiMzMzM69ZzAAAAAFiS0dEAIgFHUgAAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQfbDA8HExBQqfxoAAAAGXRFWHRDb21tZW50AENyZWF0ZWQgd2l0aCBHSU1QV4EOFwAAABVJREFUCNdj+P+fgYGBigRVDfv/HwDtvT/BRFwEIAAAAABJRU5ErkJggg==');
+}
 input {
 	color: white;
 	background: black;
