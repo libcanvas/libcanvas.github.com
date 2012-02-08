@@ -13,12 +13,11 @@
 		<p>Z + Mouse Wheel - scaling</p>
 		<script>
 new function () {
-	var helper, first, second, keyboard = new atom.Keyboard(), vv;
+	var helper, first, second, keyboard = new atom.Keyboard();
 
 	LibCanvas.extract();
 
 	helper = new LibCanvas.App.Light(new Size(600, 400));
-
 
 	first = new Polygon([
 		[120,  30],
@@ -35,7 +34,6 @@ new function () {
 		[400, 200],
 		[300,  10]
 	]);
-
 
 
 	[first, second].forEach(function (poly, i) {
@@ -56,8 +54,6 @@ new function () {
 			vector.redraw();
 			e.preventDefault();
 		});
-
-		vv = vector;
 	});
 
 	[].append(first.points, second.points).forEach(function (point, i) {
