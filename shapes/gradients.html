@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Gradients</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	var helper, LinearGradient, RadialGradient, Gradient, linear, rectangle, circle;
+
+	LibCanvas.extract();
+
+	helper = new LibCanvas.App.Light(new Size(600, 400));
+
+	Gradient = atom.declare({
+		parent: LibCanvas.App.Element,
+
+		prototype: {
+			configure: function () {
+				var behaviors = this.behaviors = new LibCanvas.Behaviors(this);
+				behaviors.add('Draggable', this.redraw).start();
+				behaviors.add('Clickable', this.redraw).start();
+			},
+
+			move: function (point) {
+				this.shape.move(point);
+			},
+
+			get mouse () {
+				return helper.app.resources.get('mouse');
+			}
+		}
+	});
+
+	LinearGradient = atom.declare({
+		parent: Gradient,
+
+		prototype: {
+			get method () {
+				return this.settings.get('method');
+			},
+
+			renderTo: function (ctx) {
+				var gradient = ctx[this.method]( this.shape ).addColorStop({
+					'0.0' : 'white',
+					'0.3' : 'blue',
+					'0.5' : 'yellow',
+					'0.7' : 'green',
+					'1.0' : 'red'
+				});
+
+				ctx.fill( this.shape, gradient );
+			}
+		}
+	});
+
+	RadialGradient = atom.declare({
+		parent: Gradient,
+
+		prototype: {
+			configure: function () {
+				Gradient.prototype.configure.call(this);
+				this.inner = new Circle(
+					this.shape.center,
+					this.settings.get('inner')
+				);
+			},
+
+			renderTo: function (ctx) {
+				var gradient = ctx.createRadialGradient( this.inner, this.shape ).addColorStop({
+						'0.0' : 'black',
+						'0.3' : 'blue',
+						'0.7' : 'green',
+						'1.0' : 'red'
+					});
+
+				ctx.fill( this.shape, gradient );
+			}
+		}
+	});
+	
+	
+	linear = new LinearGradient( helper.scene, {
+		shape : new Rectangle(20, 20, 200, 100),
+		method: 'createLinearGradient',
+		zIndex: 1
+	});
+
+	rectangle = new LinearGradient( helper.scene, {
+		shape : new Rectangle(80, 140, 200, 100),
+		method: 'createRectangleGradient',
+		zIndex: 2
+	});
+
+	circle = new RadialGradient( helper.scene, {
+		shape : new Circle(340, 170, 50),
+		inner : 10,
+		zIndex: 3
+	});
+
+	[linear, rectangle, circle].forEach(function (grad) {
+		helper.app.resources.get('mouseHandler').subscribe(grad);
+	});
+
+	[linear.shape.from, linear.shape.to, rectangle.shape.from, rectangle.shape.to]
+		.forEach(function (point) {
+			var vector = helper.createVector( new Circle(point, 4), { zIndex: 4 })
+				.setStyle({ stroke: 'white', lineWidth: 2 });
+
+			vector.behaviors.get('draggable').start();
+		});
+};
+		</script>
+		<script src="/archive/old/filesve/old/files/js/google-analytics.js"></script>
+	</body>
+</html>
