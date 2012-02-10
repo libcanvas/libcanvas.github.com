@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="utf-8" />
-		<title>LibCanvas :: Animating :: Base</title>
+		<title>LibCanvas :: Animating :: Looped</title>
 		<link href="/files/styles.css" rel="stylesheet" />
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
@@ -11,13 +11,13 @@
 		<p><a href="/">Return to index</a></p>
 		<script>
 new function () {
-	var helper, vectors;
+	var helper, vector;
 
 	LibCanvas.extract();
 
 	helper = new LibCanvas.App.Light(new Size(300, 300));
 
-	var vector = helper.createVector(new Circle(150, 150, 20)).setStyle({
+	vector = helper.createVector(new Circle(150, 150, 20)).setStyle({
 		fill  : '#4c4c4c',
 		stroke: '#2d2d2d',
 		opacity: 0.5,
@@ -38,15 +38,15 @@ new function () {
 			onComplete: function (animation) {
 				vector.animate({
 					fn: 'sine-out',
-					props: animation.initial,
-					time : 800,
+					time  : 800,
 					onTick: vector.redraw,
+					props : animation.initial,
 					onComplete: animation.start
 				})
 			},
 			time: 1200
 		});
-	}, 1000);
+	}, 500);
 };
 		</script>
 	</body>

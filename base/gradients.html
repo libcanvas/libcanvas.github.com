@@ -7,7 +7,7 @@
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
 	</head>
-	<body>
+	<body class="chess">
 		<p><a href="/">Return to index</a></p>
 		<script>
 new function () {
@@ -73,10 +73,11 @@ new function () {
 
 			renderTo: function (ctx) {
 				var gradient = ctx.createRadialGradient( this.inner, this.shape ).addColorStop({
-						'0.0' : 'black',
+						'0.0' : 'rgba(0,0,0,0.5)',
 						'0.3' : 'blue',
-						'0.7' : 'green',
-						'1.0' : 'red'
+						'0.5' : 'rgba(0,255,0,0.5)',
+						'0.8' : 'rgba(255,0,0,0.7)',
+						'1.0' : 'rgba(255,0,0,0.0)'
 					});
 
 				ctx.fill( this.shape, gradient );
@@ -116,6 +117,5 @@ new function () {
 		});
 };
 		</script>
-		<script src="/archive/old/filesve/old/files/js/google-analytics.js"></script>
 	</body>
 </html>
