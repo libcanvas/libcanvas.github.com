@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Take color</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<p><a href="/">Return to index</a></p>
+		<canvas width="800" height="400"></canvas>
+		<script>
+new function () {
+	var
+		canvas = atom.dom( 'canvas' ),
+		ctx    = canvas.first.getContext( '2d-libcanvas' ),
+		mouse  = new LibCanvas.Mouse( canvas ),
+		rect   = ctx.rectangle,
+		trace = {
+			rgb: atom.trace(),
+			hex: atom.trace()
+		};
+
+	ctx.fill( rect, ctx.createRectangleGradient(rect, {
+		'0.00': 'magenta',
+		'0.30': 'cyan',
+		'0.48': 'rgba(0,255,0,0.0)',
+		'0.52': 'rgba(0,255,0,0.0)',
+		'1.00': 'rgba(255,255,0,1)'
+	}));
+
+	mouse.events.add( 'move', function () {
+		var color = new atom.Color( ctx.getPixel(mouse.point) );
+		trace.rgb.value = color.toString();
+		trace.hex.value = color.toString( 'hex' );
+	});
+
+};
+		</script>
+	</body>
+</html>
