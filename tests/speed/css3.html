@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+	<head>
+		<title></title>
+		<style>
+div {
+	position: absolute;
+	background: black;
+	left: 10px;
+	top: 10px;
+	width: 50px;
+	height: 50px;
+	-webkit-transition: all 4s linear;
+	-moz-transition   : all 4s linear;
+	-o-transition     : all 4s linear;
+	-ms-transition    : all 4s linear;
+}
+div.moved {
+	left: 300px;
+}
+		</style>
+	</head>
+	<body>
+		<div></div>
+		<script>
+new function () {
+	var div = document.querySelector('div');
+	function next () {
+		div.className = 'moved';
+		setTimeout(function () {
+			div.className = '';
+			setTimeout(next, 4000);
+		}, 4000);
+	}
+	next();
+};
+		</script>
+	</body>
+</html>
