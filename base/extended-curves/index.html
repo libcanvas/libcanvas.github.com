@@ -11,7 +11,7 @@
 		<p> <label for="inverted">Inverted:</label> <input type="checkbox" id="inverted" checked /> </p>
 		<script>
 (function ($) {
-	var helper, from, to, cpFr, cpTo;
+	var helper, from, to, cpFr, cpTo, Curve, curve;
 
 	LibCanvas.extract();
 
@@ -43,7 +43,7 @@
 		curve.redraw();
 	});
 
-	var curve = new Curve( helper.scene, {
+	curve = new Curve( helper.scene, {
 		shape: new Polygon(from, to, cpFr, cpTo),
 		from  : from,
 		to    : to,

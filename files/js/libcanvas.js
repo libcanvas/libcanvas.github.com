@@ -362,6 +362,55 @@ App.Element = declare( 'LibCanvas.App.Element', {
 /*
 ---
 
+name: "App.ElementsMouseSearch"
+
+description: "LibCanvas.App.ElementsMouseSearch"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- App
+
+provides: App.ElementsMouseSearch
+
+...
+*/
+
+App.ElementsMouseSearch = declare( 'LibCanvas.App.ElementsMouseSearch', {
+
+	initialize: function () {
+		this.elements = [];
+	},
+
+	add: function (elem) {
+		this.elements.push( elem );
+		return this;
+	},
+
+	remove: function (elem) {
+		atom.core.eraseOne( this.elements, elem );
+		return this;
+	},
+
+	findByPoint: function (point) {
+		var e = this.elements, i = e.length, result = [];
+		while (i--) if (e[i].hasMousePoint( point )) {
+			result.push(e[i]);
+		}
+		return result;
+	}
+
+});
+
+/*
+---
+
 name: "App.Layer"
 
 description: ""
@@ -508,18 +557,22 @@ App.MouseHandler = declare( 'LibCanvas.App.MouseHandler', {
 		handler.lastMouseDown = [];
 		handler.subscribers   = [];
 
-		handler.app   = handler.settings.get('app');
-		handler.mouse = handler.settings.get('mouse');
+		handler.app    = handler.settings.get('app');
+		handler.mouse  = handler.settings.get('mouse');
 		handler.compareFunction = function (left, right) {
 			return handler.app.zIndexCompare(left, right, true);
 		};
+		handler.search =
+			handler.settings.get('search') ||
+			new App.ElementsMouseSearch(handler.subscribers);
 
 
-		[ 'down', 'up', 'move', 'out', 'dblclick', 'contextmenu', 'wheel' ].forEach(function (type) {
-			handler.mouse.events.add( type, function (e) {
-				handler.event(type, e, false);
+		[ 'down', 'up', 'move', 'out', 'dblclick', 'contextmenu', 'wheel' ]
+			.forEach(function (type) {
+				handler.mouse.events.add( type, function (e) {
+					handler.event(type, e);
+				});
 			});
-		});
 	},
 
 	stop: function () {
@@ -533,12 +586,19 @@ App.MouseHandler = declare( 'LibCanvas.App.MouseHandler', {
 	},
 
 	subscribe : function (elem) {
-		atom.array.include(this.subscribers, elem);
+		if (this.subscribers.indexOf(elem) == -1) {
+			this.subscribers.push(elem);
+			this.search.add(elem);
+		}
 		return this;
 	},
 
 	unsubscribe : function (elem) {
-		atom.array.erase(this.subscribers, elem);
+		var index = this.subscribers.indexOf(elem);
+		if (index != -1) {
+			this.subscribers.splice(index, 1);
+			this.search.remove(elem);
+		}
 		return this;
 	},
 
@@ -548,8 +608,16 @@ App.MouseHandler = declare( 'LibCanvas.App.MouseHandler', {
 		return value;
 	},
 
-	isOver: function (elem) {
-		return this.mouse.inside && elem.hasMousePoint( this.mouse.point );
+	getOverElements: function () {
+		if (!this.mouse.inside) return [];
+
+		var elements = this.search.findByPoint( this.mouse.point );
+
+		try {
+			return elements.sort( this.compareFunction );
+		} catch (e) {
+			throw new Error('Element binded to mouse, but without scene, check elements');
+		}
 	},
 
 	/** @private */
@@ -566,94 +634,44 @@ App.MouseHandler = declare( 'LibCanvas.App.MouseHandler', {
 	},
 
 	/** @private */
-	event: function (type, e, stopped) {
+	event: function (type, e) {
 		if (this.stopped) return;
 
 		var method = ['dblclick', 'contextmenu', 'wheel'].indexOf( type ) >= 0
 			? 'forceEvent' : 'parseEvent';
 		
-		return this[method]( type, e, stopped, this.subscribers );
+		return this[method]( type, e );
 	},
 
 	/** @private */
-	parseEvent: function (type, event, stopped, elements) {
+	parseEvent: function (type, event) {
 		if (type == 'down') this.lastMouseDown.length = 0;
 
 		var i, elem,
-			handler  = this,
-			lastDown = handler.lastMouseDown,
-			lastMove = handler.lastMouseMove,
-			lastOut  = [],
-			eventArgs = [event];
-
-		var fire = function (eventName) {
-			var children = this.childrenElements;
-			if (children && children.length) {
-				handler.parseEvent(type, event, stopped, children);
-			}
-			this.events.fire( eventName, eventArgs );
-		};
-
-		try {
-			elements.sort( this.compareFunction );
-		} catch (e) {
-			throw new Error('Element binded to mouse, but without scene, check elements');
-		}
+			elements = this.getOverElements(),
+			stopped  = false,
+			eventArgs = [event],
+			isChangeCoordEvent = (type == 'move' || type == 'out');
 
 		// В первую очередь - обрабатываем реальный mouseout с элементов
-		if (type == 'move' || type == 'out') {
-			for (i = lastMove.length; i--;) {
-				elem = lastMove[i];
-				if (elements.contains(elem) && !handler.isOver(elem)) {
-					fire.call( elem, 'mouseout' );
-					lastMove.erase(elem);
-					lastOut.push(elem);
-				}
-			}
+		if (isChangeCoordEvent) {
+			this.informOut(eventArgs, elements);
 		}
 
 		for (i = elements.length; i--;) {
 			elem = elements[i];
-			// предыдущий элемент принял "удар" на себя
-			// необходимо сообщить остальным элементам о mouseout
-			if (stopped) {
-				if (type == 'move' || type == 'out') {
-					if (elements.contains(elem) && lastMove.contains(elem)) {
-						fire.call( elem, 'mouseout' );
-						lastMove.erase(elem);
-					}
-				} else if (type == 'up') {
-					if (handler.isOver(elem)) {
-						fire.call( elem, 'mouseup' );
-						if (elements.contains(elem) && lastDown.contains(elem)) {
-							fire.call( elem, 'click' );
-						}
-					}
-				}
 			// мышь над элементом, сообщаем о mousemove
 			// о mouseover, mousedown, click, если необходимо
-			} else if (handler.isOver(elem)) {
-				if (type == 'move') {
-					if (!lastMove.contains(elem)) {
-						fire.call( elem, 'mouseover' );
-						lastMove.push( elem );
-					}
-				} else if (type == 'down') {
-					lastDown.push(elem);
-				// If mouseup on this elem and last mousedown was on this elem - click
-				} else if (type == 'up' && elements.contains(elem) && lastDown.contains(elem)) {
-					fire.call( elem, 'click' );
+			if (!stopped) {
+				if (this.fireElem( type, elem, eventArgs )) {
+					if (!isChangeCoordEvent) break;
 				}
-				fire.call( elem, 'mouse' + type );
-
-				if (!this.checkFalling()) {
-					stopped = true;
-				}
-			// мышь не над элементом, событие проваливается,
-			// сообщаем элементу, что где-то произошло событие
-			} else if (!lastOut.contains(elem)) {
-				// fast version
-				elem.events.fire( 'away:mouse' + type, eventArgs );
+			// предыдущий элемент принял событие на себя
+			// необходимо сообщить остальным элементам под ним о mouseout
+			// Но только если это событие передвижения или выхода за границы холста
+			// а не активационные, как маусдаун или маусап
+			} else {
+				this.stoppedElem(elem, eventArgs);
 			}
 		}
 
@@ -661,26 +679,64 @@ App.MouseHandler = declare( 'LibCanvas.App.MouseHandler', {
 	},
 
 	/** @private */
-	forceEvent: function (type, event, stopped, elements) {
+	informOut: function (eventArgs, elements) {
 		var
-			children,
 			elem,
-			i = elements.sort( this.compareFunction ).length;
+			lastMove = this.lastMouseMove,
+			i = lastMove.length;
 		while (i--) {
-			elem = elements[i];
-			if (!this.isOver(elem)) continue;
-
-			elem.events.fire( type, [ event ]);
-			children = elem.childrenElements;
-			if (children && children.length) {
-				this.forceEvent(type, event, stopped, children);
+			elem = lastMove[i];
+			if (!elements.contains(elem)) {
+				elem.events.fire( 'mouseout', eventArgs );
+				lastMove.splice(i, 1);
 			}
+		}
+	},
+
+	/** @private */
+	stoppedElem: function (elem, eventArgs) {
+		var
+			lastMove = this.lastMouseMove,
+			index    = lastMove.indexOf(elem);
+		if (index > -1) {
+			elem.events.fire( 'mouseout', eventArgs );
+			lastMove.splice(index, 1);
+		}
+	},
+
+	/** @private */
+	fireElem: function (type, elem, eventArgs) {
+		var
+			lastDown = this.lastMouseDown,
+			lastMove = this.lastMouseMove;
+
+		if (type == 'move') {
+			if (lastMove.indexOf(elem) < 0) {
+				elem.events.fire( 'mouseover', eventArgs );
+				lastMove.push( elem );
+			}
+		} else if (type == 'down') {
+			lastDown.push(elem);
+		// If mouseup on this elem and last mousedown was on this elem - click
+		} else if (type == 'up' && lastDown.indexOf(elem) > -1) {
+			elem.events.fire( 'click', eventArgs );
+		}
+		elem.events.fire( 'mouse' + type, eventArgs );
+
+		return !this.checkFalling();
+	},
+
+	/** @private */
+	forceEvent: function (type, event) {
+		var
+			elements = this.getOverElements(),
+			i = elements.length;
+		while (i--) {
+			elements[i].events.fire( type, [ event ]);
 			if (!this.checkFalling()) {
-				stopped = true;
 				break;
 			}
 		}
-		return stopped;
 	}
 
 });
@@ -3219,6 +3275,291 @@ var Size = declare( 'LibCanvas.Size', {
 		toObject: function () {
 			return { width: this.x, height: this.y };
 		}
+	}
+});
+
+/*
+---
+
+name: "HexProjection"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- Point
+
+provides: Shapes.Polygon
+
+...
+*/
+
+declare( 'LibCanvas.Engines.HexProjection', {
+	/**
+	 * @param {object} settings
+	 * @param {int} settings.baseLength  - length of top and bottom lines
+	 * @param {int} settings.chordLength - height of left and right triangle
+	 * @param {int} settings.hexHeight   - height of the hex (length between top and bottom lines)
+	 */
+	initialize: function (settings) {
+		this.settings = new Settings({
+			baseLength : 0,
+			chordLength: 0,
+			hexHeight  : 0,
+			start      : new Point(0, 0)
+		}).set(settings);
+	},
+
+	/**
+	 * @param {int} [padding=0]
+	 * @return LibCanvas.Engines.HexProjection.Sizes
+	 */
+	sizes: function (padding) {
+		return LibCanvas.Engines.HexProjection.Sizes(this, padding);
+	},
+
+	/**
+	 * @param {int[]} coordinates
+	 * @return Point
+	 */
+	rgbToPoint: function (coordinates) {
+		var
+			red      = coordinates[0],
+			green    = coordinates[1],
+			blue     = coordinates[2],
+			settings = this.settings,
+			base     = settings.get('baseLength'),
+			chord    = settings.get('chordLength'),
+			height   = settings.get('hexHeight'),
+			start    = settings.get('start');
+		if (red + green + blue !== 0) {
+			throw new Error( 'Wrong coordinates: ' + red + ' ' + green + ' ' + blue);
+		}
+
+		return new Point(
+			start.x + (base + chord) * red,
+			start.y + (blue - green) * height / 2
+		);
+	},
+
+	/**
+	 * @param {Point} point
+	 * @return int[]
+	 */
+	pointToRgb: function (point) {
+		var
+			settings = this.settings,
+			base     = settings.get('baseLength'),
+			chord    = settings.get('chordLength'),
+			height   = settings.get('hexHeight'),
+			start    = settings.get('start'),
+			// counting coords
+			red   = (point.x - start.x) / (base + chord),
+			blue  = (point.y - start.y - red * height / 2) / height,
+			green = 0 - red - blue;
+
+		var dist = function (c) {
+			return Math.abs(c[0] - red) + Math.abs(c[1] - green) + Math.abs(c[2] - blue);
+		};
+
+		var
+			rF = Math.floor(red  ), rC = Math.ceil(red  ),
+			gF = Math.floor(green), gC = Math.ceil(green),
+			bF = Math.floor(blue ), bC = Math.ceil(blue );
+
+		return [
+			// we need to find closest integer coordinates
+			[rF, gF, bF],
+			[rF, gC, bF],
+			[rF, gF, bC],
+			[rF, gC, bC],
+			[rC, gF, bF],
+			[rC, gC, bF],
+			[rC, gF, bC],
+			[rC, gC, bC]
+		].filter(function (v) {
+			// only correct variants - sum must be equals to zero
+			return atom.array.sum(v) == 0;
+		})
+		.sort(function (left, right) {
+			// we need coordinates with the smallest distance
+			return dist(left) < dist(right) ? -1 : 1;
+		})[0];
+	},
+
+	/**
+	 * @param {Point} center
+	 * @return LibCanvas.Shapes.Polygon
+	 */
+	createPolygon: function (center) {
+		var
+			settings   = this.settings,
+			halfBase   = settings.get('baseLength') / 2,
+			halfHeight = settings.get('hexHeight')  / 2,
+			radius     = halfBase + settings.get('chordLength'),
+
+			right  = center.x + halfBase,
+			left   = center.x - halfBase,
+			top    = center.y - halfHeight,
+			bottom = center.y + halfHeight;
+
+		return new Polygon([
+			new Point(left , top),                  // top-left
+			new Point(right, top),                  // top-right
+			new Point(center.x + radius, center.y), // right
+			new Point(right, bottom),               // bottom-right
+			new Point(left , bottom),               // bottom-left
+			new Point(center.x - radius, center.y)  // left
+		]);
+	}
+});
+
+declare( 'LibCanvas.Engines.HexProjection.Sizes', {
+
+	initialize: function (projection, padding) {
+		this.projection = projection;
+		this.padding    = padding || 0;
+		this.centers    = [];
+	},
+
+	_limits: null,
+
+	/**
+	 * @param {int[]} coordinates
+	 * @return LibCanvas.Engines.HexProjection.Size
+	 */
+	add: function (coordinates) {
+		this._limits = null;
+		this.centers.push(this.projection.rgbToPoint( coordinates ));
+		return this;
+	},
+
+	/** @return object */
+	limits: function () {
+		if (this._limits) return this._limits;
+
+		var min, max, centers = this.centers, i = centers.length, c;
+
+		while (i--) {
+			c = centers[i];
+			if (min == null) {
+				min = c.clone();
+				max = c.clone();
+			} else {
+				min.x = Math.min( min.x, c.x );
+				min.y = Math.min( min.y, c.y );
+				max.x = Math.max( max.x, c.x );
+				max.y = Math.max( max.y, c.y );
+			}
+		}
+
+		return this._limits = { min: min, max: max };
+	},
+
+	/** @return Point */
+	size: function () {
+		var
+			limits   = this.limits(),
+			settings = this.projection.settings,
+			base     = settings.get('baseLength'),
+			chord    = settings.get('chordLength'),
+			height   = settings.get('hexHeight'),
+			padding  = this.padding;
+
+		return new Point(
+			limits.max.x - limits.min.x + base    + 2 * (padding + chord),
+			limits.max.y - limits.min.y + height  + 2 *  padding
+		);
+	},
+
+	/** @return Point */
+	center: function () {
+		var
+			min      = this.limits().min,
+			settings = this.projection.settings,
+			base     = settings.get('baseLength'),
+			chord    = settings.get('chordLength'),
+			height   = settings.get('hexHeight'),
+			padding  = this.padding;
+
+		return new Point(
+			padding + base   /2 + chord - min.x,
+			padding + height /2         - min.y
+		);
+	}
+
+
+});
+
+/*
+---
+
+name: "IsometricProjection"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- Point3D
+
+provides: Engines.IsometricProjection
+
+...
+*/
+
+declare( 'LibCanvas.Engines.IsometricProjection', {
+
+	/**
+	 * factor (and default factor in proto)
+	 * @property {Point3D}
+	 */
+	factor: [0.866, 0.5, 0.866],
+
+	/**
+	 * @constructs
+	 * @param {Point3D} factor
+	 */
+	initialize: function (factor) {
+		this.bindMethods();
+		this.factor = Point3D( factor || this.factor );
+	},
+
+	/**
+	 * @param {Point3D} point3d
+	 * @returns {Point}
+	 */
+	toIsometric: function (point3d) {
+		point3d = Point3D( point3d );
+		return new Point(
+			(point3d.y + point3d.x) * this.factor.x,
+			(point3d.y - point3d.x) * this.factor.y - point3d.z * this.factor.z
+		);
+	},
+
+	/**
+	 * @param {Point} point
+	 * @param {int} [z=0]
+	 * @returns {Point3D}
+	 */
+	to3D: function (point, z) {
+		point = Point(point);
+		z = Number(z) || 0;
+
+		var
+			dXY = (point.y + z * this.factor.z) / this.factor.y,
+			pX  = (point.x / this.factor.x - dXY) / 2;
+
+		return new Point3D( pX, pX + dXY, z );
 	}
 });
 
