@@ -10,10 +10,10 @@ div {
 	top: 10px;
 	width: 50px;
 	height: 50px;
-	-webkit-transition: all 4s linear;
-	-moz-transition   : all 4s linear;
-	-o-transition     : all 4s linear;
-	-ms-transition    : all 4s linear;
+	-webkit-transition: all 2s linear;
+	-moz-transition   : all 2s linear;
+	-o-transition     : all 2s linear;
+	-ms-transition    : all 2s linear;
 }
 div.moved {
 	left: 300px;
@@ -22,6 +22,7 @@ div.moved {
 	</head>
 	<body>
 		<div></div>
+		<p style="position:absolute;top:170px;left:10px;"><a href="css.html">css</a> <a href="canvas.html">canvas</a></p>
 		<script>
 new function () {
 	var div = document.querySelector('div');
@@ -29,8 +30,8 @@ new function () {
 		div.className = 'moved';
 		setTimeout(function () {
 			div.className = '';
-			setTimeout(next, 4000);
-		}, 4000);
+			setTimeout(next, 2000);
+		}, 2000);
 	}
 	next();
 };

@@ -4,7 +4,8 @@
 		<title></title>
 	</head>
 	<body style="padding: 0; margin: 0">
-		<canvas width=400 height=100></canvas>
+		<canvas width=500 height=150></canvas>
+		<p style="position:absolute;top:170px;left:10px;"><a href="css.html">css</a> <a href="css3.html">css3</a></p>
 		<div></div>
 		<script>
 window.requestAnimFrame = (function(){
@@ -24,7 +25,7 @@ new function () {
 	var prv = Date.now();
 	requestAnimFrame(function next () {
 		ctx.clearRect( x, 10, 50, 50 );
-		x = x>390 ? 10 : x+1;
+		x = x>390 ? 10 : x+2;
 		ctx.fillRect ( x, 10, 50, 50 );
 		div.innerHTML = Date.now() - prv;
 		prv = Date.now();
