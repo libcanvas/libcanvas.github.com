@@ -27,8 +27,6 @@ new function () {
 		ctx.clearRect( x, 10, 50, 50 );
 		x = x>390 ? 10 : x+2;
 		ctx.fillRect ( x, 10, 50, 50 );
-		div.innerHTML = Date.now() - prv;
-		prv = Date.now();
 		requestAnimFrame(next);
 	});
 };
