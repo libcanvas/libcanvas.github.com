@@ -97,7 +97,7 @@ Isometric.Box = atom.declare({
 
 				this.animatable.stop();
 				this.animatable.animate({
-					fn   : 'linear',
+					fn   : 'sine-out',
 					time : time,
 					props: {
 						'coords.x': newCoords.x,
