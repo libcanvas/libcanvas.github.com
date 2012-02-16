@@ -20,8 +20,10 @@ Isometric.Box = atom.declare({
 		speed: 200,
 
 		configure: function () {
-			this.coords = LibCanvas.Point3D( this.settings.get('coordinates') );
-			this.map    = this.settings.get('map');
+			this.animatable = new atom.Animatable(this);
+			this.coords  = LibCanvas.Point3D( this.settings.get('coordinates') );
+			this.colors  = this.settings.get('colors') || this.colors;
+			this.map     = this.settings.get('map');
 			this.createShapes();
 		},
 
@@ -48,20 +50,40 @@ Isometric.Box = atom.declare({
 					[c.x  , c.y+1, c.z+1],
 					[c.x+1, c.y+1, c.z+1],
 					[c.x+1, c.y  , c.z+1]
+				],
+				shadow: [
+					[c.x  , c.y  , 0],
+					[c.x  , c.y+1, 0],
+					[c.x+1, c.y+1, 0],
+					[c.x+1, c.y  , 0]
 				]
 			};
 
-			this.shapes = Object.map( s, function (coords) {
-				return new Polygon(coords.map( this.map.toIsometric ));
+			s = this.shapes = Object.map( s, function (coords) {
+				return new Polygon(coords.map( this.map.projection.toIsometric ));
 			}.bind(this));
+			// this shape includes blured shadow & stroked rects
+			this.shape = new Polygon(
+				s.top   .points[0].clone().move([ -5,-1]),
+				s.top   .points[3].clone().move([  0,-5]),
+				s.top   .points[2].clone().move([  5,-1]),
+				s.shadow.points[2].clone().move([ 30,13]),
+				s.shadow.points[1].clone().move([  0,30]),
+				s.shadow.points[0].clone().move([-30,13])
+			);
+			this.saveCurrentBoundingShape();
 			return this;
+		},
+
+		get zIndex () {
+			return 0 || this.shape.points[0].y;
 		},
 
 		/**
 		 * @param {LibCanvas.Point3D} shift
 		 * @returns {Isometric.Box}
 		 */
-		move: function (shift, onTick, onComplete) {
+		move: function (shift, onComplete) {
 			shift = LibCanvas.Point3D( shift );
 			var newCoords = this.coords.clone().move( shift );
 			if (newCoords.z < 0.02) newCoords.z = 0.02;
@@ -69,12 +91,12 @@ Isometric.Box = atom.declare({
 			if ( this.map.hasPoint( newCoords )) {
 				var time = this.getTime( shift );
 				if (!time) {
-					if (onTick    ) onTick    .apply( this, arguments );
 					if (onComplete) onComplete.apply( this, arguments );
 					return this;
 				}
 
-				this.animate({
+				this.animatable.stop();
+				this.animatable.animate({
 					fn   : 'linear',
 					time : time,
 					props: {
@@ -84,8 +106,8 @@ Isometric.Box = atom.declare({
 					},
 					onTick: function () {
 						this.createShapes();
-						if (onTick) onTick.apply( this, arguments );
-					},
+						this.redraw();
+					}.bind(this),
 					onComplete: onComplete
 				});
 			}
@@ -102,14 +124,16 @@ Isometric.Box = atom.declare({
 				distance.x.pow(2) +
 				distance.y.pow(2) +
 				distance.z.pow(2)
-			).limit( this.speed );
+			).limit( 0, this.speed );
 		},
 
 		/** @returns {Isometric.Box} */
 		renderTo: function (ctx) {
 			var
 				z  = this.coords.z + 1,
-				zP = this.map.toIsometric([0,0,z]).y,
+				zDelta =
+					this.map.projection.toIsometric([this.coords.x,this.coords.y,-1]).y -
+					this.map.projection.toIsometric(this.coords).y,
 				s  = this.shapes,
 				stroke = 'rgba(0,32,0,0.5)';
 
@@ -117,7 +141,7 @@ Isometric.Box = atom.declare({
 				.save()
 				.set({
 					shadowColor  : 'black',
-					shadowOffsetY: -zP,
+					shadowOffsetY: zDelta,
 					shadowOffsetX: 0,
 					shadowBlur   : z * 3
 				})

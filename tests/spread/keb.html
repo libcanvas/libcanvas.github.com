@@ -1,0 +1,559 @@
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>SPREAD</title>
+
+        <meta name="viewport" content="user-scalable=no, width=device-width" />
+        <link rel="stylesheet" type="text/css" href="files/iphone.css" media="only screen and (max-width: 480px)" />
+        <link rel="stylesheet" type="text/css" href="files/iphone.css" media="only screen" />
+        <link rel="stylesheet" type="text/css" href="files/desktop.css" media="screen and (min-width: 481px)" />
+    <!--[if IE]>
+        <link rel="stylesheet" type="text/css" href="files/explorer.css" media="all" />
+    <![endif]-->
+
+        <script type="text/javascript" src="files/js/jquery.js"></script>
+        <script type="text/javascript" src="files/js/atom.js"></script>
+        <script type="text/javascript" src="files/js/libcanvas.js"></script>
+        <script type="text/javascript" src="files/js/socket.io.js"></script>
+
+        <script type="text/javascript">
+// For use within normal web clients
+var isiPad = navigator.userAgent.match(/iPad/i) != null;
+
+// innerWidth traps cases for iPHone
+// isiPad traps cases for iPad
+//if ((window.innerWidth && window.innerWidth <= 480) || isiPad) {
+if (true) {
+    $(document).ready(function(){
+        $('#header ul').addClass('hide');
+        $('#header').append('<div class="leftButton" onclick="toggleMenu()">Menu</div>');
+    });
+    function toggleMenu() {
+        $('#header ul').toggleClass('hide');
+        $('#header .leftButton').toggleClass('pressed');
+    }
+}
+
+
+
+ /********************************************************************/
+$(document).ready(function(){
+function getViewport() {
+
+ var viewPortWidth;
+ var viewPortHeight;
+
+ // the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+ if (typeof window.innerWidth != 'undefined') {
+   viewPortWidth = window.innerWidth,
+   viewPortHeight = window.innerHeight
+ }
+
+// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+ else if (typeof document.documentElement != 'undefined'
+ && typeof document.documentElement.clientWidth !=
+ 'undefined' && document.documentElement.clientWidth != 0) {
+    viewPortWidth = document.documentElement.clientWidth,
+    viewPortHeight = document.documentElement.clientHeight
+ }
+
+ // older versions of IE
+ else {
+   viewPortWidth = document.getElementsByTagName('body')[0].clientWidth,
+   viewPortHeight = document.getElementsByTagName('body')[0].clientHeight
+ }
+ return [viewPortWidth, viewPortHeight];
+}
+
+//alert(getViewport());
+
+    var rand = Number.random;
+    var root,
+        //spawn,
+        i,
+        l_0 = 30,       // this is target length
+        bounce = .8,    // default is 0.5
+        f_norm,
+        l_sq,
+        l,
+        del_l,
+        f_mag,
+
+        p,
+        pc_i,
+
+        x,
+        xc_i,
+
+        c_i,
+        num_child,
+        num_cvh,
+        child,
+        default_radius = 10,
+
+        edge_layer,
+        node_layer,
+        face_layer,
+
+        CANVAS_WIDTH = 600,
+        CANVAS_HEIGHT = 600
+        ;
+
+    LibCanvas.extract();
+
+    var viewport;
+    viewport = getViewport();
+    console.debug(viewport);
+
+
+
+    CANVAS_WIDTH = CANVAS_HEIGHT = Math.max(Math.min(viewport[0],viewport[1])-200,300);
+    //console.debug(CANVAS_WIDTH);
+
+ /********************************************************************/
+// singleton global
+// defined as object literal
+window.viewported_graph = {
+  T: 0,
+  L: 0,
+  B: 0,
+  R: 0,
+  nodes: [],
+  edges: [],
+  root: null,
+  viewport: {
+    offset: new Point(0,0),
+    T: 0,
+    L: 0,
+    B: 0,
+    R: 0
+  }
+};
+ /********************************************************************/
+
+
+
+	//window.libcanvas = new LibCanvas('canvas', {
+	//})
+    window.libcanvas = new LibCanvas('canvas', { name: 'base-layer' })
+        .listenMouse()
+        .size(CANVAS_WIDTH,CANVAS_HEIGHT,true)
+        .start()
+        .addEvent('ready', init);
+
+    function init() {
+        libcanvas.createLayer("edge-layer");
+        libcanvas.createLayer("node-layer");
+        libcanvas.createLayer("face-layer");
+        libcanvas.ctx.set({ lineWidth: 2.5, globalAlpha: 1 });
+        libcanvas.layer("edge-layer").ctx.set({ lineWidth: 2.5, globalAlpha: 1 });
+        libcanvas.layer("node-layer").ctx.set({ lineWidth: 2, globalAlpha: 1 });
+        libcanvas.layer("face-layer").ctx.set({ lineWidth: 2.5, globalAlpha: 1 });
+
+        $.each(['edge', 'node', 'face'], function(i,v){
+            $('#'+v).click(function(){
+                var layer = libcanvas.layer(v+'-layer');
+                this.checked ? layer.show() : layer.hide();
+            })
+        });
+
+        //reset();
+        //refresh();
+    }
+
+
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//  refresh instead of reset for slave
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function refresh() {
+
+      libcanvas.rmAllElements();
+      libcanvas.layer("edge-layer").rmAllElements();
+      libcanvas.layer("node-layer").rmAllElements();
+      libcanvas.layer("face-layer").rmAllElements();
+
+      //socket.emit('refresh',{});
+      //socket.emit('get',{rid:1});
+      /////socket.emit('get',{ {{ id_key }}: '{{ id_val }}'});
+      socket.emit('get',{ rid: '10'});
+    }
+
+    $('button#refresh').click(refresh);
+
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// drawers
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function createShaper(shape, z, layer) {
+        return (layer || this.libcanvas)
+            .createShaper({
+              shape : shape,
+              stroke: '#990000',
+              fill  : '#330000',
+              hover : {
+                stroke: '#ff0000',
+                fill  : '#990000'
+              },
+              active : {
+                stroke: '#00ff00',
+                fill  : '#009900'
+              }
+            })
+            .setZIndex(z || 0);
+    };
+
+    //function createNode(init) {
+    function draw_node(init) {
+        var origin, radius;
+        if (init && init.origin) {
+            origin = init.origin;
+        } else {
+            origin = new Point(0,0); // this is no longer randomPoint
+        }
+        if (init && init.radius) {
+            radius = init.radius;
+        } else {
+            radius = default_radius;
+        }
+        var node = createShaper(new Circle(
+              viewported_graph.viewport.offset.clone().move(origin),
+              //origin,
+              radius),4,libcanvas.layer("node-layer"))
+          ;
+
+        //var node = createShaper(new Circle(origin,radius),4)
+        //var node = createShaper(new Circle(origin,radius),4,libcanvas.layer("node-layer"))
+          /*
+            .listenMouse()
+            .clickable();
+        node.force_x = 0;
+        node.force_y = 0;
+        node.FID = FIDs[rand(0,99)];
+        node.generation = spread_graph.generation;
+        if (isiPad) node.addEvent('touchend',spawn);
+        else node.addEvent('click', spawn);
+        */
+        return node;
+    }
+
+    function draw_edge(ptParent, ptChild) {
+      createShaper(new Line(
+            viewported_graph.viewport.offset.clone().move(ptParent),
+            viewported_graph.viewport.offset.clone().move(ptChild)
+            //ptParent.clone.move(viewported_graph.viewport.offset),
+            //ptChild.clone.move(viewported_graph.viewport.offset)
+            ),3, libcanvas.layer("edge-layer"));
+    }
+
+    var ImageDrawer = atom.Class({
+        Extends: DrawableSprite,
+        Implements: Animatable,
+        initialize: function (img, loc) {
+            var imgWidth = 26,
+                imgHeight = 26,
+                rect = [loc.x + viewported_graph.viewport.offset.x - imgWidth / 2,
+                        loc.y + viewported_graph.viewport.offset.y - imgHeight / 2,
+                        imgWidth,
+                        imgHeight];
+                //rect = [loc.x - imgWidth / 2,
+                //        loc.y - imgHeight / 2,
+                //        imgWidth,
+                //        imgHeight];
+            libcanvas.layer("face-layer").addElement(this);
+            this.sprite = img;
+            //this.shape  = Rectangle(shape);
+            //this.shape  = Rectangle([loc.x - imgWidth / 2, loc.y - imgHeight / 2, imgWidth, imgHeight]);
+            this.shape  = Rectangle(rect);
+            this.zIndex = 10;
+        }
+    });
+
+    function draw_face(ptFace) {
+        var myImage = new Image();
+        var pic_src = "https://graph.facebook.com/" + ptFace.FID + "/picture";
+        $(myImage).load(function(){
+            libcanvas.layer("face-layer").update();
+        })
+        myImage.src = pic_src;
+        new ImageDrawer(myImage, ptFace);
+    }
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// socket stuff
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    var socket = io.connect('http://204.236.218.128');
+    socket.on('init', socket_init);
+    socket.on('update', socket_update);
+    socket.on('refresh', socket_refresh);
+
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function socket_init(data) {
+        $('#lock').html("num_conn:" + data.num_conn);
+        refresh();
+    }
+
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function socket_update(data) {
+        $('#lock').html("update: " + data.c.FID + ": (" + data.c.x + "," + data.c.y + ")");
+
+        draw_node({origin: data.c});
+        draw_edge(data.p, data.c);
+        draw_face(data.c);
+
+        libcanvas.update();
+        libcanvas.layer("edge-layer").update();
+        libcanvas.layer("node-layer").update();
+    }
+
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function socket_refresh(data_all) {
+        $('#lock').html("refresh: " + data_all.tree.length + " nodes");
+
+        libcanvas.rmAllElements();
+        libcanvas.layer("edge-layer").rmAllElements();
+        libcanvas.layer("node-layer").rmAllElements();
+        libcanvas.layer("face-layer").rmAllElements();
+
+        //libcanvas.ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+        //libcanvas.layer("edge-layer").ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+        //libcanvas.layer("node-layer").ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+        //libcanvas.layer("face-layer").ctx.translate(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        libcanvas.vx = CANVAS_WIDTH / 2;
+        libcanvas.vy = CANVAS_HEIGHT / 2;
+
+        libcanvas.ctx.translate(libcanvas.vx, libcanvas.vy);
+        libcanvas.layer("edge-layer").ctx.translate(libcanvas.vx, libcanvas.vy);
+        libcanvas.layer("node-layer").ctx.translate(libcanvas.vx, libcanvas.vy);
+        libcanvas.layer("face-layer").ctx.translate(libcanvas.vx, libcanvas.vy);
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        $.each(data_all.tree,function(i,data) {
+            draw_node({origin: data.c});
+            draw_edge(data.p, data.c);
+            draw_face(data.c);
+        });
+        libcanvas.update();
+        libcanvas.layer("edge-layer").update();
+        libcanvas.layer("node-layer").update();
+        libcanvas.layer("face-layer").update();
+    }
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// slide stuff
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    function slide(direction_code) {
+      //var direction = [100,0]
+      var direction;
+      switch (direction_code) {
+          case 'r':
+              direction = [100,0];
+              break;
+          case 'l':
+              direction = [-100,0];
+              break;
+          case 'u':
+              direction = [0,-100];
+              break;
+          case 'd':
+              direction = [0,100];
+              break;
+
+      }
+      return function() {
+        //libcanvas.rmAllElements();
+        //libcanvas.layer("edge-layer").rmAllElements();
+        //libcanvas.layer("node-layer").rmAllElements();
+        //libcanvas.layer("face-layer").rmAllElements();
+
+        /*
+        libcanvas.vx += direction[0];
+        libcanvas.vy += direction[1];
+
+        libcanvas.ctx.translate(libcanvas.vx, libcanvas.vy);
+        libcanvas.layer("edge-layer").ctx.translate(libcanvas.vx, libcanvas.vy);
+        libcanvas.layer("node-layer").ctx.translate(libcanvas.vx, libcanvas.vy);
+        libcanvas.layer("face-layer").ctx.translate(libcanvas.vx, libcanvas.vy);
+
+
+        //$.each(data_all.tree,function(i,data) {
+        //    draw_node({origin: data.c});
+        //    draw_edge(data.p, data.c);
+        //    draw_face(data.c);
+        //});
+
+        libcanvas.layer("edge-layer").elems.forEach(function(edge){
+            edge.draw();
+        });
+        libcanvas.layer("node-layer").elems.forEach(function(node){
+            node.draw();
+        });
+        libcanvas.layer("face-layer").elems.forEach(function(face){
+            face.draw();
+        });
+
+        libcanvas.update();
+        libcanvas.layer("edge-layer").update();
+        libcanvas.layer("node-layer").update();
+        libcanvas.layer("face-layer").update();
+
+        libcanvas.origCtx.clearAll();
+        libcanvas.layer("edge-layer").origCtx.clearAll();
+        libcanvas.layer("node-layer").origCtx.clearAll();
+        libcanvas.layer("face-layer").origCtx.clearAll();
+        */
+
+        /*
+        */
+
+        viewported_graph.viewport.offset.move(direction);
+
+        libcanvas.layer("edge-layer").elems.forEach(function(edge){
+            edge.shape.from.move(direction);
+            edge.shape. to .move(direction);
+        });
+        libcanvas.layer("edge-layer").update();
+        libcanvas.layer("edge-layer").updateAll();
+
+        libcanvas.layer("node-layer").elems.forEach(function(node){
+            node.shape._center.move(direction);
+        });
+        libcanvas.layer("node-layer").update();
+        libcanvas.layer("node-layer").updateAll();
+
+        libcanvas.layer("face-layer").elems.forEach(function(face){
+            face.shape.from.move(direction);
+            face.shape. to .move(direction);
+        });
+        libcanvas.layer("face-layer").update();
+        libcanvas.layer("face-layer").updateAll();
+      }
+    }
+
+    $('button#slide_r').click(slide('r'));
+    $('button#slide_l').click(slide('l'));
+    $('button#slide_u').click(slide('u'));
+    $('button#slide_d').click(slide('d'));
+
+});
+
+
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// fin
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+ /********************************************************************/
+/*
+$(document).ready(function(){
+    var socket
+        ;
+
+    window.libcanvas = new LibCanvas('canvas', { name: 'base-layer' })
+        .listenMouse()
+        .size(600,600,true)
+        .start()
+        .addEvent('ready', init);
+
+    function init() {
+        libcanvas.createLayer("edge-layer");
+        libcanvas.createLayer("node-layer");
+        libcanvas.createLayer("face-layer");
+        libcanvas.ctx.set({ lineWidth: 2.5, globalAlpha: 1 });
+        libcanvas.layer("edge-layer").ctx.set({ lineWidth: 2.5, globalAlpha: 1 });
+        libcanvas.layer("node-layer").ctx.set({ lineWidth: 2, globalAlpha: 1 });
+        libcanvas.layer("face-layer").ctx.set({ lineWidth: 2.5, globalAlpha: 1 });
+
+        $.each(['edge', 'node', 'face'], function(i,v){
+            $('#'+v).click(function(){
+                var layer = libcanvas.layer(v+'-layer');
+                this.checked ? layer.show() : layer.hide();
+
+            })
+        });
+
+        socket = io.connect('http://204.236.218.128');
+
+        refresh();
+    }
+});
+*/
+ /********************************************************************/
+
+        </script>
+        <style>
+            #app, .libcanvas-layers-container {
+              border: 1px solid #666;
+              background-color:black;
+            }
+
+            input {
+              color: white;
+              background: black;
+              border:  1px solid #666;
+              padding:  2px 10px;
+            }
+        </style>
+
+    </head>
+    <body>
+        <div id="container">
+            <div id="header">
+                <h1 style="height:43px;"><a href="./">SPREAD<sup>&reg;</sup></a></h1>
+                <div id="utility">
+                    <ul>
+                        <li><a href="about.html">About</a></li>
+                        <li><a href="help.html">Help</a></li>
+                    </ul>
+                </div>
+                <div id="nav">
+                    <ul>
+                        <li><a href="related.html">Related</a></li>
+                        <li><a href="new.html">New</a></li>
+                        <li><a href="edit.html">Edit</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="content">
+                <div id="lock"> </div>
+                <canvas id="cv" width="300" height="300"></canvas>
+            </div>
+        </div>
+        <input id="edge" type="checkbox" checked></input>
+        <input id="node" type="checkbox" checked></input>
+        <input id="face" type="checkbox" checked></input>
+
+        <!--
+        <table>
+          <tr>
+            <td></td>
+            <td>
+                <button id="slide_u">↑ </button>
+            </td>
+          </tr>
+          <tr>
+            <td>
+                <button id="slide_l">← </button>
+            </td>
+            <td>
+
+        <button id="refresh">R</button>
+            </td>
+            <td>
+                <button id="slide_r">→ </button>
+            </td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>
+                <button id="slide_d">↓ </button>
+            </td>
+          </tr>
+        </table>
+        -->
+    </body>
+</html>     

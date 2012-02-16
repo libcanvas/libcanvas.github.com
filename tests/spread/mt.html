@@ -1,0 +1,285 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="user-scalable=no, width=device-width">
+	<script type="text/javascript" charset="utf-8">
+var dot = null,
+    touchId = 1,
+    touchA = null,
+    touchB = null,
+    touchBStart = null,
+    mouseIsDown = false;
+
+var mouse2TouchMap = {
+    "mouseup" : "touchend",
+    "mousedown" : "touchstart",
+    "mousemove" : "touchmove"
+};
+
+function fakeTouchHandler(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.type == "mousedown")
+        touchId++;
+
+    var touch = {
+        identifier: touchId,
+        target:        e.target,
+        clientX:     e.clientX,
+        clientY:      e.clientY,
+        pageX:         e.clientX,
+        pageY:         e.clientY,
+        screenX:     e.screenX,
+        screenY:      e.screenY
+    }
+
+    if (e.type == "mouseup") {
+        touchA = touchB;
+        mouseIsDown = false;
+    }
+    if (e.type == "mousedown") {
+        touchBStart = touch;
+        mouseIsDown = true;
+    }
+    touchB = touch;
+
+    if (e.type == "mousemove" && !mouseIsDown)
+        return;
+
+    var scale = 1.0;
+    var rotation = 0.0;
+
+    var touches = [];
+    if (touchA) {
+        touches.push(touchA);
+
+        if (!dot) {
+            dot = document.createElement("div");
+            document.body.appendChild(dot);
+        }
+        dot.setAttribute("style", "position: absolute; z-index: 10000; width: 20px; height: 20px; -webkit-border-radius: 10px; background-color: rgba(255,255,0,0.25); top: "+(touchA.clientY-10)+"px; left: "+(touchA.clientX-10)+"px; ");
+
+        var x1 = touchA.clientX - touchBStart.clientX,
+            y1 = touchA.clientY - touchBStart.clientY,
+            x2 = touchA.clientX - touchB.clientX,
+            y2 = touchA.clientY - touchB.clientY;
+
+        scale = Math.sqrt(x2 * x2 + y2 * y2) / Math.sqrt(x1 * x1 + y1 * y1);
+
+        rotation = Math.atan(x1 / y1) - Math.atan(x2 / y2);
+        if ((y1 > 0 && y2 < 0) || (y1 < 0 && y2 > 0))
+            rotation += Math.PI;
+        rotation *= (180 / Math.PI);
+    }
+    touches.push(touchB);
+
+    var touchEvent = document.createEvent("MouseEvents");
+    touchEvent.initMouseEvent(
+        mouse2TouchMap[e.type],
+        true,
+        true,
+        e.view,
+        e.detail,
+        e.screenX,
+        e.screenY,
+        e.clientX,
+        e.clientY,
+        e.ctrlKey,
+        e.altKey,
+        e.shiftKey,
+        e.metaKey,
+        0,
+        null
+    );
+    touchEvent.touches = touches;
+    touchEvent.targetTouches = touches;
+    touchEvent.changedTouches = touches;
+    touchEvent.scale = scale;
+    touchEvent.rotation = rotation;
+
+    document.dispatchEvent(touchEvent);
+}
+
+document.addEventListener("mousedown", fakeTouchHandler, false);
+document.addEventListener("mousemove", fakeTouchHandler, false);
+document.addEventListener("mouseup",   fakeTouchHandler, false);
+  </script>
+	<script type="text/javascript" charset="utf-8">
+		var zIndexCount = 1;
+		var moving = {};
+		function touchHandler(e) {
+			if (e.type == "touchstart") {
+				for (var i = 0; i < e.touches.length; i++) {
+				    // for each "movable" touch event:
+					if (e.touches[i].target.className == "movable") {
+						var id = e.touches[i].identifier;
+
+						// record initial data in the "moving" hash
+						moving[id] = {
+							identifier: id,
+							target:   	e.touches[i].target,
+							mouse:		{ x: e.touches[i].clientX, y: e.touches[i].clientY },
+							position:	{ x: e.touches[i].target.xfmTX, y: e.touches[i].target.xfmTY },
+							rotation: 	e.touches[i].target.xfmR,
+							scale: 		e.touches[i].target.xfmS
+						};
+
+						// move to the front
+						moving[id].target.style.zIndex = zIndexCount++;
+
+						// reset rotate/scale mode to off
+						moving[id].rotateScaleMode = false;
+					}
+				}
+			}
+			else if (e.type == "touchmove") {
+			    // if there are two touchs and both are on the *same* element, we're in rotate/scale mode
+				if (e.touches.length == 2 && e.touches[0].target == e.touches[1].target) {
+					var idA = e.touches[0].identifier,
+						idB = e.touches[1].identifier;
+
+					// if we've previously recorded initial rotate/scale mode data:
+					if (moving[idA].rotateScaleMode && moving[idB].rotateScaleMode) {
+					    // calculate translation, rotation, and scale
+						moving[idA].target.xfmTX = ((moving[idA].positionCenter.x - moving[idA].mouseCenter.x) + ((e.touches[0].clientX + e.touches[1].clientX) / 2));
+						moving[idA].target.xfmTY = ((moving[idA].positionCenter.y - moving[idA].mouseCenter.y) + ((e.touches[0].clientY + e.touches[1].clientY) / 2));
+						moving[idA].target.xfmR = moving[idA].rotation + e.rotation;
+						moving[idA].target.xfmS = moving[idA].scale * e.scale;
+
+						updateTransform(moving[idA].target);
+					}
+					else {
+						// set rotate/scale mode to on
+						moving[idA].rotateScaleMode	= moving[idB].rotateScaleMode	= true;
+						// record initial rotate/scale mode data
+						moving[idA].mouseCenter		= moving[idB].mouseCenter		= {
+							x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+							y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+						}
+						moving[idA].positionCenter	= moving[idB].positionCenter	= {
+							x: moving[idA].target.xfmTX,
+							y: moving[idA].target.xfmTY
+						}
+					}
+				}
+				else {
+					for (var i = 0; i < e.touches.length; i++) {
+						var id = e.touches[i].identifier;
+
+						// for each touch event:
+						if (moving[id]) {
+							// reset rotate/scale mode to off
+							moving[id].rotateScaleMode = false;
+							// calculate translation, leave rotation and scale alone
+							moving[id].target.xfmTX = ((moving[id].position.x - moving[id].mouse.x) + e.touches[i].clientX);
+							moving[id].target.xfmTY = ((moving[id].position.y - moving[id].mouse.y) + e.touches[i].clientY);
+							updateTransform(moving[id].target);
+						}
+					}
+				}
+			}
+			else if (e.type == "touchend" || e.type == "touchcancel") {
+			    // clear each from the "moving" hash
+				for (var i = 0; i < e.touches.length; i++)
+					delete moving[e.touches[i].identifier];
+			}
+
+			e.preventDefault();
+		}
+
+		// set the transform style property based on xfm element properties
+		function updateTransform(element) {
+			element.style['-webkit-transform'] =
+				'translate('+element.xfmTX+'px,'+element.xfmTY+'px) '+
+				'scale('+element.xfmS+') '+
+				'rotate('+element.xfmR+'deg)';
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      var d;
+      d = document.getElementById('txtScale');
+      if (d) {
+        d.innerHTML = element.xfmS.toFixed(2) + ',' + element.xfmR.toFixed(0);
+      }
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		}
+
+		//// callback for json Flickr API:
+		//function jsonFlickrApi(data) {
+		//	for (var i = 0; i < data.photos.photo.length; i++) {
+		//		var p = data.photos.photo[i],
+		//			img = document.createElement("img");
+		//		img.src = 'http://farm'+p.farm+'.static.flickr.com/'+p.server+'/'+p.id+'_'+p.secret+'_m.jpg';
+		//		img.className = "movable";
+		//		img.xfmTX = Math.random()*(window.innerWidth-240);
+		//		img.xfmTY = Math.random()*(window.innerHeight-240);
+		//		img.xfmR = Math.random()*180-90;
+		//		img.xfmS = Math.random()/2+0.5;
+		//		img.setAttribute("style", "position: absolute; top: 0px; left: 0px;");
+		//		document.body.appendChild(img);
+		//		updateTransform(img);
+		//	}
+		//}
+
+    var imgSpread;
+		function init() {
+			// touch event listeners
+			document.addEventListener("touchstart", touchHandler, false);
+			document.addEventListener("touchmove", touchHandler, false);
+			document.addEventListener("touchend", touchHandler, false);
+			document.addEventListener("touchcancel", touchHandler, false);
+
+			// get the 10 latest "interesting images" from Flickr
+			//var flickrApiCall = document.createElement("script");
+			//document.body.appendChild(flickrApiCall);
+      //flickrApiCall.src = 'http://api.flickr.com/services/rest/?method=flickr.interestingness.getList&api_key=856affa07586845de6fcbfb82520aa3e&per_page='+10+'&format=json';
+
+
+      //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      imgSpread = document.getElementById('imgSpread');
+			//imgSpread = document.createElement("img");
+			//imgSpread.src = 'http://farm'+p.farm+'.static.flickr.com/'+p.server+'/'+p.id+'_'+p.secret+'_m.jpg';
+			//imgSpread.className = "movable";
+			//imgSpread.xfmTX = Math.random()*(window.innerWidth-240);
+			//imgSpread.xfmTY = Math.random()*(window.innerHeight-240);
+			//imgSpread.xfmR = Math.random()*180-90;
+			//imgSpread.xfmS = Math.random()/2+0.5;
+			imgSpread.xfmTX = 0;
+			imgSpread.xfmTY = 0;
+			imgSpread.xfmR = 0;
+			imgSpread.xfmS = 1;
+			//imgSpread.setAttribute("style", "position: absolute; top: 0px; left: 0px;");
+      updateTransform(imgSpread);
+      //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		}
+	</script>
+</head>
+
+<body onload="init();" style="width: 100%; height: 100%; background-color: black;">
+  <div style="position: fixed; top: 0px; left: 0px; height: 0px; width: 0px; z-index: 9999999; ">
+    <div style="position: fixed; top: 100%; height: 0px; ">
+      <div style="position: relative; "></div>
+    </div>
+  </div>
+
+
+	<script type="text/javascript" charset="utf-8">
+    //jsonFlickrApi(
+    //    {
+    //      "photos":{"page":1, "pages":50, "perpage":10, "total":500,
+    //      "photo":[
+    //        {"id":"6743082503", "owner":"29789996@N00", "secret":"7d6a1ab340", "server":"7165", "farm":8, "title":"Glittering Marina [2]", "ispublic":1, "isfriend":0, "isfamily":0},
+    //      ]
+    //      },
+    //      "stat":"ok"
+    //    })
+
+  </script>
+
+  <!--
+    <img src="./img/6746419603_531a81071d_m.jpg" class="movable" style="position: absolute; top: 0px; left: 0px; z-index: 3; -webkit-transform: translate(455.948845051229px, 365.11820763070136px) scale(0.8235907682683319) rotate(71.13312390167266deg); ">
+    <div style="position: absolute; z-index: 10000; width: 20px; height: 20px; -webkit-border-radius: 10px; background-color: rgba(255,255,0,0.25); top: 443px; left: 560px; "></div>
+  -->
+    <img id="imgSpread" src="images/SPREAD-crop.png" class="movable" style="position: absolute; top: 0px; left: 0px; -webkit-transform: translate(0px, 0px) scale(.1) rotate(0deg); ">
+    <div id="txtScale" style="position: absolute; z-index: 10000; width: 200px; height: 20px; -webkit-border-radius: 10px; background-color: rgba(255,255,0,0.25); top: 43px; left: 150px; ">00</div>
+</body></html>
