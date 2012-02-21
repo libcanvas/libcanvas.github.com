@@ -16,7 +16,7 @@ atom.declare( 'Fifteen.Field', {
 		this.bindTouch();
 
 		this.activate(false);
-		this.shuffle(100);
+		this.shuffle(10);
 	},
 
 	bindTouch: function () {
