@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Fifteen puzzle</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<p><a href="/">Return to index</a></p>
+		<script>
+// Globalizing LibCanvas variables
+LibCanvas.extract();
+
+// onDomReady - run our app
+atom.dom(function () {
+	new Fifteen.Field({
+		tile: {
+			width : 64,
+			height: 64,
+			margin: 4
+		}
+	});
+});
+		</script>
+		<script src="field.js"></script>
+		<script src="tile.js"></script>
+	</body>
+</html>
