@@ -21,8 +21,8 @@ new function () {
 		var bot   = verCoord(y + 1);
 
 		return old[top][left] + old[top][x] + old[top][right] +
-			   old[ y ][left] +             + old[ y ][right] +
-			   old[bot][left] + old[bot][x] + old[bot][right];
+		       old[ y ][left] +             + old[ y ][right] +
+		       old[bot][left] + old[bot][x] + old[bot][right];
 	};
 
 	window.nextGeneration = function (cells) {

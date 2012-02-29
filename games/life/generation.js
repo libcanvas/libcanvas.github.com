@@ -1,0 +1,3 @@
+atom.declare( 'Life.Generation', {
+
+});
