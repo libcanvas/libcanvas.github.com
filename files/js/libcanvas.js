@@ -422,7 +422,7 @@ App.Element = declare( 'LibCanvas.App.Element', {
 	previousBoundingShape: null,
 
 	get currentBoundingShape () {
-		return this.shape.getBoundingRectangle();
+		return this.shape.getBoundingRectangle().fillToPixel();
 	},
 
 	destroy: function () {
@@ -465,7 +465,7 @@ App.Element = declare( 'LibCanvas.App.Element', {
 	saveCurrentBoundingShape: function () {
 		var shape = this.currentBoundingShape;
 		this.previousBoundingShape = shape.fillToPixel ?
-			shape.fillToPixel() : shape.clone().grow( 2 );
+			shape.clone().fillToPixel() : shape.clone().grow( 2 );
 		return this;
 	},
 
@@ -931,9 +931,9 @@ App.Scene = declare( 'LibCanvas.App.Scene', {
 	/** @private */
 	draw: function () {
 		var i, elem,
-			ctx   = this.layer.canvas.ctx,
-			resources = this.app.resources,
-			redraw    = this.redraw;
+			ctx = this.layer.canvas.ctx,
+			redraw = this.redraw,
+			resources = this.app.resources;
 
 		if (this.settings.get('intersection') === 'auto') {
 			this.addIntersections();
@@ -1029,13 +1029,16 @@ App.Scene = declare( 'LibCanvas.App.Scene', {
 
 	/** @private */
 	findIntersections: function (shape, elem, fn) {
+		if (!shape) return;
+
 		var i = this.elements.length, e;
 		while (i--) {
 			e = this.elements[i];
 			// check if we need also `e.currentBoundingShape.intersect( shape )`
-			if (e != elem && e.isVisible() && e.previousBoundingShape.intersect( shape )) {
-				fn.call( this, e );
-			}
+			if (e != elem && e.isVisible() &&
+				e.previousBoundingShape &&
+				e.previousBoundingShape.intersect( shape )
+			) fn.call( this, e );
 		}
 	}
 
@@ -6017,31 +6020,38 @@ declare( 'LibCanvas.Engines.Tile.Mouse', {
 		handler.previous = null;
 		handler.lastDown = null;
 
-		element.events
-			.add( 'mousemove', function () {
+		element.events.add({
+			mousemove: function () {
 				var cell = handler.get();
 				if (handler.previous != cell) {
 					handler.outCell();
 					handler.fire( 'over', cell );
 					handler.previous = cell;
 				}
-			})
-			.add( 'mouseout', function () {
+			},
+			mouseout: function () {
 				handler.outCell();
-			})
-			.add( 'mousedown', function () {
+			},
+			mousedown: function () {
 				var cell = handler.get();
 				handler.fire( 'down', cell );
 				handler.lastDown = cell;
-			})
-			.add( 'mouseup', function () {
+			},
+			mouseup: function () {
 				var cell = handler.get();
 				handler.fire( 'up', cell );
 				if (cell != null && cell == handler.lastDown) {
 					handler.fire( 'click', cell );
 				}
 				handler.lastDown = null;
-			});
+			},
+			contextmenu: function () {
+				var cell = handler.get();
+				if (cell != null) {
+					handler.fire( 'contextmenu', cell );
+				}
+			}
+		});
 	},
 
 	/** @private */

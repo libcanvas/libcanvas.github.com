@@ -71,7 +71,6 @@ Isometric.Box = atom.declare({
 				s.shadow.points[1].clone().move([  0,30]),
 				s.shadow.points[0].clone().move([-30,13])
 			);
-			this.saveCurrentBoundingShape();
 			return this;
 		},
 
