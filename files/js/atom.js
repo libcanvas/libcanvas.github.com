@@ -160,7 +160,9 @@ function coreObjectize (properties, value) {
 	if (typeof properties != 'object') {
 		var key = properties;
 		properties = {};
-		properties[key] = value;
+		if (key != null) {
+			properties[key] = value;
+		}
 	}
 	return properties;
 }
@@ -484,7 +486,8 @@ provides: dom
 		}
 
 		var elems = this.elems =
-			  sel instanceof Dom     ? coreToArray(sel.elems)
+			  sel == window          ? [ document ]
+			: sel instanceof Dom     ? coreToArray(sel.elems)
 			: coreIsArrayLike(sel)   ? coreToArray(sel)
 			: typeof sel == 'string' ? Dom.query(context, sel)
 			:                          Dom.find(context, sel);
@@ -1752,8 +1755,16 @@ declare = function (declareName, params) {
 	}
 
 	// line break for more user-friendly debug string
-	function Constructor()
-	{ return methods.construct.call(this, Constructor, arguments) }
+	var Constructor = function ()
+	{ return methods.construct.call(this, Constructor, arguments) };
+
+	// <debug> - should be removed on production
+	if (params.name) {
+		Constructor = new Function('con', 'return {"' + params.name + '": ' +
+			function(){ return con.apply(this, arguments) }
+		 + '}["' + params.name + '"];')(Constructor);
+	}
+	// </debug>
 
 	for (var i = 0, l = mutators.length; i < l; i++) {
 		mutators[i].fn( Constructor, params[mutators[i].name] );
@@ -1836,10 +1847,8 @@ methods = {
 	},
 	addTo: function (target, source) {
 		for (var i in source) if (i != 'constructor') {
-			if (!accessors(source, target, i)) {
-				if (source[i] != declare.config) {
-					target[i] = source[i];
-				}
+			if (!accessors(source, target, i) && source[i] != declare.config) {
+				target[i] = source[i];
 			}
 		}
 		return target;
@@ -2007,7 +2016,7 @@ atom.Transition.set({
 	},
 
 	Elastic: function(p){
-		return Math.pow(2, 10 * --p) * Math.cos(20 * p * Math.PI/ 3);
+		return Math.pow(2, 10 * --p) * Math.cos(12 * p);
 	}
 
 });
@@ -2454,14 +2463,16 @@ atom.object = {
 
 			var key = path.pop();
 
-			object = Object.path.get( object, path.length > 0 && path, delimiter );
-
-			if (object == null) {
-				return false;
-			} else {
-				object[key] = value;
-				return true;
+			while (path.length) {
+				var current = path.shift();
+				if (object[current]) {
+					object = object[current];
+				} else {
+					object = object[current] = {};
+				}
 			}
+
+			object[key] = value;
 		}
 	}
 };
@@ -2495,16 +2506,6 @@ provides: Animatable
 declare( 'atom.Animatable',
 /** @class atom.Animatable */
 {
-	defaultCallbacks: function (element) {
-		return {
-			get: function (property) {
-				return atom.object.path.get(element, property);
-			},
-			set: atom.core.overloadSetter(function (property, value) {
-				return atom.object.path.set(element, property, value);
-			})
-		};
-	},
 	
 	element: null,
 
@@ -2518,10 +2519,42 @@ declare( 'atom.Animatable',
 		if (this.isValidCallbacks(callbacks)) {
 			this.callbacks = callbacks;
 		} else {
-			this.callbacks = this.defaultCallbacks(callbacks);
+			this.callbacks = this.getDefaultCallbacks(callbacks);
 		}
 	},
 
+	get current () {
+		return this.animations[0];
+	},
+
+	/**
+	 * Binded to `Animatable`
+	 * @returns {atom.Animatable.Animation}
+	 */
+	animate: atom.core.ensureObjectSetter(function (properties) {
+		return this.next(new atom.Animatable.Animation(this, properties));
+	}),
+
+	stop: function (all) {
+		var current = this.current;
+		if (current) {
+			if (all) this.animations.length = 0;
+			current.destroy('stop');
+		}
+		return this;
+	},
+
+	/** @private */
+	getDefaultCallbacks: function (element) {
+		return {
+			get: function (property) {
+				return atom.object.path.get(element, property);
+			},
+			set: atom.core.overloadSetter(function (property, value) {
+				return atom.object.path.set(element, property, value);
+			})
+		};
+	},
 	/** @private */
 	isValidCallbacks: function (callbacks) {
 		return typeof callbacks == 'object' &&
@@ -2532,14 +2565,6 @@ declare( 'atom.Animatable',
 
 	/** @private */
 	animations: null,
-
-	animate: atom.core.ensureObjectSetter(function (properties) {
-		return this.next(new atom.Animatable.Animation(this, properties));
-	}),
-
-	get current () {
-		return this.animations[0];
-	},
 
 	/** @private */
 	next: function (animation) {
@@ -2564,20 +2589,11 @@ declare( 'atom.Animatable',
 		});
 		animation.start();
 	},
-
-	stop: function (all) {
-		var current = this.current;
-		if (current) {
-			if (all) this.animations.length = 0;
-			current.destroy('stop');
-		}
-		return this;
-	},
-
+	/** @private */
 	get: function (name) {
 		return this.callbacks.get.apply(this.context, arguments);
 	},
-
+	/** @private */
 	set: function (name, value) {
 		return this.callbacks.set.apply(this.context, arguments);
 	}
@@ -2602,10 +2618,10 @@ declare( 'atom.Animatable.Animation',
 	target: null,
 
 	initialize: function (animatable, settings) {
-		this.bindMethods('tick');
+		this.bindMethods([ 'tick', 'start' ]);
 
 		if (!settings.props) settings = {props: settings};
-		this.events   = new atom.Events(this);
+		this.events   = new atom.Events(animatable);
 		this.settings = new atom.Settings({
 				fn  : 'linear',
 				time: 500
@@ -2644,10 +2660,11 @@ declare( 'atom.Animatable.Animation',
 		var animatable = this.animatable;
 		return atom.object.map(this.target, function (value, key) {
 			var v = animatable.get(key);
-			if (atom.Color && atom.Color.isColorString(value)) {
+			if (atom.Color && atom.Color.isColorString(value) || value instanceof atom.Color) {
 				if (!v) {
 					v = new atom.Color(value);
 					v.alpha = 0;
+					return v;
 				}
 				return new atom.Color(v);
 			} else if (isNaN(v)) {
@@ -3383,9 +3400,11 @@ declare( 'atom.Color',
 		 */
 		isColorString : function (string) {
 			if (typeof string != 'string') return false;
-			return string in this.colorNames ||
+			return Boolean(
+				string in this.colorNames  ||
 				string.match(/^#\w{3,6}$/) ||
-				string.match(/^rgba?\([\d, ]+\)$/);
+				string.match(/^rgba?\([\d\., ]+\)$/)
+			);
 		},
 
 		colorNames: {
@@ -3558,7 +3577,7 @@ declare( 'atom.Color',
 				});
 				if (array.length == 4) array[3] /= 255;
 			} else {
-				array = string.match(/([\.\d]{1,3})/g).map( Number );
+				array = string.match(/([\.\d]{1,})/g).map( Number );
 			}
 			return this.fromArray(array);
 		},
@@ -3786,7 +3805,7 @@ return declare( 'atom.Keyboard',
 			var type = typeof code;
 
 			if (type == 'number') {
-				return this.codeNames[code.keyCode];
+				return this.codeNames[code];
 			} else if (type == 'string' && code in this.keyCodes) {
 				return code;
 			}
@@ -3800,9 +3819,9 @@ return declare( 'atom.Keyboard',
 				preventDefault = element;
 				element = null;
 			}
-			if (element == null) element = window;
+			if (element == null) element = document;
 
-			if (element == window) {
+			if (element == document) {
 				if (this.constructor.instance) {
 					return this.constructor.instance;
 				}
@@ -3851,7 +3870,7 @@ return declare( 'atom.Keyboard',
 			return pD && (pD === true || pD.indexOf(key) >= 0);
 		},
 		key: function (keyName) {
-			return !this.keyStates[ this.constructor.keyName(keyName) ];
+			return !!this.keyStates[ this.constructor.keyName(keyName) ];
 		}
 	}
 });
@@ -4372,7 +4391,7 @@ atom.string = {
 	 * @param {string} substr
 	 */
 	contains: function (string, substr) {
-		return string.indexOf( substr ) >= 0;
+		return string ? string.indexOf( substr ) >= 0 : false;
 	},
 	/**
 	 * Checks if string begins with such substring
@@ -4382,6 +4401,7 @@ atom.string = {
 	 * @returns {boolean}
 	 */
 	begins: function (string, substring, caseInsensitive) {
+		if (!string) return false;
 		return (!caseInsensitive) ? substring == string.substr(0, substring.length) :
 			substring.toLowerCase() == string.substr(0, substring.length).toLowerCase();
 	},
@@ -4393,6 +4413,7 @@ atom.string = {
 	 * @returns {boolean}
 	 */
 	ends: function (string, substring, caseInsensitive) {
+		if (!string) return false;
 		return (!caseInsensitive) ? substring == string.substr(string.length - substring.length) :
 			substring.toLowerCase() == string.substr(string.length - substring.length).toLowerCase();
 	},
@@ -4402,7 +4423,7 @@ atom.string = {
 	 * @returns {string}
 	 */
 	ucfirst : function (string) {
-		return string[0].toUpperCase() + string.substr(1);
+		return string ? string[0].toUpperCase() + string.substr(1) : '';
 	},
 	/**
 	 * Lowercase first character
@@ -4410,7 +4431,7 @@ atom.string = {
 	 * @returns {string}
 	 */
 	lcfirst : function (string) {
-		return string[0].toLowerCase() + string.substr(1);
+		return string ? string[0].toLowerCase() + string.substr(1) : '';
 	}
 };
 
