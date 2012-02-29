@@ -23,12 +23,7 @@ atom.dom(function () {
 	};
 
 	function isTouch() {
-		try {
-			document.createEvent("TouchEvent");
-			return true;
-		} catch (e) {
-			return false;
-		}
+		return 'ontouchstart' in window;
 	}
 
 	new Mines.Controller('canvas', options);
