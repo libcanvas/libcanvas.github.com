@@ -18,7 +18,7 @@ atom.declare('Filler.Graphic.Timeline', {
     renderTo: function (ctx) {
         var size = this.shape.height * 0.75;
         ctx
-            .fill(this.shape, ctx.createGradient(this.shape, {0: "900", 1: "c00"}))
+            .fill(this.shape, ctx.createGradient(this.shape, {0: "#900", 1: "#c00"}))
             .stroke( this.stroke, "#c00" )
             .text({
                 text: this.moves,
