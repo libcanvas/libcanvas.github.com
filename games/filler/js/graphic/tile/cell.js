@@ -32,21 +32,20 @@ atom.declare('Filler.Graphic.Tile.Cell', {
 		var size,
             value = this.value,
             method = this.engine.methods[ value ],
-            antimethod = this.engine.methods[ value == 1 ? 7 : 0],
             rectangle = this.rectangle;
 
         
         ctx.fill(rectangle, ctx.createGradient(rectangle, method()));
 
         if (this.active){
-            ctx.stroke(rectangle.clone().snapToPixel(), antimethod);
+            ctx.stroke(rectangle.clone().snapToPixel(), '#000');
         }
 
         if (this.point.player) {
             size = rectangle.height * 0.75;
             ctx.text({
                 text  : this.point.player.number + 1,
-                color : antimethod,
+                color : '#000',
                 size  : size,
                 lineHeight: size,
                 weight: 'bold',
