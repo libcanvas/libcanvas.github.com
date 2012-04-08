@@ -3,6 +3,30 @@ atom.declare( 'Arkanoid.Platform', {
 
 	prototype: {
 
+		configure: function () {
+			this.animation = this.createAnimation();
+		},
+
+		createAnimation: function () {
+			var images, sheet;
+
+			images = this.settings.get('images');
+
+			sheet = new Animation.Sheet({
+				frames  : new Animation.Frames( images.get('platform'), 100, 8 ),
+				delay   : 30
+			});
+
+			return new Animation({
+				sheet   : sheet,
+				onUpdate: this.redraw,
+				onStop  : function () {
+					this.run.delay( Number.random(1000, 5000), this );
+				}
+			});
+		},
+
+
 		move: function (shift) {
 			var field = this.settings.get('controller').fieldSize;
 
@@ -50,6 +74,11 @@ atom.declare( 'Arkanoid.Platform', {
 			ctx
 				.fill( this.shape, ctx.createRectangleGradient( this.shape, this.colors[this.lives] ))
 				.stroke( this.strokeRectangle, 'rgba(0,0,0,0.2)' );
+
+			if (this.animation.get()) {
+				ctx.drawImage( this.animation.get(), this.shape );
+			}
+
 		}
 	}
 });

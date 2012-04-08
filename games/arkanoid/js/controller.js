@@ -5,6 +5,12 @@ atom.declare( 'Arkanoid.Controller',
 {
 	/** @constructs */
 	initialize: function () {
+		ImagePreloader.run({
+			platform: '/files/img/platform.png'
+		}, this.run, this);
+	},
+
+	run: function (images) {
 		this.fieldSize = new Size( 300, 450 );
 
 		var app = new App({ size: this.fieldSize });
@@ -13,7 +19,7 @@ atom.declare( 'Arkanoid.Controller',
 		this.cellsScene  = app.createScene({ name: 'cells' , intersection: 'manual' });
 		this.activeScene = app.createScene({ name: 'active', invoke: true });
 		this.cells    = this.createCells(this.level);
-		this.platform = this.createPlatform(new Point( 150, 430 ), new Size(100, 8));
+		this.platform = this.createPlatform(new Point( 150, 430 ), new Size(100, 8), images);
 		this.keyboard = new atom.Keyboard();
 		this.createBall(new Point( 160, 420 ));
 	},
@@ -47,7 +53,7 @@ atom.declare( 'Arkanoid.Controller',
 		});
 	},
 
-	createPlatform: function (center, size) {
+	createPlatform: function (center, size, images) {
 		return new Arkanoid.Platform( this.activeScene, {
 			shape: new Rectangle(
 				new Point(
@@ -55,7 +61,8 @@ atom.declare( 'Arkanoid.Controller',
 					center.y - size.height/ 2
 				), size),
 			speed: 200,
-			controller: this
+			controller: this,
+			images : images
 		});
 	}
 });
