@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body style="padding: 0; margin: 0">
+		<canvas width=500 height=150></canvas>
+		<p style="position:absolute;top:170px;left:10px;"><a href="css.html">css</a> <a href="css3.html">css3</a></p>
+		<div></div>
+		<script>
+window.requestAnimFrame = (function(){
+return  window.requestAnimationFrame       ||
+		  window.webkitRequestAnimationFrame ||
+		  window.mozRequestAnimationFrame    ||
+		  window.oRequestAnimationFrame      ||
+		  window.msRequestAnimationFrame     ||
+		  function(/* function */ callback, /* DOMElement */ element){
+			 window.setTimeout(callback, 1000 / 60);
+		  };
+})();
+
+new function () {
+	var div = document.querySelector('div');
+	var ctx = document.querySelector('canvas').getContext('2d'), x = 10;
+	var prv = Date.now();
+	requestAnimFrame(function next () {
+		ctx.clearRect( x, 10, 50, 50 );
+		x = x>390 ? 10 : x+2;
+		ctx.fillRect ( x, 10, 50, 50 );
+		requestAnimFrame(next);
+	});
+};
+		</script>
+	</body>
+</html>

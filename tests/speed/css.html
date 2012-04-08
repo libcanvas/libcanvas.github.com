@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+	<head>
+		<title></title>
+		<style>
+div {
+	width: 50px;
+	height: 50px;
+	position: absolute;
+	background: black;
+	left: 10px;
+	top: 10px;
+}
+		</style>
+	</head>
+	<body>
+		<div></div>
+		<p style="position:absolute;top:170px;left:10px;"><a href="canvas.html">canvas</a> <a href="css3.html">css3</a></p>
+		<script>
+window.requestAnimFrame = (function(){
+return  window.requestAnimationFrame       ||
+		  window.webkitRequestAnimationFrame ||
+		  window.mozRequestAnimationFrame    ||
+		  window.oRequestAnimationFrame      ||
+		  window.msRequestAnimationFrame     ||
+		  function(/* function */ callback, /* DOMElement */ element){
+			 window.setTimeout(callback, 1000 / 60);
+		  };
+})();
+
+new function () {
+	var div = document.querySelector('div');
+	var x = 10;
+	requestAnimFrame(function next () {
+		x = x>390 ? 10 : x+2;
+		div.style.left = x + 'px';
+		requestAnimFrame(next);
+	});
+};
+		</script>
+	</body>
+</html>
