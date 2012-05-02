@@ -1,4 +1,4 @@
 /** @class Ast.Asteroid */
-declare( 'Ast.Asteroid', {
+declare( 'Ast.Asteroid', Ast.Flying, {
 
 });

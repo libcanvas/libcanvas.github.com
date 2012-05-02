@@ -4,25 +4,31 @@
 		<meta charset="utf-8" />
 		<title>LibCanvas :: Games :: Asteroids</title>
 		<link href="/files/styles.css" rel="stylesheet" />
+		<style>
+			.libcanvas-layers-container { margin: 0 }
+		</style>
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
 
 		<script>
-			window.declare = atom.declare;
+			window.declare  = atom.declare;
+			window.Settings = atom.Settings;
+
 			LibCanvas.extract();
 
-			atom.dom(function(){ new Asteroids.Controller });
+			atom.dom(function(){ new Ast.Controller });
 		</script>
-		<script src="classes/controller.js"></script>
-		<script src="classes/stones.js"></script>
-		<script src="classes/bomber.js"></script>
-		<script src="classes/explosion.js"></script>
-		<script src="classes/flying.js"></script>
-		<script src="classes/ship.js"></script>
-		<script src="classes/asteroid.js"></script>
-		<script src="classes/bullet.js"></script>
+		<script src="js/controller.js"></script>
+		<script src="js/stones.js"></script>
+		<script src="js/bomber.js"></script>
+		<script src="js/explosion.js"></script>
+		<script src="js/flying.js"></script>
+		<script src="js/ship.js"></script>
+		<script src="js/asteroid.js"></script>
+		<script src="js/bullet.js"></script>
 	</head>
 	<body>
 		<p><a href="/">Return to index</a></p>
+		<div></div>
 	</body>
 </html>
