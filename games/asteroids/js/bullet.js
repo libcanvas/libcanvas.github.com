@@ -1,4 +1,45 @@
 /** @class Ast.Bullet */
-declare( 'Ast.Bullet', {
+declare( 'Ast.Bullet', Ast.Flying, {
+	zIndex: 2,
+	speed: 300,
+
+	configure: function method () {
+		method.previous.call(this);
+
+		this.angle = this.settings.get('angle');
+	},
+
+	checkBounds: function () {
+		var
+			pos = this.position,
+			gSet = this.globalSettings,
+			field = gSet.get('fieldSize'),
+		    bounds = gSet.get('boundsSize');
+
+		if (
+			pos.x > field.width + bounds.x / 2 ||
+			pos.x < - bounds.x / 2 ||
+			pos.y > field.height + bounds.y / 2 ||
+			pos.y < - bounds.y / 2
+		) this.destroy();
+
+		return this;
+	},
+
+	renderTo: function method (ctx, resources) {
+		method.previous.call(this, ctx, resources);
+
+		ctx.save();
+
+		ctx.clip(this.shape);
+
+		ctx.drawImage({
+			image: resources.get('images').get('shot'),
+			center: this.shape.center,
+			angle : this.angle
+		});
+
+		ctx.restore();
+	}
 
 });

@@ -1,7 +1,9 @@
 /** @class Ast.Flying */
 declare( 'Ast.Flying', App.Element, {
 	angle : 0,
-	speed : 30,
+	angleShift: 0,
+	rotateSpeed: 0,
+	speed : 0,
 	color : 'red',
 
 	hidden: false,
@@ -11,27 +13,43 @@ declare( 'Ast.Flying', App.Element, {
 	},
 
 	get globalSettings () {
-		return this.settings.get('controller').settings;
+		return this.controller.settings;
+	},
+
+	get controller () {
+		return this.settings.get('controller');
 	},
 
 	rotate : function (change, reverse) {
+		if (!change) return this;
+
 		if (reverse) change *= -1;
 		this.angle = (this.angle + change).normalizeAngle();
+		this.redraw();
 		return this;
 	},
 
 	impulse : function (pos, reverse) {
+		this.redraw();
 		this.position.move(pos, reverse);
+		this.checkBounds();
 		return this;
 	},
 
-	getVelocity : function () {
+	getVelocity : function (withoutShift) {
+		var angle = this.angle;
+		if (!withoutShift) angle += this.angleShift;
 		return new Point(
-			Math.cos(this.angle) * this.speed,
-			Math.sin(this.angle) * this.speed
+			Math.cos(angle) * this.speed,
+			Math.sin(angle) * this.speed
 		);
 	},
 
+	getRandomAngle: function () {
+		return Number.random(0, 360).degree();
+	},
+
+	/** @private */
 	checkBounds : function () {
 		var
 			pos = this.position,
@@ -50,7 +68,7 @@ declare( 'Ast.Flying', App.Element, {
 		} else if (pos.y < - bounds.y / 2) {
 			impulse.y =  (field.height + bounds.y);
 		}
-		this.impulse(impulse);
+		this.position.move(impulse);
 		return this;
 	},
 
@@ -63,16 +81,26 @@ declare( 'Ast.Flying', App.Element, {
 		return this;
 	},
 
+	onUpdate: function (time) {
+		time /= 1000;
+
+		this.rotate( this.rotateSpeed * time );
+		this.impulse( this.getVelocity().mul(time) );
+	},
+
 	renderTo : function (ctx) {
 		if (this.hidden || !this.globalSettings.get('showShapes')) return;
 
 		ctx
+			.save()
+			.clip(this.currentBoundingShape)
 			.stroke(this.shape, this.color)
 			.stroke(
 				new Line(
 					this.position,
-					this.position.clone().move(this.getVelocity())
+					this.position.clone().move(this.getVelocity(true))
 				), this.color
-			);
+			)
+			.restore();
 	}
 });
