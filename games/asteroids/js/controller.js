@@ -21,11 +21,11 @@ declare( 'Ast.Controller', {
 		return this.fieldRectangle.getRandomPoint(50);
 	},
 
-	addBullet: function (bullet) {
-
-	},
-
 	run: function (images) {
+		this.collisions = new Ast.Collisions(this);
+
+		atom.frame.add( this.collisions.update );
+
 		this.fieldRectangle = new Rectangle({
 			from: new Point(0,0),
 			size: this.settings.get('fieldSize')
@@ -40,25 +40,18 @@ declare( 'Ast.Controller', {
 
 		this.createScenes( this.settings.get('fieldSize'), images );
 
-		$ship = new Ast.Ship( this.scene, {
-			type: 0,
-			manipulator: new Ast.Manipulator( Ast.Manipulator.defaultSets[0] ),
-			controller: this,
-			shape: new Circle(this.randomFieldPoint,25)
-		});
-		$ship = new Ast.Ship( this.scene, {
-			type: 1,
-			manipulator: new Ast.Manipulator( Ast.Manipulator.defaultSets[1] ),
-			controller: this,
-			shape: new Circle(this.randomFieldPoint,25)
-		});
+		this.ships = [
+			new Ast.Ship( this.scene, {
+				type: Number.random(0, 1),
+				manipulator: new Ast.Manipulator( Ast.Manipulator.defaultSets[0] ),
+				controller: this,
+				shape: new Circle(this.randomFieldPoint,25)
+			})
+		];
 
-		this.astBelt.createAsteroid();
-		this.astBelt.createAsteroid();
-		this.astBelt.createAsteroid();
-		this.astBelt.createAsteroid();
-		this.astBelt.createAsteroid();
-		this.astBelt.createAsteroid();
+		this.collisions.add(this.ships[0]);
+
+		this.collisions.createAsteroids();
 	},
 
 	createScenes: function (size, images) {

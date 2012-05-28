@@ -54,6 +54,6 @@ declare( 'Ast.Manipulator', {
 });
 
 Ast.Manipulator.defaultSets = [
-	'w s a d space'.split(' '),
-	'aup adown aleft aright enter'.split(' ')
+	'aup adown aleft aright ctrl'.split(' '),
+	'w s a d shift'.split(' ')
 ];

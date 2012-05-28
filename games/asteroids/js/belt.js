@@ -17,7 +17,7 @@ declare( 'Ast.Belt', {
 			set  = ast.settings.get('set'),
 			size = ast.settings.get('size');
 
-		if (size < 2) while (children) {
+		if (size < 2) while (children--) {
 			this.createAsteroid(
 				ast.position.clone(),
 				size+1, set
@@ -25,6 +25,7 @@ declare( 'Ast.Belt', {
 		}
 
 		ast.events.remove( 'die', this.asteroidDie );
+		this.controller.collisions.remove( ast );
 	},
 
 	createAsteroid: function (point, size, set) {
@@ -39,6 +40,8 @@ declare( 'Ast.Belt', {
 			set  : set,
 			image: set.getImage(size)
 		});
+
+		this.controller.collisions.add( ast );
 
 		ast.events.add( 'die', this.asteroidDie );
 

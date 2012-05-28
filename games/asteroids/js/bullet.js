@@ -21,9 +21,23 @@ declare( 'Ast.Bullet', Ast.Flying, {
 			pos.x < - bounds.x / 2 ||
 			pos.y > field.height + bounds.y / 2 ||
 			pos.y < - bounds.y / 2
-		) this.destroy();
+		) this.die();
 
 		return this;
+	},
+
+	hit: function (ast) {
+		new Ast.Explosion(this.scene, {
+			shape : new Circle(this.position, 80),
+			sheet : this.settings.get('controller').explosionSheet
+		});
+		ast.die();
+		this.die();
+	},
+
+	die: function () {
+		this.settings.get('controller').collisions.remove(this);
+		this.destroy();
 	},
 
 	renderTo: function method (ctx, resources) {
