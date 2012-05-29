@@ -3,7 +3,7 @@ declare( 'Ast.Ship', Ast.Flying, {
 	zIndex: 3,
 	acceleration: 0,
 	friction: 0.99,
-	rateOfFire: 0.7,
+	rateOfFire: 0.4,
 	isShoot: false,
 	invulnerable: 0,
 
@@ -76,6 +76,7 @@ declare( 'Ast.Ship', Ast.Flying, {
 
 	explode: function () {
 		new Ast.Explosion(this.scene, {
+			controller: this.controller,
 			shape : new Circle(this.shape.center.clone(), 80),
 			sheet : this.controller.explosionSheet
 		});

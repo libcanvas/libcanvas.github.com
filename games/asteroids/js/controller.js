@@ -11,10 +11,26 @@ declare( 'Ast.Controller', {
 
 		ImagePreloader.run({
 			explosion : 'im/explosion.png',
+			debris    : 'im/explosion-debris.png',
 			ships     : 'im/ships.png',
 			shot      : 'im/shot.png',
 			stones    : 'im/stones.png'
-		}, this.run, this)
+		}, this.run, this);
+
+		this.fpsMeter();
+	},
+
+	fpsMeter: function () {
+		var fps = atom.trace(), time = [], last = Date.now();
+
+		atom.frame.add(function () {
+			if (time.length > 5) time.shift();
+
+			time.push( Date.now() - last );
+			last = Date.now();
+
+			fps.value = Math.ceil(1000 / time.average()) + " FPS";
+		});
 	},
 
 	get randomFieldPoint () {
@@ -30,6 +46,8 @@ declare( 'Ast.Controller', {
 			from: new Point(0,0),
 			size: this.settings.get('fieldSize')
 		});
+
+		this.sounds = new Ast.Sounds( '/games/asteroids/sounds/' );
 
 		this.astBelt        = new Ast.Belt(this, images);
 		this.shipSheets     = this.createShipSheets  ( images.get('ships' ) );
@@ -55,7 +73,7 @@ declare( 'Ast.Controller', {
 	},
 
 	createScenes: function (size, images) {
-		var targetNode = atom.dom('div')
+		var targetNode = atom.dom('div.app')
 			.css(size.toObject())
 			.css({ background: 'url(im/stars.jpg)' });
 

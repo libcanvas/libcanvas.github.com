@@ -6,6 +6,8 @@ declare( 'Ast.Bullet', Ast.Flying, {
 	configure: function method () {
 		method.previous.call(this);
 
+		this.controller.sounds.play('shot');
+
 		this.angle = this.settings.get('angle');
 	},
 
@@ -28,15 +30,16 @@ declare( 'Ast.Bullet', Ast.Flying, {
 
 	hit: function (ast) {
 		new Ast.Explosion(this.scene, {
+			controller: this.controller,
 			shape : new Circle(this.position, 80),
-			sheet : this.settings.get('controller').explosionSheet
+			sheet : this.controller.explosionSheet
 		});
 		ast.die();
 		this.die();
 	},
 
 	die: function () {
-		this.settings.get('controller').collisions.remove(this);
+		this.controller.collisions.remove(this);
 		this.destroy();
 	},
 
