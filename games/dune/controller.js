@@ -2,8 +2,11 @@
 atom.declare( 'Dune.Controller', {
 
 	initialize: function () {
-		var mouse, mouseHandler, factory, fieldSize, realFieldSize;
+		var mouse, mouseHandler, factory, fieldSize, realFieldSize, blocks, wait;
 
+		wait = atom.trace('Please, wait');
+
+		blocks = new Size(32, 15);
 		fieldSize = new Size(1024, 512);
 
 		this.app = new App({
@@ -15,12 +18,7 @@ atom.declare( 'Dune.Controller', {
 
 		mouse = new LibCanvas.Mouse(this.app.container.bounds);
 
-		mouseHandler = new App.MouseHandler({
-			mouse: mouse, app: this.app,
-			//search: new Dune.FastSearch()
-		});
-
-		factory = new Dune.BuildingFactory(this);
+		factory = new Dune.BuildingFactory(this, blocks.clone().mul(8));
 
 		realFieldSize = factory.getRealFieldSize();
 		this.scene.layer.size = realFieldSize;
@@ -28,12 +26,18 @@ atom.declare( 'Dune.Controller', {
 			fieldSize.width  - realFieldSize.width,
 			fieldSize.height - realFieldSize.height
 		));
+
+		mouseHandler = new App.MouseHandler({
+			mouse: mouse, app: this.app,
+			search: new Dune.FastSearch(blocks.clone().mul(8), new Size(32,32), this.shift)
+		});
 		this.app.resources.set({ mouse: mouse, mouseHandler: mouseHandler });
 
 		this.preload(function (images) {
 			this.app.resources.set({ images: images });
-			factory.produceDefault(new Size(16, 10), 8);
+			factory.produceDefault(blocks, 8);
 
+			wait.destroy();
 			atom.trace("Buildings: " + factory.buildingsCount);
 		});
 	},
@@ -59,14 +63,14 @@ atom.declare( 'Dune.Controller', {
 	},
 
 	createDragger: function (mouse, size) {
-		var padding, shift;
+		var padding;
 
 		padding = 64;
-		shift = new App.SceneShift(this.scene);
-		shift.setLimitShift({ from: [size.width-padding, size.height-padding], to: [padding, padding] });
+		this.shift = new App.SceneShift(this.scene);
+		this.shift.setLimitShift({ from: [size.width-padding, size.height-padding], to: [padding, padding] });
 
 		new App.Dragger( mouse )
-			.addSceneShift( shift )
+			.addSceneShift( this.shift )
 			.start();
 	}
 

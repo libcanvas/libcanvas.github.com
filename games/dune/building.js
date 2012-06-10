@@ -13,6 +13,14 @@ atom.declare( 'Dune.Building', App.Element, {
 		return this;
 	},
 
+	get from () {
+		return this.settings.get('from');
+	},
+
+	get size () {
+		return this.settings.get('size');
+	},
+
 	get currentBoundingShape () {
 		return this.shape;
 	},

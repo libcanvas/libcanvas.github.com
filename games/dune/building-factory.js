@@ -2,7 +2,6 @@
 atom.declare( 'Dune.BuildingFactory', App.Element, {
 
 	cell : new Size(32, 32),
-	field: new Size(128, 80),
 
 	sizes : {
 		plate   : new Size(1,1),
@@ -13,8 +12,9 @@ atom.declare( 'Dune.BuildingFactory', App.Element, {
 		barrack : new Size(2,2)
 	},
 
-	initialize: function (controller) {
+	initialize: function (controller, field) {
 		this.controller = controller;
+		this.field = field;
 		this.buildingsCount  = 0;
 	},
 
