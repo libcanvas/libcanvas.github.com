@@ -2823,7 +2823,7 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 			to     : null,
 			align  : 'left', /* center|left|right */
 			size   : 16,
-			weigth : 'normal', /* bold|normal */
+			weight : 'normal', /* bold|normal */
 			style  : 'normal', /* italic|normal */
 			family : 'arial,sans-serif', /* @fontFamily */
 			lineHeight : null,
