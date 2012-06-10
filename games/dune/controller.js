@@ -2,35 +2,39 @@
 atom.declare( 'Dune.Controller', {
 
 	initialize: function () {
-		var mouse, mouseHandler, padding, shift;
+		var mouse, mouseHandler, factory, fieldSize, realFieldSize;
+
+		fieldSize = new Size(1024, 512);
 
 		this.app = new App({
-			size: new Size(1024, 600),
+			size: fieldSize,
 			appendTo: 'body'
 		});
 
 		this.scene = this.app.createScene({ intersection: 'manual' });
-		this.scene.layer.size = new Size(2048, 1200);
 
 		mouse = new LibCanvas.Mouse(this.app.container.bounds);
 
-		this.createDragger(mouse);
 		mouseHandler = new App.MouseHandler({
-			mouse: mouse, app: this.app
+			mouse: mouse, app: this.app,
 			//search: new Dune.FastSearch()
 		});
 
-		var factory = new Dune.BuildingFactory(this);
+		factory = new Dune.BuildingFactory(this);
 
+		realFieldSize = factory.getRealFieldSize();
+		this.scene.layer.size = realFieldSize;
+		this.createDragger(mouse, new Size(
+			fieldSize.width  - realFieldSize.width,
+			fieldSize.height - realFieldSize.height
+		));
 		this.app.resources.set({ mouse: mouse, mouseHandler: mouseHandler });
 
 		this.preload(function (images) {
 			this.app.resources.set({ images: images });
-			factory.createBuilding('plant'   , new Point(1,1));
-			factory.createBuilding('refinery', new Point(4,1));
-			factory.createBuilding('factory' , new Point(1,3));
-			factory.createBuilding('power'   , new Point(3,3));
-			factory.createBuilding('barrack' , new Point(5,3));
+			factory.produceDefault(new Size(16, 10), 8);
+
+			atom.trace("Buildings: " + factory.buildingsCount);
 		});
 	},
 
@@ -39,12 +43,12 @@ atom.declare( 'Dune.Controller', {
 
 		ImagePreloader.run({
 			'bg'        : source+ '[0:0:32:32]',
-			'block'     : source+'[32:32]{2:0}',
-			'block-h'   : source+'[32:32]{2:1}',
+			'plate'     : source+'[32:32]{2:0}',
+			'plate-h'   : source+'[32:32]{2:1}',
 			'plant'     : source+'[96:64]{0:1}',
 			'plant-h'   : source+'[96:64]{1:1}',
-			'refinery'  : source+'[96:64]{0:2}',
-			'refinery-h': source+'[96:64]{1:2}',
+			'harvest'   : source+'[96:64]{0:2}',
+			'harvest-h' : source+'[96:64]{1:2}',
 			'power'     : source+'[64:64]{0:3}',
 			'power-h'   : source+'[64:64]{1:3}',
 			'factory'   : source+'[64:64]{0:4}',
@@ -54,12 +58,12 @@ atom.declare( 'Dune.Controller', {
 		}, callback, this);
 	},
 
-	createDragger: function (mouse) {
+	createDragger: function (mouse, size) {
 		var padding, shift;
 
 		padding = 64;
 		shift = new App.SceneShift(this.scene);
-		shift.setLimitShift({ from: [-1024-padding, -600-padding], to: [padding, padding] });
+		shift.setLimitShift({ from: [size.width-padding, size.height-padding], to: [padding, padding] });
 
 		new App.Dragger( mouse )
 			.addSceneShift( shift )
