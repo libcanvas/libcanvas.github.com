@@ -45,7 +45,7 @@ atom.declare( 'Dune.Controller', {
 	preload: function (callback) {
 		var source = '/files/img/dune2.png ';
 
-		ImagePreloader.run({
+		atom.ImagePreloader.run({
 			'bg'        : source+ '[0:0:32:32]',
 			'plate'     : source+'[32:32]{2:0}',
 			'plate-h'   : source+'[32:32]{2:1}',

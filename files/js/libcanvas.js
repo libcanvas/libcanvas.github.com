@@ -70,7 +70,7 @@ var LibCanvas = this.LibCanvas = declare({ name: 'LibCanvas', prototype: {} })
 				height : size.height
 			}).first;
 			
-			if (withCtx) canvas.ctx = canvas.getContext('2d-libcanvas');
+			if (withCtx) canvas.ctx = new Context2D(canvas);
 			return canvas;
 		},
 		'declare.classes': {},
@@ -1443,98 +1443,6 @@ var Geometry = declare( 'LibCanvas.Geometry', {
 /*
 ---
 
-name: "Utils.Math"
-
-description: "Helpers for basic math operations, such as degree, hypotenuse from two cathetus, etc"
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-authors:
-	- "Shock <shocksilien@gmail.com>"
-
-provides: Utils.Math
-
-...
-*/
-
-// Number
-(function () {
-
-	var degreesCache = {}, d360;
-
-	atom.core.append(Number.prototype, {
-		/**
-		 * Cast degrees to radians
-		 * (90).degree() == Math.PI/2
-		 */
-		degree: function () {
-			return this in degreesCache ? degreesCache[this] :
-				this * Math.PI / 180;
-		},
-		/**
-		 * Cast radians to degrees
-		 * (Math.PI/2).getDegree() == 90
-		 */
-		getDegree: function (round) {
-			return arguments.length == 0 ?
-				this / Math.PI * 180 :
-				this.getDegree().round(round);
-		},
-		normalizeAngle : function () {
-			var num  = this % d360;
-			return num < 0 ? num + d360 : num;
-		},
-		normalizeDegree : function (base) {
-			return this
-				.getDegree()
-				.round(base || 0)
-				.degree()
-				.normalizeAngle();
-		},
-
-		toSeconds: function () {
-			return this / 1000;
-		},
-		toMinutes: function () {
-			return this / 60 / 1000;
-		},
-		toHours: function () {
-			return this / 60 / 60 / 1000;
-		},
-
-		seconds: function () {
-			return this * 1000;
-		},
-		minutes: function () {
-			return this * 60 * 1000;
-		},
-		hours: function () {
-			return this * 60 * 60 * 1000;
-		}
-
-	});
-
-	degreesCache = atom.array.associate([0, 45, 90, 135, 180, 225, 270, 315, 360], function (num) {
-		return num.degree();
-	});
-	d360 = degreesCache[360];
-
-})();
-
-atom.core.append(Math, {
-	hypotenuse: function (cathetus1, cathetus2)  {
-		return (cathetus1*cathetus1 + cathetus2*cathetus2).sqrt();
-	},
-	cathetus: function (hypotenuse, cathetus2)  {
-		return (hypotenuse*hypotenuse - cathetus2*cathetus2).sqrt();
-	}
-});
-
-/*
----
-
 name: "Point"
 
 description: "A X/Y point coordinates encapsulating class"
@@ -1600,12 +1508,12 @@ var Point = LibCanvas.declare( 'LibCanvas.Point', 'Point', Geometry, {
 	/** @returns {Number} */
 	angleTo : function (point) {
 		var diff = this.cast(point).diff(this);
-		return Math.atan2(diff.y, diff.x).normalizeAngle();
+		return atom.math.normalizeAngle( Math.atan2(diff.y, diff.x) );
 	},
 	/** @returns {Number} */
 	distanceTo : function (point) {
 		var diff = this.cast(point).diff(this);
-		return Math.hypotenuse(diff.x, diff.y);
+		return atom.math.hypotenuse(diff.x, diff.y);
 	},
 	/** @returns {Point} */
 	diff : function (point) {
@@ -2185,7 +2093,7 @@ var Circle = LibCanvas.declare( 'LibCanvas.Shapes.Circle', 'Circle', Shape, {
 		if (this.radius) {
 			ctx.arc({
 				circle : this,
-				angle  : [0, (360).degree()]
+				angle  : [0, Math.PI * 2]
 			});
 		}
 		if (!noWrap) ctx.closePath();
@@ -3218,7 +3126,9 @@ var fixGradient = function (grad) {
 
 Context2D.office = office;
 
-HTMLCanvasElement.addContext('2d-libcanvas', Context2D);
+if (atom.core.isFunction(HTMLCanvasElement.addContext)) {
+	HTMLCanvasElement.addContext('2d-libcanvas', Context2D);
+}
 
 return Context2D;
 }();
@@ -3945,6 +3855,8 @@ var Animation = LibCanvas.declare( 'LibCanvas.Plugins.Animation', 'Animation', {
 
 /** @class Animation.Frames */
 atom.declare( 'LibCanvas.Plugins.Animation.Frames', {
+	sprites: [],
+
 	initialize: function (image, width, height) {
 		if (image  == null) throw new TypeError('`image` cant be null');
 
@@ -3971,7 +3883,7 @@ atom.declare( 'LibCanvas.Plugins.Animation.Frames', {
 
 		for     (y = 0; y <= im.height - h; y += h) {
 			for (x = 0; x <= im.width  - w; x += w) {
-				this.sprites.push( im.sprite(x, y, w, h) );
+				this.sprites.push( UtilsImage.sprite(im, new Rectangle(x, y, w, h)) );
 			}
 		}
 
@@ -4209,7 +4121,7 @@ EC.getPoints = function (prevPos, pos, width, inverted) {
 	var
 		w    = pos.x-prevPos.x,
 		h    = pos.y-prevPos.y,
-		dist = Math.hypotenuse(w, h),
+		dist = atom.math.hypotenuse(w, h),
 
 		sin = h / dist,
 		cos = w / dist,
@@ -5536,7 +5448,7 @@ var Ellipse = LibCanvas.declare( 'LibCanvas.Shapes.Ellipse', 'Ellipse', Rectangl
 	},
 	set angle (a) {
 		if (this._angle == a) return;
-		this._angle = a.normalizeAngle();
+		this._angle = atom.math.normalizeAngle(a);
 		this.updateCache = true;
 	},
 	update: function () {
@@ -5637,6 +5549,8 @@ var between = function (x, a, b, accuracy) {
 	return x.equals(a, accuracy) || x.equals(b, accuracy) || (a < x && x < b) || (b < x && x < a);
 };
 
+var halfPi = Math.PI/2;
+
 /** @class Line */
 return LibCanvas.declare( 'LibCanvas.Shapes.Line', 'Line', Shape, {
 	set : function (from, to) {
@@ -5722,25 +5636,25 @@ return LibCanvas.declare( 'LibCanvas.Shapes.Line', 'Line', Shape, {
 	},
 	distanceTo: function (p, asInfiniteLine) {
 		p = Point(p);
-		var f = this.from, t = this.to, degree, s, x, y;
+		var f = this.from, t = this.to, angle, s, x, y;
 
 		if (!asInfiniteLine) {
-			degree = Math.atan2(p.x - t.x, p.y - t.y).getDegree();
-			if ( degree.between(-90, 90) ) {
+			angle = Math.atan2(p.x - t.x, p.y - t.y);
+			if ( atom.number.between(angle, -halfPi, halfPi) ) {
 				return t.distanceTo( p );
 			}
 
-			degree = Math.atan2(f.x - p.x, f.y - p.y).getDegree();
-			if ( degree.between(-90, 90) ) {
+			angle = Math.atan2(f.x - p.x, f.y - p.y);
+			if ( atom.number.between(angle, -halfPi, halfPi) ) {
 				return f.distanceTo( p );
 			}
 		}
 
-		s = (
+		s = Math.abs(
 			f.x * (t.y - p.y) +
 			t.x * (p.y - f.y) +
 			p.x * (f.y - t.y)
-		).abs() / 2;
+		) / 2;
 
 		x = f.x - t.x;
 		y = f.y - t.y;
@@ -5865,8 +5779,8 @@ var Path = LibCanvas.declare( 'LibCanvas.Shapes.Path', 'Path', Shape, {
 		this.each(function (method, args) {
 			if (method == 'arc') {
 				var a = args[0].angle;
-				a.start = (a.start + angle).normalizeAngle();
-				a.end   = (a.end   + angle).normalizeAngle();
+				a.start = atom.math.normalizeAngle(a.start + angle);
+				a.end   = atom.math.normalizeAngle(a.end   + angle);
 			}
 		}.bind(this));
 		return this;
@@ -5979,7 +5893,7 @@ declare( 'LibCanvas.Shapes.Path.Builder', {
 			a.angle  = angle;
 			a.acw    = acw;
 		} else if (circle instanceof Circle) {
-			a = { circle: circle, angle: [0, (360).degree()] };
+			a = { circle: circle, angle: [0, Math.PI * 2] };
 		} else {
 			a = a[0];
 		}
@@ -6258,105 +6172,134 @@ provides: Utils.Image
 
 ...
 */
-// <image> tag
-atom.core.append(HTMLImageElement.prototype, {
-	// наверное, лучше использовать createPattern
+
+var UtilsImage = atom.declare( 'LibCanvas.Utils.Image', {
+	canvasCache: null,
+
+	initialize: function (image) {
+		this.image = image;
+		this.cache = {};
+	},
+
+	/**
+	 * @param {Rectangle} rect
+	 * #todo: use createPattern
+	 */
 	createSprite: function (rect) {
+		var image, buf, xShift, yShift, x, y, xMax, yMax, crop, size, current, from, to;
+
 		if (rect.width <= 0 || rect.height <= 0) {
 			throw new TypeError('Wrong rectangle size');
 		}
 
-		var buf = LibCanvas.buffer(rect.width, rect.height, true),
-			xShift, yShift, x, y, xMax, yMax, crop, size;
+		image = this.image;
+		buf = LibCanvas.buffer(rect.width, rect.height, true);
 
 		// если координаты выходят за левый/верхний край картинки
-		{
-			if (rect.from.x < 0) xShift = (rect.from.x.abs() / rect.width ).ceil();
-			if (rect.from.y < 0) yShift = (rect.from.y.abs() / rect.height).ceil();
-			if (xShift || yShift) {
-				rect = rect.clone().move({
-					x: xShift * this.width,
-					y: yShift * this.height
-				});
-			}
+		if (rect.from.x < 0) xShift = (rect.from.x.abs() / rect.width ).ceil();
+		if (rect.from.y < 0) yShift = (rect.from.y.abs() / rect.height).ceil();
+		if (xShift || yShift) {
+			rect = rect.clone().move(new Point(
+				xShift * image.width,
+				yShift * image.height
+			));
 		}
 
 		// для того, чтобы была возможность указывать ректангл, выходящий
 		// за пределы картинки. текущая картинка повторяется как паттерн
-		xMax = (rect.to.x / this.width ).ceil();
-		yMax = (rect.to.y / this.height).ceil();
+		xMax = Math.ceil(rect.to.x / image.width );
+		yMax = Math.ceil(rect.to.y / image.height);
 		for (y = yMax; y-- > 0;) for (x = xMax; x-- > 0;) {
-			var current = new Point(x * this.width, y * this.height);
-			var from = current.clone();
-			var to   = from.clone().move([this.width, this.height]);
+			current = new Point(x * image.width, y * image.height);
+			from = current.clone();
+			to   = from.clone().move([image.width, image.height]);
 
 			if (from.x < rect.from.x) from.x = rect.from.x;
 			if (from.y < rect.from.y) from.y = rect.from.y;
 			if (  to.x > rect. to .x)   to.x = rect. to .x;
 			if (  to.y > rect. to .y)   to.y = rect. to .y;
-			
+
 			crop = new Rectangle(from, to);
 			size = crop.size;
-			crop.from.x %= this.width;
-			crop.from.y %= this.height;
+			crop.from.x %= image.width;
+			crop.from.y %= image.height;
 			crop.size    = size;
 
 			if (x) current.x -= rect.from.x;
 			if (y) current.y -= rect.from.y;
 
 			if (size.width && size.height) buf.ctx.drawImage({
-				image : this,
+				image : image,
 				crop  : crop,
-				draw  : new Rectangle({
-					from: current,
-					size: size
-				})
+				draw  : new Rectangle( current, size )
 			});
 		}
 
 		return buf;
 	},
+
 	toCanvas: function () {
-		var cache = (this.spriteCache = (this.spriteCache || {}));
-		if (!cache[0]) {
-			cache[0] = Buffer(this, true)
-				.ctx.drawImage(this)
-				.canvas;
+		var cache = this.canvasCache;
+
+		if (!cache) {
+			cache = this.canvasCache = LibCanvas.buffer(this, true);
+			cache.ctx.drawImage(this);
 		}
-		return cache[0];
+		return cache;
 	},
-	sprite : function () {
+
+	isLoaded: function () {
+		return this.constructor.isLoaded( this.image );
+	},
+
+	sprite: function () {
 		if (!this.isLoaded()) throw new Error('Not loaded in Image.sprite, logged');
 
 		if (arguments.length) {
-			var rect  = Rectangle(arguments),
-				index = [rect.from.x,rect.from.y,rect.width,rect.height].join('.'),
-				cache = (this.spriteCache = (this.spriteCache || {}));
-			if (!cache[index]) cache[index] = this.createSprite(rect);
-			return cache[index];
+			var
+				rect  = Rectangle(arguments),
+				index = rect.dump(),
+				cache = this.cache[index];
+
+			if (!cache) {
+				cache = this.cache[index] = this.createSprite(rect);
+			}
+			return cache;
 		} else {
 			return this.toCanvas();
 		}
-	},
-	isLoaded : function () {
-		if (!this.complete)  return false;
-		return (this.naturalWidth == null) || !!this.naturalWidth;
 	}
 });
-	// mixin from image
-atom.core.append(HTMLCanvasElement.prototype, {
-	createSprite : HTMLImageElement.prototype.createSprite,
-	sprite   : HTMLImageElement.prototype.sprite,
-	isLoaded : function () { return true; },
-	toCanvas : function () { return this; }
+UtilsImage.own({
+	isLoaded : function (image) {
+		return image.complete && ( (image.naturalWidth == null) || !!image.naturalWidth );
+	},
+
+	sprite: function (image, rectangle) {
+		return this.mix(image).sprite(rectangle);
+	},
+
+	toCanvas: function (image) {
+		return this.mix(image).toCanvas();
+	},
+
+	mix: function (image) {
+		var key = 'libcanvas.image';
+
+		if (!image[key]) {
+			image[key] = new this(image);
+		}
+
+		return image[key];
+	}
 });
 
 /*
 ---
 
-name: "Utils.ImagePreloader"
+name: "Utils.ImagePrototype"
 
-description: "Provides images preloader"
+description: "Provides some Image extensions"
 
 license:
 	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
@@ -6367,156 +6310,38 @@ authors:
 
 requires:
 	- LibCanvas
-	- Shapes.Rectangle
+	- Utils.Image
 
-provides: Utils.ImagePreloader
+provides: Utils.ImagePrototype
 
 ...
 */
 
-/** @class ImagePreloader */
-var ImagePreloader = LibCanvas.declare( 'LibCanvas.Utils.ImagePreloader', 'ImagePreloader', {
-	processed : 0,
-	number    : 0,
-	
-	initialize: function (settings) {
-		this.events   = new Events(this);
-		this.settings = new Settings(settings).addEvents(this.events);
+// <image> tag
+atom.core.append(HTMLImageElement.prototype, {
+	createSprite: function (rect) {
+		return UtilsImage.mix(this).createSprite(rect);
+	},
+	toCanvas: function () {
+		return UtilsImage.mix(this).toCanvas();
+	},
+	sprite : function () {
+		var utils = UtilsImage.mix(this);
 
-		this.count = {
-			error: 0,
-			abort: 0,
-			load : 0
-		};
-		
-		this.suffix    = this.settings.get('suffix') || '';
-		this.usrImages = this.prefixImages(this.settings.get('images'));
-		this.domImages = this.createDomImages();
-		this.images    = {};
+		return utils.sprite.apply( utils, arguments );
 	},
-	get isReady () {
-		return this.number == this.processed;
-	},
-	get info () {
-		var stat = atom.string.substitute(
-			"Images loaded: {load}; Errors: {error}; Aborts: {abort}",
-			this.count
-		);
-		if (this.isReady) stat = "Image preloading has completed;\n" + stat;
-		return stat;
-	},
-	get progress () {
-		return this.isReady ? 1 : atom.number.round(this.processed / this.number, 4);
-	},
-	exists: function (name) {
-		return !!this.images[name];
-	},
-	get: function (name) {
-		var image = this.images[name];
-		if (image) {
-			return image;
-		} else {
-			throw new Error('No image «' + name + '»');
-		}
-	},
-
-	/** @private */
-	prefixImages: function (images) {
-		var prefix = this.settings.get('prefix');
-		if (!prefix) return images;
-
-		return Object.map(images, function (src) {
-			if(src.begins('http://') || src.begins('https://') ) {
-				return src;
-			}
-			return prefix + src;
-		});
-	},
-	/** @private */
-	cutImages: function () {
-		var i, parts, img;
-		for (i in this.usrImages) {
-			parts = this.splitUrl( this.usrImages[i] );
-			img   = this.domImages[ parts.url ];
-			if (parts.coords) img = img.sprite(new Rectangle( parts.coords ));
-			this.images[i] = img;
-		}
-		return this;
-	},
-	/** @private */
-	splitUrl: function (str) {
-		var url = str, size, cell, match, coords = null;
-
-				// searching for pattern 'url [x:y:w:y]'
-		if (match = str.match(/ \[(\d+):(\d+):(\d+):(\d+)\]$/)) {
-			coords = match.slice( 1 );
-				// searching for pattern 'url [w:y]{x:y}'
-		} else if (match = str.match(/ \[(\d+):(\d+)\]\{(\d+):(\d+)\}$/)) {
-			coords = match.slice( 1 ).map( Number );
-			size = coords.slice( 0, 2 );
-			cell = coords.slice( 2, 4 );
-			coords = [ cell[0] * size[0], cell[1] * size[1], size[0], size[1] ];
-		}
-		if (match) {
-			url = str.substr(0, str.lastIndexOf(match[0]));
-			coords = coords.map( Number );
-		}
-		if (this.suffix) {
-			if (typeof this.suffix == 'function') {
-				url = this.suffix( url );
-			} else {
-				url += this.suffix;
-			}
-		}
-
-		return { url: url, coords: coords };
-	},
-	/** @private */
-	createDomImages: function () {
-		var i, result = {}, url, images = this.usrImages;
-		for (i in images) {
-			url = this.splitUrl( images[i] ).url;
-			if (!result[url]) result[url] = this.createDomImage( url );
-		}
-		return result;
-	},
-	/** @private */
-	createDomImage : function (src) {
-		var img = new Image();
-		img.src = src;
-		if (window.opera && img.complete) {
-			setTimeout(this.onProcessed.bind(this, 'load', img), 10);
-		} else {
-			['load', 'error', 'abort'].forEach(function (event) {
-				img.addEventListener( event, this.onProcessed.bind(this, event, img), false );
-			}.bind(this));
-		}
-		this.number++;
-		return img;
-	},
-	/** @private */
-	onProcessed : function (type, img) {
-		if (type == 'load' && window.opera) {
-			// opera fullscreen bug workaround
-			img.width  = img.width;
-			img.height = img.height;
-			img.naturalWidth  = img.naturalWidth;
-			img.naturalHeight = img.naturalHeight;
-		}
-		this.count[type]++;
-		this.processed++;
-		if (this.isReady) this.cutImages().events.ready('ready', [this]);
-		return this;
+	isLoaded : function () {
+		return UtilsImage.isLoaded(this);
 	}
 });
 
-ImagePreloader.run = function (images, callback, context) {
-	var preloader = new ImagePreloader({ images: images })
-
-	preloader.events.add( 'ready', context ? callback.bind(context) : callback );
-
-	return preloader;
-};
+// mixin from image
+atom.core.append(HTMLCanvasElement.prototype, {
+	createSprite : HTMLImageElement.prototype.createSprite,
+	sprite   : HTMLImageElement.prototype.sprite,
+	isLoaded : atom.fn.lambda(true),
+	toCanvas : atom.fn.lambda()
+});
 
 /*
 ---

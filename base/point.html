@@ -34,7 +34,7 @@ new function () {
 		move: function () {
 			cursor.set(this.point);
 			text.content = [
-				'angleTo : ' + cursor.angleTo(center).getDegree(0) + '°',
+				'angleTo : ' + cursor.angleTo(center).getDegree(true) + '°',
 				'distance: ' + cursor.distanceTo(center).round(),
 				'diff.x  : ' + cursor.diff(center).x,
 				'diff.y  : ' + cursor.diff(center).y

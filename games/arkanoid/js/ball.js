@@ -25,7 +25,7 @@ atom.declare( 'Arkanoid.Ball', {
 		},
 
 		getMovementVector: function (time, factor) {
-			return this.speed.clone().mul( time.toSeconds() * factor );
+			return this.speed.clone().mul( time / 1000 * factor );
 		},
 
 		onUpdate: function (time) {

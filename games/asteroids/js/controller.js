@@ -9,7 +9,7 @@ declare( 'Ast.Controller', {
 	initialize: function () {
 		this.settings = new Settings(this.settings);
 
-		ImagePreloader.run({
+		atom.ImagePreloader.run({
 			explosion : 'im/explosion.png',
 			debris    : 'im/explosion-debris.png',
 			ships     : 'im/ships.png',

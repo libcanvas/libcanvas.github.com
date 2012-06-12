@@ -62,7 +62,7 @@ atom.declare( 'Arkanoid.Platform', {
 		},
 
 		onUpdate: function (time) {
-			var moveSpeed = (this.settings.get('speed') * time).toSeconds().round();
+			var moveSpeed = (this.settings.get('speed') * time / 1000).round();
 			if (this.isAction('moveLeft')) {
 				this.move( -moveSpeed );
 			} else if (this.isAction('moveRight')) {

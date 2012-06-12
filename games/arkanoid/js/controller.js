@@ -5,7 +5,7 @@ atom.declare( 'Arkanoid.Controller',
 {
 	/** @constructs */
 	initialize: function () {
-		ImagePreloader.run({
+		atom.ImagePreloader.run({
 			platform: '/files/img/platform.png'
 		}, this.run, this);
 	},

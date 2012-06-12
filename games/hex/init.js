@@ -4,7 +4,7 @@ var Hexes = {};
 LibCanvas.extract();
 
 atom.dom(function () {
-	new ImagePreloader({
+	new atom.ImagePreloader({
 		images: {
 			ruins1   : '/files/img/hexes.png [150:100]{0:0}',
 			ruins2   : '/files/img/hexes.png [150:100]{1:0}',
