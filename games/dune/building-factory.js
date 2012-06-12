@@ -18,12 +18,17 @@ atom.declare( 'Dune.BuildingFactory', App.Element, {
 		this.buildingsCount  = 0;
 	},
 
-	produceDefault: function (count, mul) {
-		var x, y, maps = this.constructor.maps;
+	produceDefault: function (count, mul, onTick, onComplete) {
+		var i = 0, x, y, maps = this.constructor.maps;
 
-		for (x = count.x; x--;) for (y = count.y; y--;) {
-			this.produceMap(new Point(x*mul, y*mul), maps.random);
+		for (y = 0; y < count.y; y++) for (x = 0; x < count.x; x++) {
+			setTimeout(function (x, y) {
+				this.produceMap(new Point(x*mul, y*mul), maps.random);
+				onTick.call(this);
+			}.bind(this, x, y), 10*i++);
 		}
+		
+		setTimeout(onComplete, 10*(i+5));
 	},
 
 	produceMap: function (from, map) {

@@ -4695,8 +4695,6 @@ coreAppend(Number.prototype, {
 	});
 
 
-
-
 /*
 ---
 

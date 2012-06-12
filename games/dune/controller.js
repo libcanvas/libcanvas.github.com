@@ -6,7 +6,7 @@ atom.declare( 'Dune.Controller', {
 
 		wait = atom.trace('Please, wait');
 
-		blocks = new Size(32, 15);
+		blocks = new Size(27, 12);
 		fieldSize = new Size(1024, 512);
 
 		this.app = new App({
@@ -22,7 +22,8 @@ atom.declare( 'Dune.Controller', {
 
 		realFieldSize = factory.getRealFieldSize();
 		this.scene.layer.size = realFieldSize;
-		this.createDragger(mouse, new Size(
+				
+		this.createShift(mouse, new Size(
 			fieldSize.width  - realFieldSize.width,
 			fieldSize.height - realFieldSize.height
 		));
@@ -33,17 +34,27 @@ atom.declare( 'Dune.Controller', {
 		});
 		this.app.resources.set({ mouse: mouse, mouseHandler: mouseHandler });
 
+		var countTrace = atom.trace(0);
+		
 		this.preload(function (images) {
 			this.app.resources.set({ images: images });
-			factory.produceDefault(blocks, 8);
+			factory.produceDefault(blocks, 8,
+				function () {
+					countTrace.value = ("Buildings: " + factory.buildingsCount);
+				},
+				function () {
+					wait.destroy();
+					
 
-			wait.destroy();
-			atom.trace("Buildings: " + factory.buildingsCount);
+					new App.Dragger( mouse )
+						.addSceneShift( this.shift )
+						.start();
+				}.bind(this));
 		});
 	},
 
 	preload: function (callback) {
-		var source = '/files/img/dune2.png ';
+		var source = 'dune2.png ';
 
 		atom.ImagePreloader.run({
 			'bg'        : source+ '[0:0:32:32]',
@@ -62,16 +73,12 @@ atom.declare( 'Dune.Controller', {
 		}, callback, this);
 	},
 
-	createDragger: function (mouse, size) {
+	createShift: function (mouse, size) {
 		var padding;
 
 		padding = 64;
 		this.shift = new App.SceneShift(this.scene);
 		this.shift.setLimitShift({ from: [size.width-padding, size.height-padding], to: [padding, padding] });
-
-		new App.Dragger( mouse )
-			.addSceneShift( this.shift )
-			.start();
 	}
 
 });

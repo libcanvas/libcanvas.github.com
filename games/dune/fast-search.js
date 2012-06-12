@@ -5,7 +5,6 @@ atom.declare( 'Dune.FastSearch', App.ElementsMouseSearch, {
 		this.cell  = cell;
 		this.shift = shift;
 		this.items = new Array(size.width * size.height);
-		this.trace = atom.trace();
 	},
 
 	set: function (item, value) {
