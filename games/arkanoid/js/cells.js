@@ -1,8 +1,8 @@
 atom.declare( 'Arkanoid.Cells', {
 
-	initialize: function (scene, ballRadius) {
+	initialize: function (layer, ballRadius) {
 		this.radius  = ballRadius;
-		this.scene   = scene;
+		this.layer   = layer;
 		this.size    = new Size(19, 9);
 		this.padding = 1;
 		this.index   = {};
@@ -12,7 +12,7 @@ atom.declare( 'Arkanoid.Cells', {
 	create: function (xIndex, yIndex) {
 		var index = this.index, size = this.size, cell;
 
-		cell = new Arkanoid.Cell( this.scene, {
+		cell = new Arkanoid.Cell( this.layer, {
 			xIndex: xIndex,
 			yIndex: yIndex,
 			shape: new Rectangle(

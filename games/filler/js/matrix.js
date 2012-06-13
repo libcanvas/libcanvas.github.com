@@ -24,7 +24,7 @@ atom.declare('Filler.Matrix', {
                 methods: app.colors,
                 offset: offset
             }),
-            element = new TileEngine.Element(app.scene, {
+            element = new TileEngine.Element(app.layer, {
                 engine: engine,
                 from: offset
             }),
@@ -43,12 +43,12 @@ atom.declare('Filler.Matrix', {
         tmouse.events.add({
             over: function (cell) { if (canMove(cell)){
                 cell.active = true;
-                app.scene.layer.element.css({ cursor: 'pointer' });
+                app.layer.dom.element.css({ cursor: 'pointer' });
 
             }},
             out: function (cell){ if (cell.active){
                 cell.active = false;
-                app.scene.layer.element.css({ cursor: 'inherit' });
+                app.layer.dom.element.css({ cursor: 'inherit' });
             } },
             click: function (cell) { if (canMove(cell)){ matrix.events.fire('click', [cell.value]); }}
         });

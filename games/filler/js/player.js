@@ -8,7 +8,7 @@ atom.declare('Filler.Player', {
         this.points = [];
         this.strategy = new Filler.RandomStrategy(); 
 
-        this.counter = new Filler.Graphic.Counter(app.scene, {
+        this.counter = new Filler.Graphic.Counter(app.layer, {
             app: app,
             shape: new Rectangle(new Point(0, 0), app.cellSize.clone().mul(new Point(2, 1))),
             colors: app.colors,

@@ -32,7 +32,7 @@ declare( 'Ast.Belt', {
 		if (!set ) set  = this.stonesRegistry.getRandomSet();
 		if (!size) size = 0;
 
-		var ast = new Ast.Asteroid( this.controller.scene, {
+		var ast = new Ast.Asteroid( this.controller.layer, {
 			zIndex: 1 + this.count++ / 10000000,
 			controller: this.controller,
 			shape: new Circle( point || this.controller.randomFieldPoint, [40, 26, 15][size] ),

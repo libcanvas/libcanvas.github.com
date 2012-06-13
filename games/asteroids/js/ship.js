@@ -75,7 +75,7 @@ declare( 'Ast.Ship', Ast.Flying, {
 	},
 
 	explode: function () {
-		new Ast.Explosion(this.scene, {
+		new Ast.Explosion(this.layer, {
 			controller: this.controller,
 			shape : new Circle(this.shape.center.clone(), 80),
 			sheet : this.controller.explosionSheet
@@ -100,7 +100,7 @@ declare( 'Ast.Ship', Ast.Flying, {
 		if (now > this.lastShot + this.rateOfFire * 1000 ) {
 			this.lastShot = now;
 
-			this.controller.collisions.add(new Ast.Bullet(this.controller.scene, {
+			this.controller.collisions.add(new Ast.Bullet(this.controller.layer, {
 				controller: this.controller,
 				shape: new Circle(this.position.clone(), 75),
 				angle: this.angle

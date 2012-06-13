@@ -51,7 +51,7 @@ atom.declare( 'Dune.BuildingFactory', App.Element, {
 		var b, size = this.getSize(type);
 
 		this.buildingsCount++;
-		b = new Dune.Building( this.controller.scene, {
+		b = new Dune.Building( this.controller.layer, {
 			type: type,
 			from: from,
 			size: size,

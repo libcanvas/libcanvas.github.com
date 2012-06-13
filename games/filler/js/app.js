@@ -38,7 +38,7 @@ atom.declare('Filler.App', {
                                   engineFullSize.y + footerSize.y),
 
             app = new App({ size: fieldSize, invoke: false, appendTo: appendTo }),
-            scene = this.scene = app.createScene({ name: 'filler', intersection: 'manual' }),
+            layer = this.layer = app.createLayer({ name: 'filler', intersection: 'manual' }),
             mouse = this.mouse = new Mouse(app.container.bounds),
             handler = this.handler = new App.MouseHandler({ mouse: mouse, app: app }),
 
@@ -48,7 +48,7 @@ atom.declare('Filler.App', {
             button;
 
         [1,2,3,4,5,6].forEach(function(value){
-            button = new Filler.Graphic.Button(scene, {
+            button = new Filler.Graphic.Button(layer, {
                 shape: new Rectangle(buttonFrom, new Size(buttonSize)),
                 game: game,
                 value: value,
@@ -57,7 +57,7 @@ atom.declare('Filler.App', {
             handler.subscribe(button);
             buttonFrom = buttonFrom.clone().move(buttonOffset);
         });
-        var timeline = new Filler.Graphic.Timeline(scene, {
+        var timeline = new Filler.Graphic.Timeline(layer, {
                 timeout: timeout,
                 game: game,
                 shape: new Rectangle(buttonFrom, new Size(

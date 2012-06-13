@@ -86,7 +86,7 @@ new function () {
 	helper = new LibCanvas.App.Light(new Size(600, 400));
 
 	for (i = 13; i--;) {
-		new Button( helper.scene, {
+		new Button( helper.layer, {
 			shape : new RoundedRectangle(20, 20 + 28*i, 150, 22).setRadius(3),
 			text  : 'Button #' + i,
 			zIndex: i

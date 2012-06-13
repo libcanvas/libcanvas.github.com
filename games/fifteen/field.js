@@ -1,6 +1,6 @@
 atom.declare( 'Fifteen.Field', {
 	initialize: function (settings) {
-		var app, scene, mouse;
+		var app, layer, mouse;
 
 		this.settings = new atom.Settings( settings );
 
@@ -11,8 +11,8 @@ atom.declare( 'Fifteen.Field', {
 		mouse = new Mouse(app.container.bounds);
 		this.mouseHandler = new App.MouseHandler({ mouse: mouse, app: app });
 		
-		scene = app.createScene({ name: 'cells', intersection: 'manual' });
-		this.generate( scene );
+		layer = app.createLayer({ name: 'cells', intersection: 'manual' });
+		this.generate( layer );
 		this.bindTouch();
 
 		this.activate(false);
@@ -101,7 +101,7 @@ atom.declare( 'Fifteen.Field', {
 		return (diff.x == 0 && diff.y.abs() == 1) || (diff.y == 0 && diff.x.abs() == 1);
 	},
 
-	generate: function (scene) {
+	generate: function (layer) {
 		var
 			y, x, position, index,
 			tiles = {},
@@ -112,7 +112,7 @@ atom.declare( 'Fifteen.Field', {
 				position = new Point( x, y );
 				if (indexes.length) {
 					index = indexes.shift();
-					tiles[y][x] = this.createTile( scene, index, position );
+					tiles[y][x] = this.createTile( layer, index, position );
 				} else {
 					this.empty = position;
 				}
@@ -123,8 +123,8 @@ atom.declare( 'Fifteen.Field', {
 		return this;
 	},
 
-	createTile: function (scene, index, position) {
-		var tile = new Fifteen.Tile( scene, {
+	createTile: function (layer, index, position) {
+		var tile = new Fifteen.Tile( layer, {
 			position: position,
 			shape: this.tileShape(position),
 			index: index

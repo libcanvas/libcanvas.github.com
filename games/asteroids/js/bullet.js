@@ -29,7 +29,7 @@ declare( 'Ast.Bullet', Ast.Flying, {
 	},
 
 	hit: function (ast) {
-		new Ast.Explosion(this.scene, {
+		new Ast.Explosion(this.layer, {
 			controller: this.controller,
 			shape : new Circle(this.position, 80),
 			sheet : this.controller.explosionSheet

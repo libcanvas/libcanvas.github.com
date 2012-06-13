@@ -17,7 +17,7 @@ declare( 'Ast.Explosion', App.Element, {
 
 
 		for (var i = Number.random(5, 8); i--;) {
-			new Ast.Explosion.Debris(this.scene, {
+			new Ast.Explosion.Debris(this.layer, {
 				shape: new Circle(this.shape.center.clone(), 5)
 			});
 		}

@@ -129,10 +129,10 @@ LibCanvas.declare( 'LibCanvas.App', 'App', {
 	initialize: function (settings) {
 		this.bindMethods( 'tick' );
 
-		this.scenes    = [];
+		this.layers    = [];
 		this.settings  = new Settings({ appendTo: 'body' }).set(settings);
 		this.container = new App.Container(
-			this.settings.get(['size', 'appendTo'])
+			this.settings.subset(['size', 'appendTo'])
 		);
 		this.resources = new Registry();
 
@@ -152,12 +152,12 @@ LibCanvas.declare( 'LibCanvas.App', 'App', {
 	zIndexCompare: function (left, right, inverted) {
 		var leftZ, rightZ, factor = inverted ? -1 : +1;
 
-		if (!left  || !left.scene ) throw new TypeError( 'Wrong left element'  );
-		if (!right || !right.scene) throw new TypeError( 'Wrong right element' );
+		if (!left  || !left.layer ) throw new TypeError( 'Wrong left element'  );
+		if (!right || !right.layer) throw new TypeError( 'Wrong right element' );
 
 
-		 leftZ =  left.scene.layer.zIndex;
-		rightZ = right.scene.layer.zIndex;
+		 leftZ =  left.layer.dom.zIndex;
+		rightZ = right.layer.dom.zIndex;
 
 		if (leftZ > rightZ) return -1 * factor;
 		if (leftZ < rightZ) return +1 * factor;
@@ -171,14 +171,14 @@ LibCanvas.declare( 'LibCanvas.App', 'App', {
 		return 0;
 	},
 
-	createScene: function (settings) {
-		var scene = new App.Scene(this, settings);
-		this.scenes.push(scene);
-		return scene;
+	createLayer: function (settings) {
+		var layer = new App.Layer(this, settings);
+		this.layers.push(layer);
+		return layer;
 	},
 
 	tick: function (time) {
-		atom.array.invoke(this.scenes, 'tick', time);
+		atom.array.invoke(this.layers, 'tick', time);
 	}
 });
 
@@ -215,11 +215,11 @@ declare( 'LibCanvas.App.Container', {
 	 *  @property {Size} */
 	currentSize: null,
 
-	/** @property {App.Layer[]} */
-	layers: [],
+	/** @property {App.Dom[]} */
+	doms: [],
 
 	initialize: function (settings) {
-		this.layers      = [];
+		this.doms        = [];
 		this.settings    = new Settings(settings);
 		this.currentSize = new Size(this.settings.get('size') || [0,0]);
 		this.createWrappers();
@@ -241,10 +241,10 @@ declare( 'LibCanvas.App.Container', {
 		return this.currentSize;
 	},
 
-	createLayer: function (settings) {
-		var layer = new App.Layer( this, settings );
-		this.layers.push(layer);
-		return layer;
+	createDom: function (settings) {
+		var dom = new App.Dom( this, settings );
+		this.doms.push(dom);
+		return dom;
 	},
 
 	appendTo: function (element) {
@@ -272,6 +272,226 @@ declare( 'LibCanvas.App.Container', {
 /*
 ---
 
+name: "App.Dom"
+
+description: ""
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- App
+
+provides: App.Dom
+
+...
+*/
+
+
+/** @class App.Dom */
+declare( 'LibCanvas.App.Dom', {
+	/** @private
+	 *  @property {Size} */
+	currentSize: null,
+	
+	/** @private
+	 *  @property {App.Container} */
+	container: null,
+
+	/** @private
+	 *  @property {Point} */
+	shift: null,
+
+	/** @private */
+	z: 0,
+
+	initialize: function (container, settings) {
+		this.container = container;
+		this.settings  = new Settings(settings);
+		this.shift = new Point(0,0);
+		this.name  = this.settings.get('name') || '';
+		this.createSize();
+		this.createElement();
+		this.zIndex = this.settings.get('zIndex') || 0;
+	},
+
+	set zIndex (z) {
+		this.z = z;
+		this.element.css('zIndex', z);
+	},
+
+	get zIndex () {
+		return this.z;
+	},
+
+	set size(size) {
+		size = this.currentSize.set(size);
+
+		this.canvas.width  = size.width ;
+		this.canvas.height = size.height;
+	},
+
+	get size() {
+		return this.currentSize;
+	},
+
+	/**
+	 * @param {Point} shift
+	 * @returns {App.Dom}
+	 */
+	addShift: function ( shift ) {
+		shift = Point( shift );
+		var newShift = this.shift.move( shift );
+		this.element.css({
+			marginLeft: newShift.x,
+			marginTop : newShift.y
+		});
+		return this;
+	},
+
+	/**
+	 * @param {Point} shift
+	 * @returns {App.Dom}
+	 */
+	setShift: function (shift) {
+		return this.addShift( this.shift.diff(shift) );
+	},
+
+	/** @returns {Point} */
+	getShift: function () {
+		return this.shift;
+	},
+
+	/** @private */
+	createSize: function () {
+		this.currentSize = this.settings.get('size') || this.container.size.clone();
+	},
+
+	/** @private */
+	createElement: function () {
+		this.canvas  = new LibCanvas.Buffer(this.size, true);
+		this.element = atom.dom(this.canvas)
+			.attr({ 'data-name': this.name  })
+			.css ({ 'position' : 'absolute' })
+			.appendTo( this.container.bounds );
+	}
+});
+
+/*
+---
+
+name: "App.LayerShift"
+
+description: ""
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- App
+
+provides: App.LayerShift
+
+...
+*/
+
+/** @class App.LayerShift */
+declare( 'LibCanvas.App.LayerShift', {
+
+	initialize: function (layer) {
+		this.layer    = layer;
+		this.shift    = new Point(0, 0);
+		this.elementsShift = new Point(0, 0);
+	},
+
+	/**
+	 * @private
+	 * @property {Point}
+	 */
+	shift: null,
+
+	/**
+	 * @private
+	 * @property {Point}
+	 */
+	elementsShift: null,
+
+	/**
+	 * @param {Point} shift
+	 */
+	addElementsShift: function (shift) {
+		if (!shift) {
+			shift = this.elementsShift.diff(this.shift);
+		} else {
+			shift = Point(shift);
+		}
+		var e = this.layer.elements, i = e.length;
+		while (i--) e[i].addShift(shift);
+		this.elementsShift.move(shift);
+		return this;
+	},
+
+	/**
+	 * @private
+	 * @property {LibCanvas.Shapes.Rectangle}
+	 */
+	limitShift: null,
+
+	/**
+	 * @param {Rectangle} limitShift
+	 */
+	setLimitShift: function (limitShift) {
+		this.limitShift = limitShift ? Rectangle(limitShift) : null;
+		return this;
+	},
+
+	/**
+	 * @param {Point} shift
+	 */
+	addShift: function ( shift, withElements ) {
+		shift = new Point( shift );
+
+		var limit = this.limitShift, current = this.shift;
+		if (limit) {
+			shift.x = atom.number.limit(shift.x, limit.from.x - current.x, limit.to.x - current.x);
+			shift.y = atom.number.limit(shift.y, limit.from.y - current.y, limit.to.y - current.y);
+		}
+
+		current.move( shift );
+		this.layer.dom.addShift( shift );
+		this.layer.dom.canvas.ctx.translate( shift, true );
+		if (withElements) this.addElementsShift( shift );
+		return this;
+	},
+
+	/**
+	 * @param {Point} shift
+	 */
+	setShift: function (shift, withElements) {
+		return this.addShift( this.shift.diff(shift), withElements );
+	},
+
+	/**
+	 * @returns {Point}
+	 */
+	getShift: function () {
+		return this.shift;
+	}
+});
+
+/*
+---
+
 name: "App.Dragger"
 
 description: ""
@@ -286,6 +506,7 @@ authors:
 requires:
 	- LibCanvas
 	- App
+	- App.LayerShift
 
 provides: App.Dragger
 
@@ -308,7 +529,7 @@ declare( 'LibCanvas.App.Dragger', {
 		};
 	},
 
-	addSceneShift: function (shift) {
+	addLayerShift: function (shift) {
 		this.shifts.push( shift );
 		return this;
 	},
@@ -335,7 +556,7 @@ declare( 'LibCanvas.App.Dragger', {
 		if (!this.shouldStartDrag(e)) return;
 
 		for (var i = this.shifts.length; i--;) {
-			this.shifts[i].scene.stop();
+			this.shifts[i].layer.stop();
 		}
 		this.drag = true;
 		this.events.fire( 'start', [ e ]);
@@ -347,7 +568,7 @@ declare( 'LibCanvas.App.Dragger', {
 		for (var i = this.shifts.length; i--;) {
 			var shift = this.shifts[i];
 			shift.addElementsShift();
-			shift.scene.start();
+			shift.layer.start();
 		}
 
 		this.drag = false;
@@ -373,7 +594,7 @@ declare( 'LibCanvas.App.Dragger', {
 
 name: "App.Element"
 
-description: "LibCanvas.Scene"
+description: "LibCanvas.Layer"
 
 license:
 	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
@@ -399,7 +620,7 @@ declare( 'LibCanvas.App.Element', {
 	settings: {},
 
 	/** @constructs */
-	initialize: function (scene, settings) {
+	initialize: function (layer, settings) {
 		this.bindMethods([ 'redraw', 'destroy' ]);
 
 		this.events = new Events(this);
@@ -407,7 +628,7 @@ declare( 'LibCanvas.App.Element', {
 			.set(this.settings)
 			.set(settings)
 			.addEvents(this.events);
-		scene.addElement( this );
+		layer.addElement( this );
 
 		var ownShape = this.shape && this.shape != this.constructor.prototype.shape;
 
@@ -433,7 +654,7 @@ declare( 'LibCanvas.App.Element', {
 	},
 
 	destroy: function () {
-		this.scene.rmElement( this );
+		this.layer.rmElement( this );
 		return this;
 	},
 
@@ -456,7 +677,7 @@ declare( 'LibCanvas.App.Element', {
 	},
 
 	redraw: function () {
-		this.scene.redrawElement( this );
+		this.layer.redrawElement( this );
 		return this;
 	},
 
@@ -551,100 +772,199 @@ authors:
 requires:
 	- LibCanvas
 	- App
+	- App.Dom
 
 provides: App.Layer
 
 ...
 */
 
-
 /** @class App.Layer */
 declare( 'LibCanvas.App.Layer', {
-	/** @private
-	 *  @property {Size} */
-	currentSize: null,
-	
-	/** @private
-	 *  @property {App.Container} */
-	container: null,
 
-	/** @private
-	 *  @property {Point} */
-	shift: null,
+	initialize: function (app, settings) {
+		this.settings = new Settings({
+			invoke      : app.settings.get('invoke'),
+			intersection: 'auto' // auto|manual|all
+		}).set(settings);
+
+		this.shouldRedrawAll = this.settings.get('intersection') === 'all';
+
+		this.app      = app;
+		this.elements = [];
+		this.redraw   = this.shouldRedrawAll ? this.elements : [];
+		this.clear    = [];
+		this.createDom();
+	},
+
+	get ctx () {
+		return this.dom.canvas.ctx;
+	},
 
 	/** @private */
-	z: 0,
+	stopped: false,
 
-	initialize: function (container, settings) {
-		this.container = container;
-		this.settings  = new Settings(settings);
-		this.shift = new Point(0,0);
-		this.name  = this.settings.get('name') || '';
-		this.createSize();
-		this.createElement();
-		this.zIndex = this.settings.get('zIndex') || 0;
-	},
-
-	set zIndex (z) {
-		this.z = z;
-		this.element.css('zIndex', z);
-	},
-
-	get zIndex () {
-		return this.z;
-	},
-
-	set size(size) {
-		size = this.currentSize.set(size);
-
-		this.canvas.width  = size.width ;
-		this.canvas.height = size.height;
-	},
-
-	get size() {
-		return this.currentSize;
-	},
-
-	/**
-	 * @param {Point} shift
-	 * @returns {App.Layer}
-	 */
-	addShift: function ( shift ) {
-		shift = Point( shift );
-		var newShift = this.shift.move( shift );
-		this.element.css({
-			marginLeft: newShift.x,
-			marginTop : newShift.y
-		});
+	start: function () {
+		this.stopped = false;
 		return this;
 	},
 
-	/**
-	 * @param {Point} shift
-	 * @returns {App.Layer}
-	 */
-	setShift: function (shift) {
-		return this.addShift( this.shift.diff(shift) );
-	},
-
-	/** @returns {Point} */
-	getShift: function () {
-		return this.shift;
+	stop: function () {
+		this.stopped = true;
+		return this;
 	},
 
 	/** @private */
-	createSize: function () {
-		this.currentSize = this.settings.get('size') || this.container.size.clone();
+	shouldRedrawAll: false,
+
+	/** @private */
+	tick: function (time) {
+		if (this.stopped) return this;
+
+		if (this.settings.get( 'invoke' )) {
+			this.sortElements();
+			this.updateAll(time);
+		}
+
+		if (this.needUpdate) {
+			this.draw();
+			this.needUpdate = false;
+		}
+
+		return this;
+	},
+
+
+	/** @private */
+	draw: function () {
+		var i, elem,
+			ctx = this.dom.canvas.ctx,
+			redraw = this.redraw,
+			clear  = this.clear,
+			resources = this.app.resources;
+
+		if (this.settings.get('intersection') === 'auto') {
+			this.addIntersections();
+		}
+
+		// draw elements with the lower zIndex first
+		atom.array.sortBy( redraw, 'zIndex' );
+
+		if (this.shouldRedrawAll) {
+			for (i = clear.length; i--;) {
+				clear[i].clearPrevious( ctx, resources );
+			}
+		}
+
+		for (i = redraw.length; i--;) {
+			redraw[i].clearPrevious( ctx, resources );
+		}
+
+		for (i = redraw.length; i--;) {
+			elem = redraw[i];
+			if (elem.layer == this) {
+				elem.redrawRequested = false;
+				if (elem.isVisible()) {
+					elem.renderTo( ctx, resources );
+					elem.saveCurrentBoundingShape();
+				}
+			}
+		}
+
+		if (!this.shouldRedrawAll) {
+			redraw.length = 0;
+		}
 	},
 
 	/** @private */
-	createElement: function () {
-		this.canvas  = new LibCanvas.Buffer(this.size, true);
-		this.element = atom.dom(this.canvas)
-			.attr({ 'data-name': this.name  })
-			.css ({ 'position' : 'absolute' })
-			.appendTo( this.container.bounds );
+	sortElements: function () {
+		atom.array.sortBy( this.elements, 'zIndex' );
+	},
+
+	/** @private */
+	updateAll: function (time) {
+		atom.array.invoke( this.elements, 'onUpdate', time, this.app.resources );
+	},
+
+	/** @private */
+	needUpdate: false,
+
+	/** @private */
+	createDom: function () {
+		this.dom = this.app.container.createDom(
+			this.settings.subset([ 'name', 'zIndex' ])
+		);
+	},
+
+	/** @private */
+	addElement: function (element) {
+		if (element.layer != this) {
+			element.layer = this;
+			this.elements.push( element );
+			this.redrawElement( element );
+		}
+		return this;
+	},
+
+	/** @private */
+	rmElement: function (element) {
+		if (element.layer == this) {
+			if (this.shouldRedrawAll) {
+				this.needUpdate = true;
+				this.clear.push(element);
+			} else {
+				this.redrawElement( element );
+			}
+			atom.array.erase( this.elements, element );
+			element.layer = null;
+		}
+		return this;
+	},
+
+	/** @private */
+	redrawElement: function (element) {
+		if (element.layer == this && !element.redrawRequested) {
+			this.needUpdate = true;
+			element.redrawRequested = true;
+			if (!this.shouldRedrawAll) {
+				this.redraw.push( element );
+			}
+		}
+		return this;
+	},
+
+	/** @private */
+	addIntersections: function () {
+		var i, elem, layer = this;
+
+		for (i = 0; i < this.redraw.length; i++) {
+			elem = this.redraw[i];
+
+			this.findIntersections(elem.previousBoundingShape, elem, this.redrawElement);
+			this.findIntersections(elem. currentBoundingShape, elem, function (e) {
+				// we need to redraw it, only if it will be over our element
+				if (e.zIndex > elem.zIndex) {
+					layer.redrawElement( e );
+				}
+			});
+		}
+	},
+
+	/** @private */
+	findIntersections: function (shape, elem, fn) {
+		if (!shape) return;
+
+		var i = this.elements.length, e;
+		while (i--) {
+			e = this.elements[i];
+			// check if we need also `e.currentBoundingShape.intersect( shape )`
+			if (e != elem && e.isVisible() &&
+				e.previousBoundingShape &&
+				e.previousBoundingShape.intersect( shape )
+			) fn.call( this, e );
+		}
 	}
+
 });
 
 /*
@@ -745,7 +1065,7 @@ declare( 'LibCanvas.App.MouseHandler', {
 		try {
 			return elements.sort( this.compareFunction );
 		} catch (e) {
-			throw new Error('Element binded to mouse, but without scene, check elements');
+			throw new Error('Element binded to mouse, but without layer, check elements');
 		}
 	},
 
@@ -873,324 +1193,6 @@ declare( 'LibCanvas.App.MouseHandler', {
 /*
 ---
 
-name: "App.Scene"
-
-description: ""
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-authors:
-	- "Shock <shocksilien@gmail.com>"
-
-requires:
-	- LibCanvas
-	- App
-
-provides: App.Scene
-
-...
-*/
-
-/** @class App.Scene */
-declare( 'LibCanvas.App.Scene', {
-
-	initialize: function (app, settings) {
-		this.settings = new Settings({
-			invoke      : app.settings.get('invoke'),
-			intersection: 'auto' // auto|manual|all
-		}).set(settings);
-
-		this.shouldRedrawAll = this.settings.get('intersection') === 'all';
-
-		this.app      = app;
-		this.elements = [];
-		this.redraw   = this.shouldRedrawAll ? this.elements : [];
-		this.clear    = [];
-		this.createLayer();
-	},
-
-	get ctx () {
-		return this.layer.canvas.ctx;
-	},
-
-	/** @private */
-	stopped: false,
-
-	start: function () {
-		this.stopped = false;
-		return this;
-	},
-
-	stop: function () {
-		this.stopped = true;
-		return this;
-	},
-
-	/** @private */
-	shouldRedrawAll: false,
-
-	/** @private */
-	tick: function (time) {
-		if (this.stopped) return this;
-
-		if (this.settings.get( 'invoke' )) {
-			this.sortElements();
-			this.updateAll(time);
-		}
-
-		if (this.needUpdate) {
-			this.draw();
-			this.needUpdate = false;
-		}
-
-		return this;
-	},
-
-
-	/** @private */
-	draw: function () {
-		var i, elem,
-			ctx = this.layer.canvas.ctx,
-			redraw = this.redraw,
-			clear  = this.clear,
-			resources = this.app.resources;
-
-		if (this.settings.get('intersection') === 'auto') {
-			this.addIntersections();
-		}
-
-		// draw elements with the lower zIndex first
-		atom.array.sortBy( redraw, 'zIndex' );
-
-		if (this.shouldRedrawAll) {
-			for (i = clear.length; i--;) {
-				clear[i].clearPrevious( ctx, resources );
-			}
-		}
-
-		for (i = redraw.length; i--;) {
-			redraw[i].clearPrevious( ctx, resources );
-		}
-
-		for (i = redraw.length; i--;) {
-			elem = redraw[i];
-			if (elem.scene == this) {
-				elem.redrawRequested = false;
-				if (elem.isVisible()) {
-					elem.renderTo( ctx, resources );
-					elem.saveCurrentBoundingShape();
-				}
-			}
-		}
-
-		if (!this.shouldRedrawAll) {
-			redraw.length = 0;
-		}
-	},
-
-	/** @private */
-	sortElements: function () {
-		atom.array.sortBy( this.elements, 'zIndex' );
-	},
-
-	/** @private */
-	updateAll: function (time) {
-		atom.array.invoke( this.elements, 'onUpdate', time, this.app.resources );
-	},
-
-	/** @private */
-	needUpdate: false,
-
-	/** @private */
-	createLayer: function () {
-		this.layer = this.app.container.createLayer(
-			this.settings.get([ 'name', 'zIndex' ])
-		);
-	},
-
-	/** @private */
-	addElement: function (element) {
-		if (element.scene != this) {
-			element.scene = this;
-			this.elements.push( element );
-			this.redrawElement( element );
-		}
-		return this;
-	},
-
-	/** @private */
-	rmElement: function (element) {
-		if (element.scene == this) {
-			if (this.shouldRedrawAll) {
-				this.needUpdate = true;
-				this.clear.push(element);
-			} else {
-				this.redrawElement( element );
-			}
-			atom.array.erase( this.elements, element );
-			element.scene = null;
-		}
-		return this;
-	},
-
-	/** @private */
-	redrawElement: function (element) {
-		if (element.scene == this && !element.redrawRequested) {
-			this.needUpdate = true;
-			element.redrawRequested = true;
-			if (!this.shouldRedrawAll) {
-				this.redraw.push( element );
-			}
-		}
-		return this;
-	},
-
-	/** @private */
-	addIntersections: function () {
-		var i, elem, scene  = this;
-
-		for (i = 0; i < this.redraw.length; i++) {
-			elem = this.redraw[i];
-
-			this.findIntersections(elem.previousBoundingShape, elem, this.redrawElement);
-			this.findIntersections(elem. currentBoundingShape, elem, function (e) {
-				// we need to redraw it, only if it will be over our element
-				if (e.zIndex > elem.zIndex) {
-					scene.redrawElement( e );
-				}
-			});
-		}
-	},
-
-	/** @private */
-	findIntersections: function (shape, elem, fn) {
-		if (!shape) return;
-
-		var i = this.elements.length, e;
-		while (i--) {
-			e = this.elements[i];
-			// check if we need also `e.currentBoundingShape.intersect( shape )`
-			if (e != elem && e.isVisible() &&
-				e.previousBoundingShape &&
-				e.previousBoundingShape.intersect( shape )
-			) fn.call( this, e );
-		}
-	}
-
-});
-
-/*
----
-
-name: "App.SceneShift"
-
-description: ""
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-authors:
-	- "Shock <shocksilien@gmail.com>"
-
-requires:
-	- LibCanvas
-	- App
-
-provides: App.SceneShift
-
-...
-*/
-
-/** @class App.SceneShift */
-declare( 'LibCanvas.App.SceneShift', {
-
-	initialize: function (scene) {
-		this.scene    = scene;
-		this.shift    = new Point(0, 0);
-		this.elementsShift = new Point(0, 0);
-	},
-
-	/**
-	 * @private
-	 * @property {Point}
-	 */
-	shift: null,
-
-	/**
-	 * @private
-	 * @property {Point}
-	 */
-	elementsShift: null,
-
-	/**
-	 * @param {Point} shift
-	 */
-	addElementsShift: function (shift) {
-		if (!shift) {
-			shift = this.elementsShift.diff(this.shift);
-		} else {
-			shift = Point(shift);
-		}
-		var e = this.scene.elements, i = e.length;
-		while (i--) e[i].addShift(shift);
-		this.elementsShift.move(shift);
-		return this;
-	},
-
-	/**
-	 * @private
-	 * @property {LibCanvas.Shapes.Rectangle}
-	 */
-	limitShift: null,
-
-	/**
-	 * @param {Rectangle} limitShift
-	 */
-	setLimitShift: function (limitShift) {
-		this.limitShift = limitShift ? Rectangle(limitShift) : null;
-		return this;
-	},
-
-	/**
-	 * @param {Point} shift
-	 */
-	addShift: function ( shift, withElements ) {
-		shift = new Point( shift );
-
-		var limit = this.limitShift, current = this.shift;
-		if (limit) {
-			shift.x = atom.number.limit(shift.x, limit.from.x - current.x, limit.to.x - current.x);
-			shift.y = atom.number.limit(shift.y, limit.from.y - current.y, limit.to.y - current.y);
-		}
-
-		current.move( shift );
-		this.scene.layer.addShift( shift );
-		this.scene.layer.canvas.ctx.translate( shift, true );
-		if (withElements) this.addElementsShift( shift );
-		return this;
-	},
-
-	/**
-	 * @param {Point} shift
-	 */
-	setShift: function (shift, withElements) {
-		return this.addShift( this.shift.diff(shift), withElements );
-	},
-
-	/**
-	 * @returns {Point}
-	 */
-	getShift: function () {
-		return this.shift;
-	}
-});
-
-/*
----
-
 name: "Behaviors"
 
 description: ""
@@ -1227,6 +1229,16 @@ var Behaviors = LibCanvas.declare( 'LibCanvas.Behaviors', 'Behaviors', {
 
 	get: function (name) {
 		return this.behaviors[name] || null;
+	}
+}).own({
+	attach: function (target, types, arg) {
+		target.behaviors = new Behaviors(target);
+
+		types.forEach(function (type) {
+			target.behaviors.add(type, arg);
+		});
+
+		return target.behaviors;
 	}
 });
 
@@ -1466,6 +1478,9 @@ provides: Point
 
 /** @class Point */
 var Point = LibCanvas.declare( 'LibCanvas.Point', 'Point', Geometry, {
+	x: 0,
+	y: 0,
+
 	/**
 	 *   new Point(1, 1);
 	 *   new Point([1, 1]);
@@ -3362,7 +3377,7 @@ var Point3D = LibCanvas.declare( 'LibCanvas.Point3D', 'Point3D', Geometry, {
 	/**
 	 * You can pass callback (function( value, axis, point ){})
 	 * @param {function} fn
-	 * @param {object} context
+	 * @param {object} [context=null]
 	 * @returns {Point3D}
 	 */
 	map: function (fn, context) {
@@ -6388,8 +6403,8 @@ declare( 'LibCanvas.App.Light', {
 			appendTo: 'body',
 			intersection: 'auto'
 		}).set(settings || {});
-		this.app   = new App( this.settings.get(['size', 'appendTo']) );
-		this.scene = this.app.createScene(this.settings.get(['name','invoke','intersection']));
+		this.app   = new App( this.settings.subset(['size', 'appendTo']) );
+		this.layer = this.app.createLayer(this.settings.subset(['name','invoke','intersection']));
 		if (this.settings.get('mouse') === true) {
 			mouse = new Mouse(this.app.container.bounds);
 			mouseHandler = new App.MouseHandler({ mouse: mouse, app: this.app });
@@ -6401,12 +6416,12 @@ declare( 'LibCanvas.App.Light', {
 	createVector: function (shape, settings) {
 		settings = atom.core.append({ shape:shape }, settings || {});
 
-		return new App.Light.Vector(this.scene, settings);
+		return new App.Light.Vector(this.layer, settings);
 	},
 
 	createText: function (shape, style, settings) {
 		settings = atom.core.append({ shape: shape, style: style }, settings);
-		return new App.Light.Text(this.scene, settings);
+		return new App.Light.Text(this.layer, settings);
 	},
 
 	get mouse () {
@@ -6509,16 +6524,14 @@ App.Light.Vector = atom.declare( 'LibCanvas.App.Light.Vector', {
 			this.styleHover  = {};
 			
 			this.animate = new atom.Animatable(this).animate;
-			this.behaviors = new Behaviors(this);
-			this.behaviors.add('Draggable', this.redraw);
-			this.behaviors.add('Clickable', this.redraw);
+			Behaviors.attach( this, [ 'Draggable', 'Clickable' ], this.redraw );
 			if (this.settings.get('mouse') !== false) {
 				this.listenMouse();
 			}
 		},
 
 		get mouse () {
-			return this.scene.app.resources.get( 'mouse' );
+			return this.layer.app.resources.get( 'mouse' );
 		},
 
 		move: function (point) {
@@ -6557,7 +6570,7 @@ App.Light.Vector = atom.declare( 'LibCanvas.App.Light.Vector', {
 
 		listenMouse: function (unsubscribe) {
 			var method = unsubscribe ? 'unsubscribe' : 'subscribe';
-			return this.scene.app.resources.get('mouseHandler')[method](this);
+			return this.layer.app.resources.get('mouseHandler')[method](this);
 		},
 
 		destroy: function () {
@@ -6618,7 +6631,7 @@ provides: Engines.Tile
 */
 
 /** @class TileEngine */
-LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
+var TileEngine = LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 
 	/**
 	 * @param {Object} settings
@@ -6712,7 +6725,7 @@ LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 		for (y = 0; y < size.height; y++) for (x = 0; x < size.width; x++) {
 			point = new Point(x, y);
 			shape = this.createCellRectangle(point, cellSize, cellMargin);
-			cell  = new LibCanvas.Engines.Tile.Cell( this, point, shape, value );
+			cell  = new TileEngine.Cell( this, point, shape, value );
 
 			this.cells.push( cell );
 		}
@@ -6853,7 +6866,7 @@ declare( 'LibCanvas.Engines.Tile.Element', App.Element, {
 	}
 }).own({
 	app: function (app, engine, from) {
-		return new this( app.createScene({
+		return new this( app.createLayer({
 			intersection: 'manual',
 			invoke: false
 		}), {

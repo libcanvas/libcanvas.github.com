@@ -7,7 +7,7 @@ Hexes.Controller = atom.declare({
 			appendTo: 'body'
 		});
 
-		this.scene = this.app.createScene({ intersection: 'manual' });
+		this.layer = this.app.createLayer({ intersection: 'manual' });
 
 		var projection = new LibCanvas.Engines.HexProjection({
 			baseLength : 74,
@@ -21,14 +21,14 @@ Hexes.Controller = atom.declare({
 		hexes.forEach(function (data) {
 			sizes.add(data);
 		});
-		this.scene.layer.size = sizes.size();
+		this.layer.dom.size = sizes.size();
 		projection.settings.set({ start: sizes.center() });
 
-		var shift = new App.SceneShift(this.scene);
+		var shift = new App.LayerShift(this.layer);
 		shift.setLimitShift({ from: [-252, -606], to: [64, 64] });
 
 		new App.Dragger( mouse )
-			.addSceneShift( shift )
+			.addLayerShift( shift )
 			.start();
 
 		var mouseHandler = new App.MouseHandler({
@@ -40,7 +40,7 @@ Hexes.Controller = atom.declare({
 				type    = data.pop(),
 				center  = projection.rgbToPoint(data),
 				polygon = projection.createPolygon(center),
-				hex = new Hexes.Hex(this.scene, {
+				hex = new Hexes.Hex(this.layer, {
 					image : images.get(type),
 					center: center,
 					shape : polygon,

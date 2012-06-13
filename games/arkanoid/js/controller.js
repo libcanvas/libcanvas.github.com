@@ -15,9 +15,9 @@ atom.declare( 'Arkanoid.Controller',
 
 		var app = new App({ size: this.fieldSize });
 
-		this.drawBackground( app.createScene('background').ctx );
-		this.cellsScene  = app.createScene({ name: 'cells' , intersection: 'manual' });
-		this.activeScene = app.createScene({ name: 'active', invoke: true });
+		this.drawBackground( app.createLayer('background').ctx );
+		this.cellsLayer  = app.createLayer({ name: 'cells' , intersection: 'manual' });
+		this.activeLayer = app.createLayer({ name: 'active', invoke: true });
 		this.cells    = this.createCells(this.level);
 		this.platform = this.createPlatform(new Point( 150, 430 ), new Size(100, 8), images);
 		this.keyboard = new atom.Keyboard();
@@ -39,7 +39,7 @@ atom.declare( 'Arkanoid.Controller',
 	},
 
 	createCells: function (level) {
-		var x, y, cells = new Arkanoid.Cells(this.cellsScene, 5);
+		var x, y, cells = new Arkanoid.Cells(this.cellsLayer, 5);
 		for (x = 1; x < 14; x++) for (y = 4; y < 27; y++) {
 			if (level(x, y)) cells.create( x, y );
 		}
@@ -47,14 +47,14 @@ atom.declare( 'Arkanoid.Controller',
 	},
 
 	createBall: function (center) {
-		return new Arkanoid.Ball( this.activeScene, {
+		return new Arkanoid.Ball( this.activeLayer, {
 			shape: new Circle( center, 5 ),
 			controller: this
 		});
 	},
 
 	createPlatform: function (center, size, images) {
-		return new Arkanoid.Platform( this.activeScene, {
+		return new Arkanoid.Platform( this.activeLayer, {
 			shape: new Rectangle(
 				new Point(
 					center.x - size.width / 2,

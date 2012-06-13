@@ -14,14 +14,14 @@ atom.declare( 'Dune.Controller', {
 			appendTo: 'body'
 		});
 
-		this.scene = this.app.createScene({ intersection: 'manual' });
+		this.layer = this.app.createLayer({ intersection: 'manual' });
 
 		mouse = new LibCanvas.Mouse(this.app.container.bounds);
 
 		factory = new Dune.BuildingFactory(this, blocks.clone().mul(8));
 
 		realFieldSize = factory.getRealFieldSize();
-		this.scene.layer.size = realFieldSize;
+		this.layer.dom.size = realFieldSize;
 				
 		this.createShift(mouse, new Size(
 			fieldSize.width  - realFieldSize.width,
@@ -47,7 +47,7 @@ atom.declare( 'Dune.Controller', {
 					
 
 					new App.Dragger( mouse )
-						.addSceneShift( this.shift )
+						.addLayerShift( this.shift )
 						.start();
 				}.bind(this));
 		});
@@ -77,7 +77,7 @@ atom.declare( 'Dune.Controller', {
 		var padding;
 
 		padding = 64;
-		this.shift = new App.SceneShift(this.scene);
+		this.shift = new App.LayerShift(this.layer);
 		this.shift.setLimitShift({ from: [size.width-padding, size.height-padding], to: [padding, padding] });
 	}
 

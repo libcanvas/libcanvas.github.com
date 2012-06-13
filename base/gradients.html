@@ -86,19 +86,19 @@ new function () {
 	});
 	
 	
-	linear = new LinearGradient( helper.scene, {
+	linear = new LinearGradient( helper.layer, {
 		shape : new Rectangle(20, 20, 200, 100),
 		method: 'createLinearGradient',
 		zIndex: 1
 	});
 
-	rectangle = new LinearGradient( helper.scene, {
+	rectangle = new LinearGradient( helper.layer, {
 		shape : new Rectangle(80, 140, 200, 100),
 		method: 'createRectangleGradient',
 		zIndex: 2
 	});
 
-	circle = new RadialGradient( helper.scene, {
+	circle = new RadialGradient( helper.layer, {
 		shape : new Circle(340, 170, 50),
 		inner : 10,
 		zIndex: 3

@@ -47,7 +47,7 @@ new function () {
 			[400, 390],
 			[240, 300]
 		]);
-		drawer = new ImageDrawer( helper.scene, { shape: shape, image: img });
+		drawer = new ImageDrawer( helper.layer, { shape: shape, image: img });
 
 		shape.points.forEach(function (point) {
 			var vector = helper.createVector(new Circle(point, 5))

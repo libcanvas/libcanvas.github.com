@@ -28,10 +28,10 @@ atom.declare('Filler.Graphic.Button', {
     renderTo: function(ctx){
         if (this.hover && !this.disabled){
             ctx.fill(this.shape, this.color[0]);
-            this.scene.layer.element.css({ cursor: 'pointer' });
+            this.layer.dom.element.css({ cursor: 'pointer' });
         } else {
             ctx.fill(this.shape, this.disabled ? '#000' : ctx.createGradient(this.shape, this.color));
-            this.scene.layer.element.css({ cursor: 'inherit' });
+            this.layer.dom.element.css({ cursor: 'inherit' });
         }
         ctx.stroke(this.stroke, this.color[1]);
     }

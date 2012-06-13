@@ -56,10 +56,10 @@ declare( 'Ast.Controller', {
 			delay : 30
 		});
 
-		this.createScenes( this.settings.get('fieldSize'), images );
+		this.createLayers( this.settings.get('fieldSize'), images );
 
 		this.ships = [
-			new Ast.Ship( this.scene, {
+			new Ast.Ship( this.layer, {
 				type: Number.random(0, 1),
 				manipulator: new Ast.Manipulator( Ast.Manipulator.defaultSets[0] ),
 				controller: this,
@@ -72,13 +72,13 @@ declare( 'Ast.Controller', {
 		this.collisions.createAsteroids();
 	},
 
-	createScenes: function (size, images) {
+	createLayers: function (size, images) {
 		var targetNode = atom.dom('div.app')
 			.css(size.toObject())
 			.css({ background: 'url(im/stars.jpg)' });
 
 		this.app = new App({ size: size, appendTo: targetNode });
-		this.scene = this.app.createScene({
+		this.layer = this.app.createLayer({
 			name: 'main',
 			intersection: 'all',
 			invoke: true

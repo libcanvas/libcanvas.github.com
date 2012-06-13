@@ -15,12 +15,12 @@ Isometric.Controller = atom.declare( 'Isometric.Controller', {
 			appendTo: 'body'
 		});
 
-		this.mapScene = this.app.createScene({ name: 'map' });
-		this.boxScene = this.app.createScene({ name: 'box' });
+		this.mapLayer = this.app.createLayer({ name: 'map' });
+		this.boxLayer = this.app.createLayer({ name: 'box' });
 
 		this.mouse = new LibCanvas.Mouse(this.app.container.bounds);
 
-		this.map = new Isometric.Map( this.mapScene, {
+		this.map = new Isometric.Map( this.mapLayer, {
 			projection: new LibCanvas.Engines.IsometricProjection({
 				factor: [ 0.866, 0.5, 1 ],
 				start : [ 40, 380 ],
@@ -100,6 +100,6 @@ Isometric.Controller = atom.declare( 'Isometric.Controller', {
 	 */
 	createBox: function (settings) {
 		settings.map = this.map;
-		return new Isometric.Box( this.boxScene, settings );
+		return new Isometric.Box( this.boxLayer, settings );
 	}
 });

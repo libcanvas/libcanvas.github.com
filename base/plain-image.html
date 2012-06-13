@@ -33,7 +33,7 @@ new function () {
 	img.onload = function () {
 		helper = new LibCanvas.App.Light(new Size(600, 400));
 		shape  = new Rectangle(64, 64, 256, 256);
-		drawer = new ImageDrawer( helper.scene, { shape: shape, image: img });
+		drawer = new ImageDrawer( helper.layer, { shape: shape, image: img });
 
 		[shape.from, shape.to].forEach(function (point) {
 			var vector = helper.createVector(new Circle(point, 5))
