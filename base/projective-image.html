@@ -13,34 +13,30 @@
 new function () {
 	var helper, ImageDrawer, img, shape, drawer;
 
-	ImageDrawer = atom.declare({
-		parent: LibCanvas.App.Element,
+	LibCanvas.extract();
 
-		prototype: {
-			get currentBoundingShape () {
-				// our stroke is out of bounding rectangle
-				// so we should grow it a little
-				return this.shape.getBoundingRectangle().grow(2);
-			},
+	ImageDrawer = atom.declare(LibCanvas.App.Element, {
+		get currentBoundingShape () {
+			// our stroke is out of bounding rectangle
+			// so we should grow it a little
+			return this.shape.getBoundingRectangle().grow(2);
+		},
 
-			renderTo: function (ctx) {
-				ctx.projectiveImage({
-					image: this.settings.get('image'),
-					to: this.shape,
-					patchSize: 27,
-					limit: 5
-				})
-				.stroke( this.shape, 'rgba(255, 0, 0, 0.3)' );
-			}
+		renderTo: function (ctx) {
+			ctx.projectiveImage({
+				image: this.settings.get('image'),
+				to: this.shape,
+				patchSize: 27,
+				limit: 5
+			})
+			.stroke( this.shape, 'rgba(255, 0, 0, 0.3)' );
 		}
 	});
-
-	LibCanvas.extract();
 
 	img = new Image();
 	img.src = "/files/img/html5-logo.png";
 	img.onload = function () {
-		helper = new LibCanvas.App.Light(new Size(600, 400));
+		helper = new App.Light(new Size(600, 400));
 		shape  = new Polygon([
 			[240, 100],
 			[400,  10],

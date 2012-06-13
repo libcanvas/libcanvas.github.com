@@ -15,21 +15,17 @@
 
 	LibCanvas.extract();
 
-	helper = new LibCanvas.App.Light(new Size(600, 300));
+	helper = new App.Light(new Size(600, 300));
 
-	Curve = atom.declare({
-		parent: LibCanvas.App.Element,
+	Curve = atom.declare(App.Element, {
+		get currentBoundingShape () {
+			var width = this.settings.get('width');
+			return this.shape.getBoundingRectangle()
+				.grow( Math.ceil(Math.max(width.from, width.to)) * 2 );
+		},
 
-		prototype: {
-			get currentBoundingShape () {
-				var width = this.settings.get('width');
-				return this.shape.getBoundingRectangle()
-					.grow( Math.ceil(Math.max(width.from, width.to)) * 2 );
-			},
-
-			renderTo: function (ctx) {
-				ctx.drawCurve(this.settings.values);
-			}
+		renderTo: function (ctx) {
+			ctx.drawCurve(this.settings.values);
 		}
 	});
 

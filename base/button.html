@@ -13,77 +13,73 @@
 new function () {
 	var helper, i, Button;
 
-	Button = atom.declare({
-		parent: LibCanvas.App.Light.Vector,
+	LibCanvas.extract();
 
-		prototype: {
-			configure: function () {
-				var button = this;
-				LibCanvas.App.Light.Vector.prototype.configure.call(button);
-				button.setStyle({
-					'gradient-from':'#444',
-					'gradient-to'  :'#222',
-					'shadow': '0 0 3 #999',
-					'text'  : '#ccc'
-				});
-				button.setStyle( 'hover', {
-					'gradient-from':'#644',
-					'gradient-to'  :'#422',
-					'shadow': '0 0 6 #f99',
-					'text'  : '#fcc'
-				});
-				button.setStyle( 'active', {
-					'gradient-from':'#464',
-					'gradient-to'  :'#242',
-					'shadow': '0 0 6 #9f9',
-					'text'  : '#cfc'
-				});
-				button.behaviors.get('draggable').start();
-				button.behaviors.get('clickable').start(function (property, value) {
-					// make our button on top of all elements
-					// if it is active & restore index on release
-					if (property == 'active') {
-						button.zIndex += 100 * (value ? 1 : -1);
-					}
-				});
-			},
+	Button = atom.declare(App.Light.Vector, {
+		configure: function method () {
+			var button = this;
+			method.previous.call(button);
+			button.setStyle({
+				'gradient-from':'#444',
+				'gradient-to'  :'#222',
+				'shadow': '0 0 3 #999',
+				'text'  : '#ccc'
+			});
+			button.setStyle( 'hover', {
+				'gradient-from':'#644',
+				'gradient-to'  :'#422',
+				'shadow': '0 0 6 #f99',
+				'text'  : '#fcc'
+			});
+			button.setStyle( 'active', {
+				'gradient-from':'#464',
+				'gradient-to'  :'#242',
+				'shadow': '0 0 6 #9f9',
+				'text'  : '#cfc'
+			});
+			button.behaviors.get('draggable').start();
+			button.behaviors.get('clickable').start(function (property, value) {
+				// make our button on top of all elements
+				// if it is active & restore index on release
+				if (property == 'active') {
+					button.zIndex += 100 * (value ? 1 : -1);
+				}
+			});
+		},
 
-			// we must create BoundingShape, that include not only button shape
-			// but also shadow around it
-			get currentBoundingShape () {
-				var
-					br = this.shape.getBoundingRectangle(),
-					sh = (this.getStyle('shadow') || '').split(' ')[2];
+		// we must create BoundingShape, that include not only button shape
+		// but also shadow around it
+		get currentBoundingShape () {
+			var
+				br = this.shape.getBoundingRectangle(),
+				sh = (this.getStyle('shadow') || '').split(' ')[2];
 
-				return sh ? br.fillToPixel().grow(2 * sh + 2) : br;
-			},
+			return sh ? br.fillToPixel().grow(2 * sh + 2) : br;
+		},
 
-			renderTo: function (ctx) {
-				var gradient = ctx.createLinearGradient(this.shape.from, this.shape.bottomLeft)
-					.addColorStop({
-						0: this.getStyle('gradient-from'),
-						1: this.getStyle('gradient-to')
-					});
-
-				ctx.save();
-				ctx.shadow = this.getStyle('shadow');
-				ctx.fill(this.shape, gradient);
-				ctx.restore();
-				ctx.text({
-					text   : this.settings.get('text'),
-					color  : this.getStyle('text'),
-					to     : this.shape,
-					align  : 'center',
-					weight : 'bold',
-					size   : 13
+		renderTo: function (ctx) {
+			var gradient = ctx.createLinearGradient(this.shape.from, this.shape.bottomLeft)
+				.addColorStop({
+					0: this.getStyle('gradient-from'),
+					1: this.getStyle('gradient-to')
 				});
-			}
+
+			ctx.save();
+			ctx.shadow = this.getStyle('shadow');
+			ctx.fill(this.shape, gradient);
+			ctx.restore();
+			ctx.text({
+				text   : this.settings.get('text'),
+				color  : this.getStyle('text'),
+				to     : this.shape,
+				align  : 'center',
+				weight : 'bold',
+				size   : 13
+			});
 		}
 	});
 
-	LibCanvas.extract();
-
-	helper = new LibCanvas.App.Light(new Size(600, 400));
+	helper = new App.Light(new Size(600, 400));
 
 	for (i = 13; i--;) {
 		new Button( helper.layer, {

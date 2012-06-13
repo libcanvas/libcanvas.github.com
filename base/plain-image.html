@@ -13,20 +13,16 @@
 new function () {
 	var helper, ImageDrawer, img, shape, drawer;
 
-	ImageDrawer = atom.declare({
-		parent: LibCanvas.App.Element,
+	LibCanvas.extract();
 
-		prototype: {
-			renderTo: function (ctx) {
-				ctx.drawImage({
-					image: this.settings.get('image'),
-					draw : this.shape
-				});
-			}
+	ImageDrawer = atom.declare(App.Element, {
+		renderTo: function (ctx) {
+			ctx.drawImage({
+				image: this.settings.get('image'),
+				draw : this.shape
+			});
 		}
 	});
-
-	LibCanvas.extract();
 
 	img = new Image();
 	img.src = "/files/img/html5-logo.png";
