@@ -1,6 +1,5 @@
-atom.declare('Filler.Graphic.Timeline', {
-
-    parent: App.Element,
+/** @class Filler.Graphic.Win */
+atom.declare('Filler.Graphic.Timeline', App.Element, {
 
     moves: 0,
 

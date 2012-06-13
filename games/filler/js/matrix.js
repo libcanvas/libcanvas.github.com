@@ -1,3 +1,4 @@
+/** @class Filler.Matrix */
 atom.declare('Filler.Matrix', {
 
     corners: [

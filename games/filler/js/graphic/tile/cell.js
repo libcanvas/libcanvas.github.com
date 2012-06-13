@@ -1,6 +1,5 @@
-atom.declare('Filler.Graphic.Tile.Cell', {
-
-    parent: TileEngine.Cell,
+/** @class Filler.Graphic.Tile.Cell */
+atom.declare('Filler.Graphic.Tile.Cell', TileEngine.Cell, {
 
     canMove: function(){
         if (this.engine.matrix.values.indexOf(this.value) < 0 || this.point.player) {

@@ -1,3 +1,0 @@
-atom.declare( 'Life.Generation', {
-
-});

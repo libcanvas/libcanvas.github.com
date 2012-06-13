@@ -1,3 +1,4 @@
+/** @class Filler.Graphic.Win */
 atom.declare('Filler.Graphic.Win', {
 
     banners: [

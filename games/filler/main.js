@@ -1,9 +1,7 @@
+LibCanvas.extract();
+
 atom.dom(function(){
-
-    var game = new Filler.Game({
-        appendTo: '.filler'
-    });
-
-    game.start();
-
+	new Filler.Game({
+		appendTo: '.filler'
+	}).start();
 });

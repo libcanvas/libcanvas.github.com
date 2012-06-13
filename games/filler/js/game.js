@@ -1,3 +1,4 @@
+/** @class Filler.Game */
 atom.declare('Filler.Game', {
 
     settings: {

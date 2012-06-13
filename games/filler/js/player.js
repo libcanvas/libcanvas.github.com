@@ -1,3 +1,4 @@
+/** @class Filler.Player */
 atom.declare('Filler.Player', {
 
     initialize: function(app, number){

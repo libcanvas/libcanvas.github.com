@@ -1,6 +1,5 @@
-atom.declare('Filler.Graphic.Counter', {
-
-    parent: App.Element,
+/** @class Filler.Graphic.Counter */
+atom.declare('Filler.Graphic.Counter', App.Element, {
 
     offsets: [
         function() { return new Point(this.app.cellSize.x + 2, 0); },

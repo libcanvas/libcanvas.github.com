@@ -1,3 +1,4 @@
+/** @class Filler.App */
 atom.declare('Filler.App', {
 
     settings: {

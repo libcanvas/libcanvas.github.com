@@ -1,6 +1,5 @@
-atom.declare('Filler.Graphic.Tile.Engine', {
-
-    parent: TileEngine,
+/** @class Filler.Graphic.Tile.Engine */
+atom.declare('Filler.Graphic.Tile.Engine', TileEngine, {
 
     offset: new Point(0, 0),
 
@@ -33,10 +32,6 @@ atom.declare('Filler.Graphic.Tile.Engine', {
 		}
 		return this;
 	},
-
-    getCellByPoint: function parent (point) {
-        return parent.previous.call(this, point.clone().move(this.offset, true));
-    },
 
     redrawByPoints: function(ps){
         var points = ps || this.points;

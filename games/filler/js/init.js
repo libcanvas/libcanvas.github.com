@@ -1,1 +1,0 @@
-LibCanvas.extract();

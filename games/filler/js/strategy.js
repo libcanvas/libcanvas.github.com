@@ -1,3 +1,4 @@
+/** @class Filler.RandomStrategy */
 atom.declare('Filler.RandomStrategy', {
     
     move: function(player, matrix){
@@ -17,12 +18,11 @@ atom.declare('Filler.RandomStrategy', {
 
 });
 
-
+/** @class Filler.GreedStrategy */
 atom.declare('Filler.GreedStrategy', {
     
     move: function(player, matrix){
         var neighbours = matrix.getPlayerColorNeighbors(player),
-            max = 0,
             values = matrix.values,
             model = { 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
 

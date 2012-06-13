@@ -1,6 +1,5 @@
-atom.declare('Filler.Graphic.Button', {
-
-    parent: App.Element,
+/** @class Filler.Graphic.Button */
+atom.declare('Filler.Graphic.Button', App.Element, {
 
     configure: function(){
         var game = this.settings.get('game');
