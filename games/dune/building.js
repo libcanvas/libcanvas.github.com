@@ -3,8 +3,9 @@ atom.declare( 'Dune.Building', App.Element, {
 	hover: false,
 
 	configure: function () {
-		this.behaviors = new LibCanvas.Behaviors(this);
-		this.behaviors.add('Clickable').start(this.redraw);
+		App.Behaviors
+			.attach( this, [ 'Clickable' ], this.redraw )
+			.startAll();
 	},
 
 	addShift: function (shift) {

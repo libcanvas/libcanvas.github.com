@@ -6,8 +6,9 @@ Hexes.Hex = atom.declare({
 		clicked: false,
 
 		configure: function () {
-			this.behaviors = new LibCanvas.Behaviors(this);
-			this.behaviors.add('Clickable').start(this.redraw);
+			App.Behaviors
+				.attach( this, [ 'Clickable' ], this.redraw )
+				.startAll();
 
 			this.rectangle = new Rectangle(
 				this.shape.points[0],

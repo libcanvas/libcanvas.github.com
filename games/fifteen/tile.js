@@ -11,8 +11,9 @@ atom.declare( 'Fifteen.Tile', {
 				'hover'   : this.renderSprite( 'hover' )
 			};
 
-			this.behaviors = new LibCanvas.Behaviors(this);
-			this.behaviors.add('Clickable', this.redraw).start();
+			App.Behaviors
+				.attach( this, [ 'Clickable' ], this.redraw )
+				.startAll();
 		},
 
 		get position () {
