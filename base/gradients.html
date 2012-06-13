@@ -15,73 +15,57 @@ new function () {
 
 	LibCanvas.extract();
 
-	helper = new LibCanvas.App.Light(new Size(600, 400));
+	helper = new App.Light(new Size(600, 400));
 
-	Gradient = atom.declare({
-		parent: LibCanvas.App.Element,
+	Gradient = atom.declare(App.Element, {
+		configure: function () {
+			App.Behaviors
+				.attach( this, [ 'Draggable', 'Clickable' ], this.redraw )
+				.startAll();
+		},
 
-		prototype: {
-			configure: function () {
-				var behaviors = this.behaviors = new LibCanvas.Behaviors(this);
-				behaviors.add('Draggable', this.redraw).start();
-				behaviors.add('Clickable', this.redraw).start();
-			},
-
-			move: function (point) {
-				this.shape.move(point);
-			},
-
-			get mouse () {
-				return helper.app.resources.get('mouse');
-			}
+		move: function (point) {
+			this.shape.move(point);
 		}
 	});
 
-	LinearGradient = atom.declare({
-		parent: Gradient,
+	LinearGradient = atom.declare(Gradient, {
+		get method () {
+			return this.settings.get('method');
+		},
 
-		prototype: {
-			get method () {
-				return this.settings.get('method');
-			},
+		renderTo: function (ctx) {
+			var gradient = ctx[this.method]( this.shape ).addColorStop({
+				'0.0' : 'white',
+				'0.3' : 'blue',
+				'0.5' : 'yellow',
+				'0.7' : 'green',
+				'1.0' : 'red'
+			});
 
-			renderTo: function (ctx) {
-				var gradient = ctx[this.method]( this.shape ).addColorStop({
-					'0.0' : 'white',
+			ctx.fill( this.shape, gradient );
+		}
+	});
+
+	RadialGradient = atom.declare( Gradient, {
+		configure: function method () {
+			method.previous.call(this);
+			this.inner = new Circle(
+				this.shape.center,
+				this.settings.get('inner')
+			);
+		},
+
+		renderTo: function (ctx) {
+			var gradient = ctx.createRadialGradient( this.inner, this.shape ).addColorStop({
+					'0.0' : 'rgba(0,0,0,0.5)',
 					'0.3' : 'blue',
-					'0.5' : 'yellow',
-					'0.7' : 'green',
-					'1.0' : 'red'
+					'0.5' : 'rgba(0,255,0,0.5)',
+					'0.8' : 'rgba(255,0,0,0.7)',
+					'1.0' : 'rgba(255,0,0,0.0)'
 				});
 
-				ctx.fill( this.shape, gradient );
-			}
-		}
-	});
-
-	RadialGradient = atom.declare({
-		parent: Gradient,
-
-		prototype: {
-			configure: function () {
-				Gradient.prototype.configure.call(this);
-				this.inner = new Circle(
-					this.shape.center,
-					this.settings.get('inner')
-				);
-			},
-
-			renderTo: function (ctx) {
-				var gradient = ctx.createRadialGradient( this.inner, this.shape ).addColorStop({
-						'0.0' : 'rgba(0,0,0,0.5)',
-						'0.3' : 'blue',
-						'0.5' : 'rgba(0,255,0,0.5)',
-						'0.8' : 'rgba(255,0,0,0.7)',
-						'1.0' : 'rgba(255,0,0,0.0)'
-					});
-
-				ctx.fill( this.shape, gradient );
-			}
+			ctx.fill( this.shape, gradient );
 		}
 	});
 	
