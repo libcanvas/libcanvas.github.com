@@ -9,6 +9,7 @@
 	</head>
 	<body style="background: #eee">
 		<p><a href="/">Return to index</a></p>
+		<p><a href="/font">Move to Sprite Generator</a></p>
 		<script>
 LibCanvas.extract();
 /**
@@ -17,7 +18,7 @@ LibCanvas.extract();
  */
 atom.declare( 'Test.SpriteFont', {
 	initialize: function() {
-		ImagePreloader.run({
+		atom.ImagePreloader.run({
 			font  : '/files/img/ubuntu-font.png',
 			first : '/files/img/nums.png [16:20]{0:0}',
 			second: '/files/img/nums.png [16:20]{1:0}'
