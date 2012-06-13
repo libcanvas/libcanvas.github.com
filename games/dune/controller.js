@@ -7,7 +7,7 @@ atom.declare( 'Dune.Controller', {
 		wait = atom.trace('Please, wait');
 
 		blocks = new Size(27, 12);
-		fieldSize = new Size(1024, 512);
+		fieldSize = new Size(1050, 525);
 
 		this.app = new App({
 			size: fieldSize,
