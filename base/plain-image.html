@@ -11,33 +11,26 @@
 		<p><a href="/">Return to index</a></p>
 		<script>
 new function () {
-	var helper, ImageDrawer, img, shape, drawer;
-
 	LibCanvas.extract();
 
-	ImageDrawer = atom.declare(App.Element, {
-		renderTo: function (ctx) {
-			ctx.drawImage({
-				image: this.settings.get('image'),
-				draw : this.shape
+	atom.ImagePreloader.run({ logo: '/files/img/html5-logo.png' },
+		function (images) {
+			var helper, element;
+
+			helper  = new App.Light(new Size(600, 400));
+			element = helper.createImage(
+				new Rectangle(64, 64, 256, 256),
+				images.get('logo')
+			);
+			element.behaviors.get('draggable').start();
+
+			[element.shape.from, element.shape.to].forEach(function (point) {
+				var vector = helper.createVector(new Circle(point, 5))
+					.setStyle({ fill: 'red' });
+
+				vector.behaviors.get('draggable').start();
 			});
-		}
-	});
-
-	img = new Image();
-	img.src = "/files/img/html5-logo.png";
-	img.onload = function () {
-		helper = new LibCanvas.App.Light(new Size(600, 400));
-		shape  = new Rectangle(64, 64, 256, 256);
-		drawer = new ImageDrawer( helper.layer, { shape: shape, image: img });
-
-		[shape.from, shape.to].forEach(function (point) {
-			var vector = helper.createVector(new Circle(point, 5))
-				.setStyle({ fill: 'red' });
-
-			vector.behaviors.get('draggable').start();
 		});
-	};
 };
 		</script>
 	</body>
