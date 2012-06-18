@@ -1,5 +1,5 @@
-
-Isometric.Controller = atom.declare( 'Isometric.Controller', {
+/** @class Isometric.Controller */
+atom.declare( 'Isometric.Controller', {
 	/** @property {Isometric.Map} */
 	map: null,
 
@@ -8,7 +8,7 @@ Isometric.Controller = atom.declare( 'Isometric.Controller', {
 	 * @param {string} element - link to dom element
 	 */
 	initialize: function () {
-		this.projection = new LibCanvas.Engines.IsometricProjection([ 0.866, 0.5, 1 ]);
+		// this.projection = new LibCanvas.Engines.Isometric.Projection([ 0.866, 0.5, 1 ]);
 
 		this.app = new LibCanvas.App({
 			size: new Size(800, 600),
@@ -21,7 +21,7 @@ Isometric.Controller = atom.declare( 'Isometric.Controller', {
 		this.mouse = new LibCanvas.Mouse(this.app.container.bounds);
 
 		this.map = new Isometric.Map( this.mapLayer, {
-			projection: new LibCanvas.Engines.IsometricProjection({
+			projection: new LibCanvas.Engines.Isometric.Projection({
 				factor: [ 0.866, 0.5, 1 ],
 				start : [ 40, 380 ],
 				size  : 32
