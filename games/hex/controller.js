@@ -9,7 +9,7 @@ Hexes.Controller = atom.declare({
 
 		this.layer = this.app.createLayer({ intersection: 'manual' });
 
-		var projection = new LibCanvas.Engines.HexProjection({
+		var projection = new HexEngine.Projection({
 			baseLength : 74,
 			chordLength: 37,
 			hexHeight  : 98
