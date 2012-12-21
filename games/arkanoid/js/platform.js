@@ -1,99 +1,84 @@
-Arkanoid.Platform = atom.Class(
-/**
- * @lends Arkanoid.Platform#
- * @augments LibCanvas.Scene.Element#
- */
-{
-	Extends: LibCanvas.Scene.Element,
+atom.declare( 'Arkanoid.Platform', {
+	parent: Arkanoid.Item,
 
-	options: {
-		speed: 200 // px per second
-	},
+	prototype: {
 
-	colors: {
-		3: {
-			'0.0': '#f66',
-			'1.0': '#900'
+		configure: function () {
+			this.animation = this.createAnimation();
 		},
-		2: {
-			'0.0': '#ff6',
-			'1.0': '#f60'
+
+		createAnimation: function () {
+			var images, sheet;
+
+			images = this.settings.get('images');
+
+			sheet = new Animation.Sheet({
+				frames  : new Animation.Frames( images.get('platform'), 100, 8 ),
+				delay   : 30
+			});
+
+			return new Animation({
+				sheet   : sheet,
+				onUpdate: this.redraw,
+				onStop  : function () {
+					this.run.delay( Number.random(1000, 5000), this );
+				}
+			});
 		},
-		1: {
-			'0.0': '#6f6',
-			'1.0': '#090'
-		}
-	},
 
-	/** @constructs */
-	initialize: function (scene, options) {
-		this.parent( scene, options );
-		this.addEvent( 'moveDrag', this.redraw );
-	},
 
-	get strokeRectangle () {
-		var shape = this.shape.clone();
-		var shift = new Point(.5, .5);
-		shape.from.move(shift);
-		shape.to.move(shift, true);
-		return shape;
-	},
+		move: function (shift) {
+			var field = this.settings.get('controller').fieldSize;
 
-	getCollisionRectangle: function (radius) {
-		if (!this.collisionRectangle) {
-			this.collisionRectangle = this.shape.clone().grow(radius*2);
-		}
-		return this.collisionRectangle;
-	},
+			// block if is near left wall
+			if (shift < 0 && shift + this.shape.from.x < 0) {
+				shift = -this.shape.from.x;
+			// block if is near right wall
+			} else if (shift > 0 && shift + this.shape.to.x > field.width) {
+				shift = field.width - this.shape.to.x;
+			}
 
-	move: function (shift) {
-		// block if is near left wall
-		if (shift < 0 && shift + this.shape.from.x < 0) {
-			shift = -this.shape.from.x;
-		// block if is near right wall
-		} else if (shift > 0 && shift + this.shape.to.x > this.scene.resources.rectangle.to.x) {
-			shift = this.scene.resources.rectangle.to.x - this.shape.to.x;
-		}
+			if (shift !== 0) {
+				this.collisionRectangle = null;
+				this.shape.move(new Point( shift, 0 ));
+				this.redraw();
+			}
+			return this;
+		},
 
-		if (shift !== 0) {
-			this.collisionRectangle = null;
-			this.shape.move(new Point( shift, 0 ));
+		isAction: function (action) {
+			var keyboard = this.settings.get('controller').keyboard;
+			switch (action) {
+				case 'moveLeft' : return keyboard.key( 'aleft' );
+				case 'moveRight': return keyboard.key( 'aright' );
+			}
+			return false;
+		},
+
+		hit: function () {
 			this.redraw();
+			if (--this.lives < 1) this.lives = 3;
+			return this;
+		},
+
+		onUpdate: function (time) {
+			var moveSpeed = (this.settings.get('speed') * time / 1000).round();
+			if (this.isAction('moveLeft')) {
+				this.move( -moveSpeed );
+			} else if (this.isAction('moveRight')) {
+				this.move(  moveSpeed );
+			}
+		},
+
+		renderTo: function (ctx) {
+			ctx
+				.fill( this.shape, ctx.createRectangleGradient( this.shape, this.colors[this.lives] ))
+				.stroke( this.strokeRectangle, 'rgba(0,0,0,0.2)' );
+
+			if (this.animation.get()) {
+				ctx.drawImage( this.animation.get(), this.shape );
+			}
+
 		}
-		return this;
-	},
-
-	isAction: function (action) {
-		var resources = this.scene.resources;
-		switch (action) {
-			case 'moveLeft' : return resources.keyboard.keyState( 'aleft' );
-			case 'moveRight': return resources.keyboard.keyState( 'aright' );
-		}
-		return false;
-	},
-
-	lives: 3,
-
-	hit: function () {
-		if (--this.lives < 1) this.lives = 3;
-		this.redraw();
-		return this;
-	},
-
-	onUpdate: function (time) {
-		var moveSpeed = (this.options.speed * time).toSeconds().round();
-		if (this.isAction('moveLeft')) {
-			this.move( -moveSpeed );
-		} else if (this.isAction('moveRight')) {
-			this.move(  moveSpeed );
-		}
-	},
-
-	renderTo: function (ctx) {
-		ctx.fill( this.shape, ctx.createRectangleGradient( this.shape, this.colors[this.lives] ));
-
-		ctx.stroke( this.strokeRectangle, 'rgba(0,0,0,0.2)' );
-
-		return this.parent();
 	}
 });

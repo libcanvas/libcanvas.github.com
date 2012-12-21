@@ -1,30 +1,32 @@
-Arkanoid.Controller = atom.Class(
+atom.declare( 'Arkanoid.Controller',
 /**
  * @lends Arkanoid.Controller#
  */
 {
-	options: {
-		platform: {
-			width : 100,
-			height: 8
-		}
-	},
-
 	/** @constructs */
 	initialize: function () {
-		var app = new LibCanvas.App( 'canvas', {
-				keyboard: true,
-				width   : 300,
-				height  : 450
-			});
+		atom.ImagePreloader.run({
+			platform: '/files/img/platform.png'
+		}, this.run, this);
+	},
 
-		this.drawBackground( app.libcanvas.ctx );
+	run: function (images) {
+		this.fieldSize = new Size( 300, 450 );
 
-		this.cellsScene  = app.createScene( 'cells', { intersection: 'manual' });
-		this.activeScene = app.createScene( 'active' );
-		this.cells    = this.createCells();
-		this.platform = this.createPlatform(new Point( 150, 430 ));
-		this.createBall(new Point( 150, 420 ));
+		var app = new App({ size: this.fieldSize });
+
+		this.drawBackground( app.createLayer('background').ctx );
+		this.cellsLayer  = app.createLayer({ name: 'cells' , intersection: 'manual' });
+		this.activeLayer = app.createLayer({ name: 'active', invoke: true });
+		this.cells    = this.createCells(this.level);
+		this.platform = this.createPlatform(new Point( 150, 430 ), new Size(100, 8), images);
+		this.keyboard = new atom.Keyboard();
+		this.createBall(new Point( 160, 420 ));
+	},
+
+	get level () {
+		var level = Number( location.search.substr(1) || -1 );
+		return Arkanoid.levels[level] || Arkanoid.levels.random;
 	},
 
 	drawBackground: function (ctx) {
@@ -36,29 +38,31 @@ Arkanoid.Controller = atom.Class(
 		}));
 	},
 
-	createCells: function () {
-		var x, y, cells = new Arkanoid.Cells(this.cellsScene, 5);
-		for (x = 2; x < 13; x++) for (y = 4; y < 27; y++) {
-			if (y !=  9 && y != 15 && y != 21) cells.create( x, y );
+	createCells: function (level) {
+		var x, y, cells = new Arkanoid.Cells(this.cellsLayer, 5);
+		for (x = 1; x < 14; x++) for (y = 4; y < 27; y++) {
+			if (level(x, y)) cells.create( x, y );
 		}
 		return cells;
 	},
 
 	createBall: function (center) {
-		return new Arkanoid.Ball( this.activeScene, {
-			shape   : new Circle( center, 5 ),
-			platform: this.platform,
-			cells   : this.cells
+		return new Arkanoid.Ball( this.activeLayer, {
+			shape: new Circle( center, 5 ),
+			controller: this
 		});
 	},
 
-	createPlatform: function (center) {
-		var platform = this.options.platform;
-		return new Arkanoid.Platform( this.activeScene, {
-			shape: new Rectangle({
-				from: center.clone().move( [-platform.width/2, -platform.height/2] ),
-				size: platform
-			})
+	createPlatform: function (center, size, images) {
+		return new Arkanoid.Platform( this.activeLayer, {
+			shape: new Rectangle(
+				new Point(
+					center.x - size.width / 2,
+					center.y - size.height/ 2
+				), size),
+			speed: 200,
+			controller: this,
+			images : images
 		});
 	}
 });

@@ -1,88 +1,62 @@
-/*
----
+/** @class Ast.Bullet */
+declare( 'Ast.Bullet', Ast.Flying, {
+	zIndex: 2,
+	speed: 300,
 
-name: "Asteroids.Bullet"
+	configure: function method () {
+		method.previous.call(this);
 
-description: "Asteroids"
+		this.controller.sounds.play('shot');
 
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-
-authors:
-	- "Shock <shocksilien@gmail.com>"
-
-requires:
-	- Asteroids
-	- Asteroids.Fly
-
-provides: Asteroids.Bullet
-
-...
-*/
-
-Asteroids.Bullet = atom.Class({
-	Extends : Asteroids.Fly,
-	Implements: [LibCanvas.Invoker.AutoChoose],
-
-	animation: null,
-
-	initialize : function (position, angle) {
-		this.setZIndex(200);
-		this.position = position;
-		this.angle    = angle;
-		this.speed    = Asteroids.config.speed.bullet;
-		this.velocity = this.getVelocity();
-
-		this.addEvent('libcanvasSet', function () {
-			this.animation = new LibCanvas.Animation.Sprite()
-				.addSprites(this.libcanvas.getImage('shot'), 60)
-				.run({
-					frames: [
-						{sprite: 0, delay: 40},
-						{sprite: 1, delay: 40},
-						{sprite: 2, delay: 700},
-						{sprite: 1, delay: 40},
-						{sprite: 0, delay: 40}
-					]
-				})
-				.addEvent('stop', this.die.bind(this));
-		});
+		this.angle = this.settings.get('angle');
 	},
 
-	isDead: false,
+	checkBounds: function () {
+		var
+			pos = this.position,
+			gSet = this.globalSettings,
+			field = gSet.get('fieldSize'),
+		    bounds = gSet.get('boundsSize');
+
+		if (
+			pos.x > field.width + bounds.x / 2 ||
+			pos.x < - bounds.x / 2 ||
+			pos.y > field.height + bounds.y / 2 ||
+			pos.y < - bounds.y / 2
+		) this.die();
+
+		return this;
+	},
+
+	hit: function (ast) {
+		new Ast.Explosion(this.layer, {
+			controller: this.controller,
+			shape : new Circle(this.position, 80),
+			sheet : this.controller.explosionSheet
+		});
+		ast.die();
+		this.die();
+	},
 
 	die: function () {
-		if (!this.isDead) {
-			this.isDead = false;
-			this.libcanvas.rmElement(this);
-			this.fireEvent('die', [this]);
-		}
-		return this;
+		this.controller.collisions.remove(this);
+		this.destroy();
 	},
 
-	explode : function () {
-		if (!this.isDead) {
-			this.libcanvas.addElement(new Asteroids.Explosion(this.position));
-		}
-		return this.die();
-	},
+	renderTo: function method (ctx, resources) {
+		method.previous.call(this, ctx, resources);
 
-	impulse : function (pos) {
-		return this.parent(pos, false);
-	},
+		ctx.save();
 
-	update : function (time) {
-		// Move
-		this.impulse(this.velocity.clone().mul(time.toSeconds())).checkBounds();
-		return this;
-	},
+		ctx.clip(this.shape);
 
-	draw : function () {
-		if (this.hidden) return;
-
-		this.animation && this.libcanvas.ctx.drawImage({
-			image : this.animation.sprite,
-			center: this.position,
-			angle : this.angle - (90).degree()
+		ctx.drawImage({
+			image: resources.get('images').get('shot'),
+			center: this.shape.center,
+			angle : this.angle
 		});
+
+		ctx.restore();
 	}
+
 });

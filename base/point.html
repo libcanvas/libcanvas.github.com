@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Point</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	var helper, center, cursor, vectors, text;
+
+	LibCanvas.extract();
+
+	helper = new App.Light(new Size(600, 400));
+
+	center = helper.app.rectangle.center;
+	cursor = center.clone();
+
+	vectors = [
+		helper.createVector(new Circle( center, 5 )   ).setStyle({ fill  : '#876' }),
+		helper.createVector(new Circle( cursor, 3 )   ).setStyle({ fill  : '#876' }),
+		helper.createVector(new Line( center, cursor )).setStyle({ stroke: '#543' })
+	];
+
+	text = helper.createText(new Rectangle(16, 8, 150, 80), {
+		family: 'monospace', color : '#eda'
+	});
+
+	helper.mouse.events.add({
+		move: function () {
+			cursor.set(this.point);
+			text.content = [
+				'angleTo : ' + cursor.angleTo(center).getDegree(true) + '°',
+				'distance: ' + cursor.distanceTo(center).round(),
+				'diff.x  : ' + cursor.diff(center).x,
+				'diff.y  : ' + cursor.diff(center).y
+			].join('\n');
+			vectors.invoke('redraw');
+		},
+		out: function () {
+			cursor.set(center);
+			vectors.invoke('redraw');
+		}
+	});
+};
+		</script>
+	</body>
+</html>

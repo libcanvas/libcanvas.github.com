@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Animating :: Looped</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body class="chess">
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	var helper, vector;
+
+	LibCanvas.extract();
+
+	helper = new App.Light(new Size(300, 300));
+
+	vector = helper.createVector(new Circle(150, 150, 20)).setStyle({
+		fill  : '#4c4c4c',
+		stroke: '#2d2d2d',
+		opacity: 0.5,
+		lineWidth: 2
+	});
+
+	setTimeout(function () {
+		vector.animate({
+			fn : 'bounce-out',
+			props: {
+				'shape.radius'   : 100,
+				'style.fill'     : '#f00',
+				'style.stroke'   : '#900',
+				'style.lineWidth': 25,
+				'style.opacity'  : 0.8
+			},
+			onTick: vector.redraw,
+			onComplete: function (animation) {
+				vector.animate({
+					fn: 'sine-out',
+					time  : 800,
+					onTick: vector.redraw,
+					props : animation.initial,
+					onComplete: animation.start
+				})
+			},
+			time: 1200
+		});
+	}, 500);
+};
+		</script>
+	</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Extended Curves</title>
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body style="color:white; background: black">
+		<p><a href="/">Return to index</a></p>
+		<p> <label for="inverted">Inverted:</label> <input type="checkbox" id="inverted" checked /> </p>
+		<script>
+(function ($) {
+	var helper, from, to, cpFr, cpTo, Curve, curve;
+
+	LibCanvas.extract();
+
+	helper = new App.Light(new Size(600, 300));
+
+	Curve = atom.declare(App.Element, {
+		get currentBoundingShape () {
+			var width = this.settings.get('width');
+			return this.shape.getBoundingRectangle()
+				.grow( Math.ceil(Math.max(width.from, width.to)) * 2 );
+		},
+
+		renderTo: function (ctx) {
+			ctx.drawCurve(this.settings.values);
+		}
+	});
+
+	from = new Point(158, 180);
+	to   = new Point(388, 100);
+	cpFr = new Point(120,  10);
+	cpTo = new Point(320, 250);
+
+	$('#inverted').bind('change', function () {
+		curve.settings.set({ inverted: this.checked });
+		curve.redraw();
+	});
+
+	curve = new Curve( helper.layer, {
+		shape: new Polygon(from, to, cpFr, cpTo),
+		from  : from,
+		to    : to,
+		points: [ cpFr, cpTo ],
+		inverted: true,
+		gradient:{
+			from: '#ff0',
+			to  : '#f00',
+			fn  : 'linear'
+		},
+		width:{
+			from: 30,
+			to  : 1,
+			fn  : 'sine-in'
+		}
+	});
+
+	[ from, to, cpFr, cpTo ].forEach(function (point) {
+		var vector = helper.createVector( new Circle(point, 4), { zIndex: 2 })
+			.setStyle({ fill: '#090' });
+
+		vector.behaviors.get('draggable').start( curve.redraw );
+	});
+
+	[ new Line(from, cpFr), new Line(to, cpTo) ].forEach(function (line) {
+		var vector = helper.createVector( line, { zIndex: 1 })
+			.setStyle({ stroke: 'rgba(0,192,0,0.2)' });
+	});
+
+})(atom.dom);
+		</script>
+	</body>
+</html>

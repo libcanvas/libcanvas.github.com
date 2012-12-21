@@ -1,87 +1,27 @@
-/*
----
+/** @class Ast.Asteroid */
+declare( 'Ast.Asteroid', Ast.Flying, {
 
-name: "Asteroids.Asteroid"
+	speed: 40,
 
-description: "Asteroids"
-
-license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-
-authors:
-	- "Shock <shocksilien@gmail.com>"
-
-requires:
-	- Asteroids
-	- Asteroids.Fly
-
-provides: Asteroids.Asteroid
-
-...
-*/
-
-new function () {
-
-var cfg = Asteroids.config;
-
-Asteroids.Asteroid = atom.Class({
-	Extends  : Asteroids.Fly,
-	radius   : 30,
-	angle    : 0,
-	position : null,
-
-	colors     : Object.keys(cfg.stones),
-	speed      : cfg.speed.asteroid,
-	rotateSpeed: cfg.speed.asteroidRotate,
-	
-	initialize: function (options) {
-		if (!options) options = {};
-		
-		this.size   = options.size || 0;
-		this.color  = options.color || this.colors.random;
-		this.angle  = Number.random(0, 359).degree();
-		this.radius = [35, 26, 15][this.size];
-		
-		this.addEvent('libcanvasSet', function () {
-			this.image = this.libcanvas.getImage('stones').sprite(
-				cfg.stones[this.color][this.size].random
-			);
-
-			this.velocity = this.getVelocity();
-
-			this.position = options.position ||
-				this.libcanvas.ctx.rectangle.getRandomPoint(50);
-
-			this.shape = new Circle( this.position, this.radius );
-		});
+	configure: function method () {
+		method.previous.call(this);
+		this.rotateSpeed = Number.random(3, 12).degree();
+		this.angle = this.getRandomAngle();
+		this.angleShift = this.getRandomAngle();
 	},
-	update: function (time) {
-		if (!this.isReady()) return;
-		
-		this
-			.rotate(this.rotateSpeed * time.toSeconds())
-			.impulse(this.velocity.clone().mul(time.toSeconds()))
-			.checkBounds();
+
+	die: function () {
+		this.destroy();
+		this.events.fire('die', [this]);
 	},
-	explode: function (decay) {
-		this.libcanvas.rmElement(this);
-		if (decay && this.size < 2) for (var c = 3; c--;) {
-			decay(new this.self({
-				position: this.position.clone(),
-				size : this.size+1,
-				color: this.color
-			}));
-		}
-		return this;
-	},
-	draw: function () {
-		this.image && this.libcanvas.ctx.drawImage({
-			image : this.image,
-			center: this.position,
+
+	renderTo: function method (ctx, resources) {
+		method.previous.call(this, ctx, resources);
+
+		ctx.drawImage({
+			image: this.settings.get('image'),
+			center: this.shape.center,
 			angle : this.angle
 		});
-
-		this.parent(this.color);
 	}
 });
-
-};

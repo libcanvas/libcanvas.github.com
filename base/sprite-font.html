@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html style="background: #eee">
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Sprite Font</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body style="background: #eee">
+		<p><a href="/">Return to index</a></p>
+		<p><a href="/sprite-font-generator">Move to Sprite Generator</a></p>
+		<script>
+LibCanvas.extract();
+/**
+ * @class
+ * @name Test.SpriteFont
+ */
+atom.declare( 'Test.SpriteFont', {
+	initialize: function() {
+		atom.ImagePreloader.run({
+			font  : '/files/img/ubuntu-font.png',
+			first : '/files/img/nums.png [16:20]{0:0}',
+			second: '/files/img/nums.png [16:20]{1:0}'
+		}, this.run, this)
+	},
+
+	run: function(images) {
+		var font, canvas, shape;
+
+
+		font = new SpriteFont(' !";#$%&\'()*+,-./:;<>=?@[\\]^_`{|}~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz’АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯҐІЇЄЎабвгдеёжзийклмнопрстуфхцчшщъыьэюяґіїєў');
+
+		font.make({
+			image: images.get('font'),
+			width: [4,5,7,5,10,8,11,9,5,6,6,7,8,5,5,5,5,5,5,8,8,8,6,14,5,5,5,8,7,6,5,5,5,8,8,8,8,8,8,8,8,8,8,8,9,9,9,10,8,8,9,10,5,7,9,8,13,10,11,9,11,9,7,8,10,9,13,9,8,8,8,8,7,8,8,6,8,9,5,5,8,5,12,9,8,8,8,6,6,6,9,7,10,7,7,7,5,9,9,9,8,10,8,8,11,8,10,10,9,10,13,10,11,10,9,9,8,9,11,9,10,9,13,14,10,13,9,9,14,9,8,5,5,9,9,8,9,8,6,9,8,8,10,7,9,9,8,9,11,9,8,9,8,7,7,7,10,7,9,8,12,12,8,12,8,7,11,8,6,5,5,7,7],
+			size : 16
+		}).addIcon({
+			first : images.get('first'),
+			second: images.get('second')
+		});
+
+		canvas = LibCanvas.buffer(400, 300, true);
+
+		atom.dom(canvas).appendTo('body');
+
+		shape = new Rectangle(50, 50, 300, 200);
+
+		canvas.ctx
+			.strokeAll( 'black' )
+			.fill( shape, 'rgba(255,0,0,0.05)' );
+
+		new SpriteFont.Render( canvas.ctx, {
+			font : font,
+			shape: shape,
+			letterSpacing: -1,
+			text : '{color=#009900}Абзац{/}.\n' +
+				'Он всегда был номером {second}, но хотел быть номером {first}.\n' +
+				'Широкая электрификация {color=#666600}южных{/} губерний даст мощный толчок подъёму сельского хозяйства.\n' +
+				'Жебракують філософи при ґанку церкви в Гадячі, ще й шатро їхнє п’яне знаємо.\n' +
+				'Нанесите {first}{second}{first} урона выбранному взводу, королю или пешке. Сделайте офицера дамкой, а шестёрку - королевой.\n' +
+				'The quick brown fox jumps over the lazy dog.'
+		});
+
+	}
+});
+atom.dom(function () {
+	new Test.SpriteFont();
+});
+		</script>
+	</body>
+</html>

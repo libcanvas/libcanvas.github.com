@@ -8,18 +8,19 @@
 		<script src="/files/js/libcanvas.js"></script>
 	</head>
 	<body>
-		<canvas></canvas>
-		<p>Keyboard: Move using numpad or «jmnh», and «a» & «z» to fly. «Ctrl» to big jumps</p>
-		<p>Mouse: move by clicking at cells and fly with mouse wheel</p>
 		<p><a href="/">Return to index</a></p>
+		<p>Move by clicking at cells and fly with mouse wheel</p>
+		<script>
+new function () {
+	LibCanvas.extract();
 
-		<!-- Game engine -->
-		<script src="js/init.js"></script>
-		<script src="js/map.js"></script>
-		<script src="js/box.js"></script>
-		<script src="js/controller.js"></script>
-
-		
-		<script src="/files/js/google-analytics.js"></script>
+	atom.dom(function () {
+		new Isometric.Controller();
+	});
+};
+		</script>
+		<script src="controller.js"></script>
+		<script src="map.js"></script>
+		<script src="box.js"></script>
 	</body>
 </html>

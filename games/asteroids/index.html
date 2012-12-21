@@ -2,33 +2,37 @@
 <html>
 	<head>
 		<meta charset="utf-8" />
-		<title>LibCanvas :: Asteroids</title>
+		<title>LibCanvas :: Games :: Asteroids</title>
 		<link href="/files/styles.css" rel="stylesheet" />
-
-		<!-- Libs -->
+		<style>
+			.libcanvas-app { margin: 0 }
+		</style>
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
 
-		<!-- Asteroids source -->
-		<script src="js/start.js"></script>
-		<script src="js/explosion.js"></script>
-		<script src="js/controller.js"></script>
-
-		<script src="js/fly.js"></script>
-		<script src="js/ship.js"></script>
-		<script src="js/bullet.js"></script>
-		<script src="js/asteroid.js"></script>
-
-		<!-- init -->
 		<script>
-			atom.dom(function () {
-				Asteroids.start('canvas');
-			});
+			window.declare  = atom.declare;
+			window.Settings = atom.Settings;
+
+			LibCanvas.extract();
+
+			atom.dom(function(){ new Ast.Controller });
 		</script>
+		<script src="js/controller.js"></script>
+		<script src="js/collisions.js"></script>
+		<script src="js/manipulator.js"></script>
+		<script src="js/stones.js"></script>
+		<script src="js/bomber.js"></script>
+		<script src="js/explosion.js"></script>
+		<script src="js/flying.js"></script>
+		<script src="js/ship.js"></script>
+		<script src="js/asteroid.js"></script>
+		<script src="js/bullet.js"></script>
+		<script src="js/belt.js"></script>
+		<script src="js/sounds.js"></script>
 	</head>
 	<body>
-		<canvas></canvas>
 		<p><a href="/">Return to index</a></p>
+		<div class="app"></div>
 	</body>
-	<script src="/files/js/google-analytics.js"></script>
 </html>

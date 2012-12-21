@@ -1,37 +1,34 @@
+atom.declare( 'Fifteen.Field', {
+	initialize: function (settings) {
+		var app, layer, mouse;
 
-Fifteen.Field = atom.Class({
-	Extends: atom.Class.Options,
+		this.settings = new atom.Settings( settings );
 
-	initialize: function (options) {
-		var app, scene;
+		app = new LibCanvas.App({
+			size: this.size()
+		});
 
-		this.setOptions( options );
-
-		app = new LibCanvas.App( 'canvas', {
-				mouse : true,
-				width : this.size('width'),
-				height: this.size('height')
-			});
+		mouse = new Mouse(app.container.bounds);
+		this.mouseHandler = new App.MouseHandler({ mouse: mouse, app: app });
 		
-		scene = app.createScene( 'cells', { intersection: 'manual' });
-		this.generate( scene );
-
-		this.bindTouch(app.libcanvas.mouse);
+		layer = app.createLayer({ name: 'cells', intersection: 'manual' });
+		this.generate( layer );
+		this.bindTouch();
 
 		this.activate(false);
 		this.shuffle(100);
 	},
 
-	bindTouch: function (mouse) {
+	bindTouch: function () {
 		var tiles = this.tiles;
 		document.addEventListener( 'touchstart', function (e) {
 			var
-				offset = mouse.getOffset(e),
+				offset = Mouse.getOffset(e),
 				y, x, t;
 
 			for (y in tiles) for (x in tiles[y]) {
 				t = tiles[y][x];
-				if (t && t.shape.hasPoint(offset)) {
+				if (t && t.hasMousePoint(offset)) {
 					this.move(t);
 					break;
 				}
@@ -46,7 +43,7 @@ Fifteen.Field = atom.Class({
 
 	move: function (tile, onFinish, fast) {
 		if (tile.activated && !this.blocked) {
-			var empty = this.empty, position = tile.options.position;
+			var empty = this.empty, position = tile.position;
 
 			this.blocked = true;
 			this.activate( true );
@@ -74,7 +71,7 @@ Fifteen.Field = atom.Class({
 	},
 
 	shuffle: function (times) {
-		var trace = new Trace( times );
+		var trace = atom.trace( times );
 		var field = this;
 		(function next (tile) {
 			if (times-- > 0) {
@@ -100,11 +97,11 @@ Fifteen.Field = atom.Class({
 	},
 
 	isMovable: function ( tile ) {
-		var pos = tile.options.position, empty = this.empty, diff = pos.diff(empty);
+		var pos = tile.position, empty = this.empty, diff = pos.diff(empty);
 		return (diff.x == 0 && diff.y.abs() == 1) || (diff.y == 0 && diff.x.abs() == 1);
 	},
 
-	generate: function (scene) {
+	generate: function (layer) {
 		var
 			y, x, position, index,
 			tiles = {},
@@ -115,7 +112,7 @@ Fifteen.Field = atom.Class({
 				position = new Point( x, y );
 				if (indexes.length) {
 					index = indexes.shift();
-					tiles[y][x] = this.createTile( scene, index, position );
+					tiles[y][x] = this.createTile( layer, index, position );
 				} else {
 					this.empty = position;
 				}
@@ -126,35 +123,38 @@ Fifteen.Field = atom.Class({
 		return this;
 	},
 
-	createTile: function (scene, index, position) {
-		var tile = new Fifteen.Tile( scene, {
+	createTile: function (layer, index, position) {
+		var tile = new Fifteen.Tile( layer, {
 			position: position,
 			shape: this.tileShape(position),
 			index: index
-		})
-		.redraw()
-		.addEvent( 'mousedown', function (e) {
-			e.prevent().stop();
+		});
+		this.mouseHandler.subscribe(tile);
+		tile.events.add( 'mousedown', function (e) {
+			e.preventDefault();
 			this.move( tile );
 		}.bind(this));
 
 		return tile;
 	},
 
-	size: function (size) {
-		var tile = this.options.tile;
-		return 4 * tile[size] + 5 * tile.margin + 1;
+	size: function () {
+		var tile = this.settings.get( 'tile' );
+		return new Size(
+			4 * tile.width  + 5 * tile.margin + 1,
+			4 * tile.height + 5 * tile.margin + 1
+		);
 	},
 
 	translatePoint: function (pos) {
-		var opt = this.options, size = opt.tile;
+		var size = this.settings.get('tile');
 		return new Point(pos.x * (size.width + size.margin) + size.margin , pos.y * (size.height + size.margin) + size.margin);
 	},
 	
 	tileShape: function (pos) {
 		return new Rectangle({
 			from: this.translatePoint(pos),
-			size: this.options.tile
+			size: this.settings.get('tile')
 		});
 	}
 });

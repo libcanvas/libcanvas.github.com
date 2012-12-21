@@ -1,102 +1,105 @@
-Asteroids.Controller = atom.Class({
-	Implements: [LibCanvas.Invoker.AutoChoose],
-
-	initialize: function (libcanvas) {
-		this.libcanvas = libcanvas;
-
-		this.bullets   = [];
-		this.asteroids = [];
-		this.bulletOnDie = this.bulletOnDie.bind(this);
-		this.addAsteroid = this.addAsteroid.bind(this);
-		this.start();
+/** @class Ast.Controller */
+declare( 'Ast.Controller', {
+	settings: {
+		showShapes: false,
+		 fieldSize: new Size(800, 500),
+		boundsSize: new Size( 64,  64)
 	},
 
-	start: function () {
-		this.invoker.addFunction(10, this.update.bind(this));
-		this.createAsteroids();
+	initialize: function () {
+		this.settings = new Settings(this.settings);
 
-		this.ship = new Asteroids.Ship();
-		this.libcanvas.addElement(this.ship);
+		atom.ImagePreloader.run({
+			explosion : 'im/explosion.png',
+			debris    : 'im/explosion-debris.png',
+			ships     : 'im/ships.png',
+			shot      : 'im/shot.png',
+			stones    : 'im/stones.png'
+		}, this.run, this);
+
+		this.fpsMeter();
 	},
 
-	update: function (time) {
-		this.asteroids.invoke('update', time);
-		this.bullets.invoke('update', time);
-		this.ship.update(time);
-		this.checkCollisions();
+	fpsMeter: function () {
+		var fps = atom.trace(), time = [], last = Date.now();
 
-		if (this.libcanvas.getKey('space')) {
-			var bullet = this.ship.shoot();
-			if (bullet) {
-				this.libcanvas.addElement(bullet);
-				this.bullets.push(bullet);
-				bullet.addEvent('die', this.bulletOnDie);
-			}
-		}
+		atom.frame.add(function () {
+			if (time.length > 5) time.shift();
 
-		this.libcanvas.update();
+			time.push( Date.now() - last );
+			last = Date.now();
+
+			fps.value = Math.ceil(1000 / time.average()) + " FPS";
+		});
 	},
 
-	bulletOnDie: function (bullet) {
-		this.bullets.erase(bullet);
+	get randomFieldPoint () {
+		return this.fieldRectangle.getRandomPoint(50);
 	},
 
-	createAsteroids: function () {
-		for (var i = 3; i--;) this.addAsteroid(new Asteroids.Asteroid());
-		return this;
+	run: function (images) {
+		this.collisions = new Ast.Collisions(this);
+
+		atom.frame.add( this.collisions.update );
+
+		this.fieldRectangle = new Rectangle({
+			from: new Point(0,0),
+			size: this.settings.get('fieldSize')
+		});
+
+		this.sounds = new Ast.Sounds( '/games/asteroids/sounds/' );
+
+		this.astBelt        = new Ast.Belt(this, images);
+		this.shipSheets     = this.createShipSheets  ( images.get('ships' ) );
+		this.explosionSheet = new Animation.Sheet({
+			frames: new Animation.Frames( images.get('explosion'), 150, 125 ),
+			delay : 30
+		});
+
+		this.createLayers( this.settings.get('fieldSize'), images );
+
+		this.ships = [
+			new Ast.Ship( this.layer, {
+				type: Number.random(0, 1),
+				manipulator: new Ast.Manipulator( Ast.Manipulator.defaultSets[0] ),
+				controller: this,
+				shape: new Circle(this.randomFieldPoint,25)
+			})
+		];
+
+		this.collisions.add(this.ships[0]);
+
+		this.collisions.createAsteroids();
 	},
-	addAsteroid: function (asteroid) {
-		this.asteroids.push(asteroid);
-		this.libcanvas.addElement(asteroid);
+
+	createLayers: function (size, images) {
+		var targetNode = atom.dom('div.app')
+			.css(size.toObject())
+			.css({ background: 'url(im/stars.jpg)' });
+
+		this.app = new App({ size: size, appendTo: targetNode });
+		this.layer = this.app.createLayer({
+			name: 'main',
+			intersection: 'all',
+			invoke: true
+		});
+
+		this.app.resources.set('images', images);
 	},
-	destroyAsteroids: function (asteroids) {
-		for (var i = asteroids.length; i--;) {
-			this.asteroids.erase(
-				asteroids[i].explode(this.addAsteroid)
-			);
-		}
-		return this;
-	},
 
+	createShipSheets: function (image) {
+		var
+			length = 9,
+			frames = new Animation.Frames( image, 40, 40 );
 
-
-	checkCollisions: function () {
-		this.checkShipAsteroidsCollisions().checkBulletsAsteroidsCollisions()
-	},
-	checkShipAsteroidsCollisions: function () {
-		if (this.ship.invulnerable) return this;
-
-		var shape = this.ship.getShape();
-		for (var i = this.asteroids.length; i--;) {
-			if (shape.intersect(this.asteroids[i].getShape())) {
-				this.ship.explode();
-				break;
-			}
-		}
-		return this;
-	},
-	checkBulletsAsteroidsCollisions: function () {
-		var b, a, bullet, destroyed, asteroid, shape;
-		for (b = this.bullets.length; b--;) {
-			bullet    = this.bullets[b],
-			destroyed = [];
-			for (a = this.asteroids.length; a--;) {
-				asteroid = this.asteroids[a], shape = asteroid.getShape();
-				if (shape && shape.hasPoint(bullet.position)) {
-					destroyed.push(asteroid);
-				}
-			}
-
-			if (destroyed.length) {
-				bullet.explode();
-				this.destroyAsteroids(destroyed);
-			}
-		}
-
-		if (!this.asteroids.length) {
-			this.ship.makeInvulnerable();
-			this.createAsteroids();
-		}
-		return this;
+		return [0, length].map(function (start) {
+			return new Animation.Sheet({
+				sequence: Array.range(start, start+length-1),
+				frames: frames,
+				looped: true,
+				delay : 50
+			});
+		});
 	}
+
 });

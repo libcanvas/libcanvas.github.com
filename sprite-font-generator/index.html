@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Font Sprites Generation Tool</title>
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+		<script src="font-render.js"></script>
+		<style>
+			body {
+				color: #000;
+				background: #eee;
+				font: 12px sans-serif;
+				font-size: 12px;
+			}
+			form {
+				padding-bottom: 20px;;
+			}
+			canvas {
+				display: block;
+				border : 1px dashed green;
+				-webkit-font-smoothing: antialiased;
+			}
+			label {
+				margin: 0 2px 0 12px;
+			}
+			input {
+				font-family: monospace;
+			}
+			input[type=text] {
+				width: 96%;
+			}
+			input[type=number] {
+				width: 4em;
+				text-align: right;
+			}
+		</style>
+	</head>
+	<body>
+		<object id="loadFonts" type="application/x-shockwave-flash" data="get-fonts.swf" width="1" height="1">
+			<param name="movie" value="get-fonts.swf">
+		</object>
+	</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: trace</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<canvas></canvas>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var canvas = atom.dom('canvas').first;
+
+	atom.trace({
+		circle   : new Circle(8, 7, 4),
+		rectangle: new Rectangle(5, 6, 1, 3),
+		point    : new Point (3, 4),
+		element  : canvas,
+		string   : 'test string',
+		number   : 42,
+		bool     : true,
+		array    : [10, 20, 'else', ['test', 50, false]],
+		subObject: {
+			x: 1, y: 1, z: new Point(2, 3)
+		}
+	});
+};
+		</script>
+	</body>
+</html>

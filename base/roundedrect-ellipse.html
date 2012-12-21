@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Ui :: Rounded rectangle, ellipse</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<p><a href="/">Return to index</a></p>
+		<script>
+new function () {
+	LibCanvas.extract();
+
+	var helper = new App.Light([512, 256]);
+
+	[ new RoundedRectangle(50, 50, 150, 40).setRadius(15)
+	, new Ellipse(120, 130, 150, 60)
+	].forEach(function (shape, i) {
+		var vector = helper.createVector(shape, { zIndex: i })
+			.setStyle(          { stroke: '#900', fill: '#300' })
+			.setStyle('hover' , { stroke: '#f00', fill: '#900' })
+			.setStyle('active', { stroke: '#0f0', fill: '#090' });
+
+		vector.behaviors.get('clickable').start();
+		vector.behaviors.get('draggable').start();
+	});
+
+};
+		</script>
+	</body>
+</html>

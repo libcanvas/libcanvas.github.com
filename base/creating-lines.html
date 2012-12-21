@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Polygon</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+	</head>
+	<body>
+		<p><a href="/">Return to index</a></p>
+		<p>dblClick on the canvas</p>
+		<script>
+new function () {
+	var helper, last, count = 0;
+
+	LibCanvas.extract();
+
+	helper = new App.Light(new Size(600, 400));
+
+	helper.mouse.events.add( 'dblclick', function () {
+		var vector, point = helper.mouse.point.clone();
+
+		vector = helper.createVector(new Circle(point, 5), { zIndex: ++count })
+			.setStyle(               { fill: '#300', stroke: '#600' })
+			.setStyle( 'hover' ,     { fill: '#600', stroke: '#900' })
+			.setStyle( 'active',     { fill: '#060', stroke: '#090' });
+
+		vector.behaviors.get('clickable').start();
+		vector.behaviors.get('draggable').start();
+
+		if (last) {
+			helper.createVector(new Line(point, last), { zIndex: 0 })
+				.setStyle({ stroke: '#600' });
+		}
+
+		last = point;
+	});
+};
+		</script>
+	</body>
+</html>

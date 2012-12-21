@@ -1,27 +1,23 @@
-Arkanoid.Cells = atom.Class({
+atom.declare( 'Arkanoid.Cells', {
 
-	options: {
-		width  : 19,
-		height : 9,
-		padding: 1
-	},
-
-	initialize: function (scene, ballRadius) {
-		this.radius = ballRadius;
-		this.scene  = scene;
-		this.index  = {};
-		this.limit  = null;
+	initialize: function (layer, ballRadius) {
+		this.radius  = ballRadius;
+		this.layer   = layer;
+		this.size    = new Size(19, 9);
+		this.padding = 1;
+		this.index   = {};
+		this.limit   = null;
 	},
 
 	create: function (xIndex, yIndex) {
-		var index = this.index;
-		var size = this.options;
-		var cell = new Arkanoid.Cell( this.scene, {
+		var index = this.index, size = this.size, cell;
+
+		cell = new Arkanoid.Cell( this.layer, {
 			xIndex: xIndex,
 			yIndex: yIndex,
 			shape: new Rectangle(
-				(size.width +size.padding)*xIndex,
-				(size.height+size.padding)*yIndex,
+				(size.width +this.padding)*xIndex,
+				(size.height+this.padding)*yIndex,
 				size.width,
 				size.height
 			)
@@ -42,22 +38,23 @@ Arkanoid.Cells = atom.Class({
 	},
 
 	erase: function (cell) {
-		var row = this.index[cell.options.yIndex];
-		delete row[cell.options.xIndex];
+		delete this.index[cell.y][cell.x];
 		return this;
 	},
 
 	find: function (point) {
+		var size, xIndex, yIndex, shift, row, cell, x, y;
+
 		if (!this.limit.hasPoint(point)) return null;
 
-		var size   = this.options;
-		var xIndex = (point.x / (size.width  + size.padding)).floor();
-		var yIndex = (point.y / (size.height + size.padding)).floor();
-		var shift  = [-1, 0, 1];
+		size   = this.size;
+		xIndex = (point.x / (size.width  + this.padding)).floor();
+		yIndex = (point.y / (size.height + this.padding)).floor();
+		shift  = [-1, 0, 1];
 
-		for (var x = shift.length; x--;) for (var y = shift.length; y--;) {
-			var row  = this.index[yIndex+shift[y]];
-			var cell = row && row[xIndex+shift[x]];
+		for (x = shift.length; x--;) for (y = shift.length; y--;) {
+			row  = this.index[yIndex+shift[y]];
+			cell = row && row[xIndex+shift[x]];
 			if (cell && cell.getCollisionRectangle(this.radius).hasPoint(point)) {
 				return cell;
 			}
