@@ -19,7 +19,8 @@ inspiration:
 */
 
 (function (Object, Array, undefined) { // AtomJS
-'use strict';
+// Safari 5 bug:
+// 'use strict';
 
 var
 	toString  = Object.prototype.toString,
@@ -199,6 +200,7 @@ function coreIsArrayLike (item) {
 	return item && (Array.isArray(item) || (
 		typeof item != 'string' &&
 		!coreIsFunction(item) &&
+		typeof item.nodeName != 'string' &&
 		typeof item.length == 'number'
 	));
 }
@@ -500,7 +502,7 @@ provides: dom
 	};
 	coreAppend(Dom, {
 		query : function (context, sel) {
-			return sel.match(regexp.Id)    ?            [context.getElementById        (sel.substr(1))] :
+			return sel.match(regexp.Id)    ? [(context.getElementById ? context : document).getElementById(sel.substr(1))] :
 			       sel.match(regexp.Class) ? coreToArray(context.getElementsByClassName(sel.substr(1))) :
 			       sel.match(regexp.Tag)   ? coreToArray(context.getElementsByTagName  (sel)) :
 			                                 coreToArray(context.querySelectorAll      (sel));
@@ -748,6 +750,24 @@ provides: dom
 				x: Math.round(box.left + scrollLeft - clientLeft),
 				y: Math.round(box.top  + scrollTop  - clientTop )
 			};
+		},
+		clone: function (deep) {
+			var i = 0, elements = [];
+
+			if (deep == null) deep = true;
+
+			for (; i < this.elems.length; i++) {
+				elements.push(this.elems[i].cloneNode(deep));
+			}
+
+			return atom.dom(elements);
+		},
+		empty: function () {
+			return this.each(function (elem) {
+				while (elem.hasChildNodes()) {
+					elem.removeChild( elem.firstChild );
+				}
+			});
 		},
 		log : function () {
 			console.log('atom.dom: ', this.elems);
@@ -1734,25 +1754,10 @@ var
 	prototyping = false,
 	mutators    = [];
 
-declare = function (declareName, params) {
+declare = function (declareName, Parent, params) {
 	if (prototyping) return this;
 
-	if (typeof declareName != 'string') {
-		params = declareName;
-		declareName = null;
-	}
-
-	if (!params) params = {};
-	if (!params.prototype) {
-		params.prototype = params.proto || params;
-	}
-	if (!params.name) params.name = declareName;
-	if (!params.prototype.initialize) {
-		params.prototype.initialize = function () {
-			if (!params.parent) return;
-			return params.parent.prototype.initialize.apply(this, arguments);
-		};
-	}
+	params = methods.prepareParams(declareName, Parent, params);
 
 	// line break for more user-friendly debug string
 	var Constructor = function ()
@@ -1772,7 +1777,7 @@ declare = function (declareName, params) {
 
 	Constructor.prototype.constructor = Constructor;
 
-	if (declareName) methods.define( declareName, Constructor );
+	if (params.declareName) methods.define( params.declareName, Constructor );
 
 	return Constructor;
 };
@@ -1806,6 +1811,11 @@ declare.invoke = function () {
 	return this.factory( arguments );
 };
 
+declare.own = function (properties) {
+	methods.addTo(this, properties, this.NAME + '.');
+	return this;
+};
+
 declare.factory = function (args) {
 	factory = true;
 	return new this(args);
@@ -1824,8 +1834,8 @@ methods = {
 	define: function (path, value) {
 		var key, part, target = atom.global;
 
-		path   = path.split('.');
-		key    = path.pop();
+		path = path.split('.');
+		key  = path.pop();
 
 		while (path.length) {
 			part = path.shift();
@@ -1845,13 +1855,47 @@ methods = {
 		}
 		return this;
 	},
-	addTo: function (target, source) {
-		for (var i in source) if (i != 'constructor') {
+	addTo: function (target, source, name) {
+		var i, property;
+		if (source) for (i in source) if (source.hasOwnProperty(i)) {
 			if (!accessors(source, target, i) && source[i] != declare.config) {
-				target[i] = source[i];
+				property = source[i];
+				if (coreIsFunction(property)) {
+					if (name) property.path = name + i;
+					if (!property.previous && coreIsFunction(target[i])) {
+						property.previous = target[i];
+					}
+				}
+				target[i] = property;
 			}
 		}
 		return target;
+	},
+	prepareParams: function (declareName, Parent, params) {
+		if (typeof declareName != 'string') {
+			params = Parent;
+			Parent = declareName;
+			declareName = null;
+		}
+
+		if (params == null && typeof Parent != 'function') {
+			params = Parent;
+			Parent = null;
+		}
+
+		if (!params                 ) params = {};
+		if (!params.prototype       ) params = { prototype: params };
+		if (!params.name            ) params.name = declareName;
+		if (!params.declareName     ) params.declareName = declareName;
+		if (!params.parent && Parent) params.parent = Parent;
+
+		if (!params.prototype.initialize) {
+			params.prototype.initialize = function () {
+				if (!params.parent) return;
+				return params.parent.prototype.initialize.apply(this, arguments);
+			};
+		}
+		return params;
 	},
 	proto: function (Fn) {
 		prototyping = true;
@@ -1884,27 +1928,26 @@ declare.config = {
 	})
 };
 
-declare.config.mutator({
-	parent: function (Constructor, parent) {
+declare.config
+	.mutator( 'parent', function (Constructor, parent) {
 		parent = parent || declare;
 		methods.addTo( Constructor, parent );
 		Constructor.prototype = methods.proto( parent );
 		Constructor.Parent    = parent;
-	},
-	mixin: function (Constructor, mixins) {
+	})
+	.mutator( 'mixin', function (Constructor, mixins) {
 		if (mixins) methods.mixin( Constructor, mixins );
-	},
-	name: function (Constructor, name) {
+	})
+	.mutator( 'name', function (Constructor, name) {
 		if (!name) return;
 		Constructor.NAME = name;
-	},
-	own: function (Constuctor, properties) {
-		methods.addTo(Constuctor, properties);
-	},
-	prototype: function (Constuctor, properties) {
-		methods.addTo(Constuctor.prototype, properties);
-	}
-});
+	})
+	.mutator( 'own', function (Constructor, properties) {
+		Constructor.own(properties);
+	})
+	.mutator( 'prototype', function (Constructor, properties) {
+		methods.addTo(Constructor.prototype, properties, Constructor.NAME + '#');
+	});
 
 return atom.declare = declare;
 
@@ -2050,9 +2093,8 @@ provides: Events
 ...
 */
 
-var Events = declare( 'atom.Events',
 /** @class atom.Events */
-{
+declare( 'atom.Events', {
 
 	/** @constructs */
 	initialize: function (context) {
@@ -2084,7 +2126,7 @@ var Events = declare( 'atom.Events',
 
 	/**
 	 * @param {String} name
-	 * @param {Function} callback
+	 * @param {Function} [callback]
 	 * @return Boolean
 	 */
 	remove: function (name, callback) {
@@ -2116,7 +2158,7 @@ var Events = declare( 'atom.Events',
 
 	/**
 	 * @param {String} name
-	 * @param {Array} args
+	 * @param {Array} [args=null]
 	 * @return atom.Events
 	 */
 	ready: function (name, args) {
@@ -2239,6 +2281,9 @@ var Events = declare( 'atom.Events',
 	}
 });
 
+// local alias
+var Events = atom.Events;
+
 /*
 ---
 
@@ -2258,8 +2303,8 @@ provides: Settings
 ...
 */
 
-var Settings = declare( 'atom.Settings',
-{
+/** @class atom.Settings */
+declare( 'atom.Settings', {
 	/** @private */
 	recursive: false,
 
@@ -2277,8 +2322,10 @@ var Settings = declare( 'atom.Settings',
 			initialValues = null;
 		}
 
-		this.values    = initialValues || {};
+		this.values    = {};
 		this.recursive = !!recursive;
+
+		if (initialValues) this.set(initialValues);
 	},
 
 	/**
@@ -2293,9 +2340,21 @@ var Settings = declare( 'atom.Settings',
 	/**
 	 * @param {string|Array} name
 	 */
-	get: atom.core.overloadGetter(function (name) {
-		return this.values[name];
-	}, true),
+	get: function (name, defaultValue) {
+		if (Array.isArray(name)) return this.subset(name, defaultValue);
+
+		return name in this.values ? this.values[name] : defaultValue;
+	},
+
+	subset: function (names, defaultValue) {
+		var i, values = {};
+
+		for (i = names.length; i--;) {
+			values[names[i]] = this.get( names[i], defaultValue );
+		}
+
+		return values;
+	},
 
 	/**
 	 * @param {Object} options
@@ -2303,6 +2362,10 @@ var Settings = declare( 'atom.Settings',
 	 */
 	set: atom.core.ensureObjectSetter(function (options) {
 		var method = this.recursive ? 'extend' : 'append';
+		if (options instanceof this.constructor) {
+			options = options.values;
+		}
+
 		if (this.isValidOptions(options)) {
 			atom.core[method](this.values, options);
 		}
@@ -2329,7 +2392,7 @@ var Settings = declare( 'atom.Settings',
 		if (!this.events) return this;
 
 		var values = this.values, name, option;
-		for (name in values) {
+		for (name in values) if (values.hasOwnProperty(name)) {
 			option = values[name];
 			if (this.isInvokable(name, option)) {
 				this.events.add(name, option);
@@ -2347,6 +2410,8 @@ var Settings = declare( 'atom.Settings',
 			(/^on[A-Z]/).test(name);
 	}
 });
+
+var Settings = atom.Settings;
 
 /*
 ---
@@ -2502,10 +2567,8 @@ provides: Animatable
 ...
 */
 
-
-declare( 'atom.Animatable',
 /** @class atom.Animatable */
-{
+declare( 'atom.Animatable', {
 	
 	element: null,
 
@@ -2599,9 +2662,8 @@ declare( 'atom.Animatable',
 	}
 });
 
-declare( 'atom.Animatable.Animation',
 /** @class atom.Animatable.Animation */
-{
+declare( 'atom.Animatable.Animation', {
 	/** @property {atom.Animatable} */
 	animatable: null,
 
@@ -2676,6 +2738,27 @@ declare( 'atom.Animatable.Animation',
 	},
 
 	/** @private */
+	changeValues: function (progress) {
+		var delta = this.delta, animatable = this.animatable, initial, target;
+		for (var i in delta) if (delta.hasOwnProperty(i)) {
+			if (progress == null) {
+				target = this.target[i];
+				animatable.set( i,
+					atom.Color && target instanceof atom.Color
+						? target.toString() : target
+				);
+			} else {
+				initial = this.initial[i];
+				animatable.set( i,
+					atom.Color && initial instanceof atom.Color ?
+						initial.clone().move(delta[i].clone().mul(progress)).toString() :
+						initial + delta[i] * progress
+				);
+			}
+		}
+	},
+
+	/** @private */
 	tick: function (time) {
 		var lastTick = time >= this.timeLeft;
 		this.timeLeft = lastTick ? 0 : this.timeLeft - time;
@@ -2686,19 +2769,6 @@ declare( 'atom.Animatable.Animation',
 		this.events.fire( 'tick', [ this ]);
 
 		if (lastTick) this.destroy('complete');
-	},
-
-	/** @private */
-	changeValues: function (progress) {
-		var delta = this.delta, initial;
-		for (var i in delta) {
-			initial = this.initial[i];
-			this.animatable.set( i,
-				atom.Color && initial instanceof atom.Color ?
-					initial.clone().move(delta[i].clone().mul(progress)).toString() :
-					initial + delta[i] * progress
-			);
-		}
 	},
 
 	destroy: function (type) {
@@ -2762,7 +2832,7 @@ provides: ClassCompat
 */
 
 declare( 'atom.Settings.Mixin',
-/** @class atom.Settings.Mixin */
+/** @deprecated */
 {
 	/**
 	 * @private
@@ -2810,7 +2880,6 @@ declare( 'atom.Events.Mixin', new function () {
 		}
 	};
 
-	/** @class atom.Events.Mixin */
 	return {
 		get events ( ) { return init.call(this); },
 		set events (e) { this.__events = e;       },
@@ -3386,349 +3455,638 @@ provides: Color
 ...
 */
 
-
-declare( 'atom.Color',
 /** @class atom.Color */
-{
-	own: {
-		invoke: declare.castArguments,
+declare( 'atom.Color', {
+	initialize: function (value) {
+		var a = arguments, type;
+		if (a.length == 4 || a.length == 3) {
+			value = slice.call(a);
+		} else if (value && value.length == 1) {
+			value = value[0];
+		}
 
-		/**
-		 * Checks if string is color description
-		 * @param {string} string
-		 * @returns {boolean}
-		 */
-		isColorString : function (string) {
-			if (typeof string != 'string') return false;
-			return Boolean(
-				string in this.colorNames  ||
-				string.match(/^#\w{3,6}$/) ||
-				string.match(/^rgba?\([\d\., ]+\)$/)
-			);
-		},
-
-		colorNames: {
-			white:  '#ffffff',
-			silver: '#c0c0c0',
-			gray:   '#808080',
-			black:  '#000000',
-			red:    '#ff0000',
-			maroon: '#800000',
-			yellow: '#ffff00',
-			olive:  '#808000',
-			lime:   '#00ff00',
-			green:  '#008000',
-			aqua:   '#00ffff',
-			teal:   '#008080',
-			blue:   '#0000ff',
-			navy:   '#000080',
-			fuchsia:'#ff00ff',
-			purple: '#800080',
-			orange: '#ffa500'
-		},
-
-		/**
-		 * @param {boolean} [html=false] - only html color names
-		 * @returns {atom.Color}
-		 */
-		random: function (html) {
-			var random = atom.number.random;
-			if (html) {
-				return new this(atom.array.random(
-					Object.keys(this.colorNames)
-				));
-			} else {
-				return new this([
-					random(0, 255),
-					random(0, 255),
-					random(0, 255)
-				]);
-			}
+		type = typeof value;
+		if (Array.isArray(value)) {
+			this.fromArray(value);
+		} else if (type == 'number') {
+			this.fromNumber(value);
+		} else if (type == 'string') {
+			this.fromString(value);
+		} else if (type == 'object') {
+			this.fromObject(value);
+		} else {
+			throw new TypeError('Unknown type in atom.Color: ' + typeof value + ';\n' + value);
 		}
 	},
 
-	prototype: {
-		initialize: function (value) {
-			var a = arguments, type;
-			if (a.length == 4 || a.length == 3) {
-				value = slice.call(a);
-			} else if (value && value.length == 1) {
-				value = value[0];
-			}
+	/** @private */
+	r: 0,
+	/** @private */
+	g: 0,
+	/** @private */
+	b: 0,
+	/** @private */
+	a: 1,
 
-			type = typeof value;
-			if (Array.isArray(value)) {
-				this.fromArray(value);
-			} else if (type == 'number') {
-				this.fromNumber(value);
-			} else if (type == 'string') {
-				this.fromString(value);
-			} else if (type == 'object') {
-				this.fromObject(value);
-			} else {
-				throw new TypeError('Unknown type in atom.Color: ' + typeof value + ';\n' + value);
-			}
-		},
+	/**
+	 * We are array-like object (looks at accessors at bottom of class)
+	 * @constant
+	 */
+	length: 4,
 
-		/** @private */
-		r: 0,
-		/** @private */
-		g: 0,
-		/** @private */
-		b: 0,
-		/** @private */
-		a: 1,
+	noLimits: false,
 
-		/**
-		 * We are array-like object (looks at accessors at bottom of class)
-		 * @constant
-		 */
-		length: 4,
+	get red   () { return this.r; },
+	get green () { return this.g; },
+	get blue  () { return this.b; },
+	get alpha () { return this.a; },
 
-		noLimits: false,
+	set red   (v) { this.setValue('r', v) },
+	set green (v) { this.setValue('g', v) },
+	set blue  (v) { this.setValue('b', v) },
+	set alpha (v) { this.setValue('a', v, true) },
 
-		get red   () { return this.r },
-		get green () { return this.g },
-		get blue  () { return this.b },
-		get alpha () { return this.a },
+	/** @private */
+	safeAlphaSet: function (v) {
+		if (v != null) this.alpha = atom.number.round(v, 3);
+	},
 
-		set red   (v) { this.setValue('r', v) },
-		set green (v) { this.setValue('g', v) },
-		set blue  (v) { this.setValue('b', v) },
-		set alpha (v) { this.setValue('a', v, true) },
+	/** @private */
+	setValue: function (prop, value, isFloat) {
+		value = Number(value);
+		if (value != value) { // isNaN
+			throw new TypeError('Value is NaN (' + prop + '): ' + value);
+		}
 
-		/** @private */
-		safeAlphaSet: function (v) {
-			if (v != null) this.alpha = atom.number.round(v, 3);
-		},
+		if (!isFloat) value = Math.round(value);
+		// We don't want application down, if user script (e.g. animation)
+		// generates such wrong array: [150, 125, -1]
+		// `noLimits` switch off this check
+		this[prop] = this.noLimits ? value :
+			atom.number.limit( value, 0, isFloat ? 1 : 255 );
+	},
 
-		/** @private */
-		setValue: function (prop, value, isFloat) {
-			value = Number(value);
-			if (value != value) { // isNaN
-				throw new TypeError('Value is NaN (' + prop + '): ' + value);
-			}
+	// Parsing
 
-			if (!isFloat) value = Math.round(value);
-			// We don't want application down, if user script (e.g. animation)
-			// generates such wrong array: [150, 125, -1]
-			// `noLimits` switch off this check
-			this[prop] = this.noLimits ? value :
-				atom.number.limit( value, 0, isFloat ? 1 : 255 );
-		},
+	/**
+	 * @param {int[]} array
+	 * @returns {atom.Color}
+	 */
+	fromArray: function (array) {
+		if (!array || array.length < 3 || array.length > 4) {
+			throw new TypeError('Wrong array in atom.Color: ' + array);
+		}
+		this.red   = array[0];
+		this.green = array[1];
+		this.blue  = array[2];
+		this.safeAlphaSet(array[3]);
+		return this;
+	},
+	/**
+	 * @param {Object} object
+	 * @param {number} object.red
+	 * @param {number} object.green
+	 * @param {number} object.blue
+	 * @returns {atom.Color}
+	 */
+	fromObject: function (object) {
+		if (typeof object != 'object') {
+			throw new TypeError( 'Not object in "fromObject": ' + typeof object );
+		}
 
-		// Parsing
+		function fetch (p1, p2) {
+			return object[p1] != null ? object[p1] : object[p2]
+		}
 
-		/**
-		 * @param {int[]} array
-		 * @returns {atom.Color}
-		 */
-		fromArray: function (array) {
-			if (!array || array.length < 3 || array.length > 4) {
-				throw new TypeError('Wrong array in atom.Color: ' + array);
-			}
-			this.red   = array[0];
-			this.green = array[1];
-			this.blue  = array[2];
-			this.safeAlphaSet(array[3]);
-			return this;
-		},
-		/**
-		 * @param {Object} object
-		 * @param {number} object.red
-		 * @param {number} object.green
-		 * @param {number} object.blue
-		 * @returns {atom.Color}
-		 */
-		fromObject: function (object) {
-			if (typeof object != 'object') {
-				throw new TypeError( 'Not object in "fromObject": ' + typeof object );
-			}
+		this.red   = fetch('r', 'red'  );
+		this.green = fetch('g', 'green');
+		this.blue  = fetch('b', 'blue' );
+		this.safeAlphaSet(fetch('a', 'alpha'));
+		return this;
+	},
+	/**
+	 * @param {string} string
+	 * @returns {atom.Color}
+	 */
+	fromString: function (string) {
+		if (!this.constructor.isColorString(string)) {
+			throw new TypeError( 'Not color string in "fromString": ' + string );
+		}
 
-			function fetch (p1, p2) {
-				return object[p1] != null ? object[p1] : object[p2]
-			}
+		var hex, array;
 
-			this.red   = fetch('r', 'red'  );
-			this.green = fetch('g', 'green');
-			this.blue  = fetch('b', 'blue' );
-			this.safeAlphaSet(fetch('a', 'alpha'));
-			return this;
-		},
-		/**
-		 * @param {string} string
-		 * @returns {atom.Color}
-		 */
-		fromString: function (string) {
-			if (!this.constructor.isColorString(string)) {
-				throw new TypeError( 'Not color string in "fromString": ' + string );
-			}
+		string = string.toLowerCase();
+		string = this.constructor.colorNames[string] || string;
 
-			var hex, array;
+		if (hex = string.match(/^#(\w{1,2})(\w{1,2})(\w{1,2})(\w{1,2})?$/)) {
+			array = hex.slice(1).clean();
+			array = array.map(function (part) {
+				if (part.length == 1) part += part;
+				return parseInt(part, 16);
+			});
+			if (array.length == 4) array[3] /= 255;
+		} else {
+			array = string.match(/([\.\d]{1,})/g).map( Number );
+		}
+		return this.fromArray(array);
+	},
+	/**
+	 * @param {number} number
+	 * @returns {atom.Color}
+	 */
+	fromNumber: function (number) {
+		if (typeof number != 'number' || number < 0 || number > 0xffffffff) {
+			throw new TypeError( 'Not color number in "fromNumber": ' + (number.toString(16)) );
+		}
 
-			string = string.toLowerCase();
-			string = this.constructor.colorNames[string] || string;
-			
-			if (hex = string.match(/^#(\w{1,2})(\w{1,2})(\w{1,2})(\w{1,2})?$/)) {
-				array = hex.slice(1).clean();
-				array = array.map(function (part) {
-					if (part.length == 1) part += part;
-					return parseInt(part, 16);
-				});
-				if (array.length == 4) array[3] /= 255;
-			} else {
-				array = string.match(/([\.\d]{1,})/g).map( Number );
-			}
-			return this.fromArray(array);
-		},
-		/**
-		 * @param {number} number
-		 * @returns {atom.Color}
-		 */
-		fromNumber: function (number) {
-			if (typeof number != 'number' || number < 0 || number > 0xffffffff) {
-				throw new TypeError( 'Not color number in "fromNumber": ' + (number.toString(16)) );
-			}
+		return this.fromArray([
+			(number>>24) & 0xff,
+			(number>>16) & 0xff,
+			(number>> 8) & 0xff,
+			(number      & 0xff) / 255
+		]);
+	},
 
-			return this.fromArray([
-				(number>>24) & 0xff,
-				(number>>16) & 0xff,
-				(number>> 8) & 0xff,
-				(number      & 0xff) / 255
+	// Casting
+
+	/** @returns {int[]} */
+	toArray: function () {
+		return [this.r, this.g, this.b, this.a];
+	},
+	/** @returns {string} */
+	toString: function (type) {
+		var arr = this.toArray();
+		if (type == 'hex' || type == 'hexA') {
+			return '#' + arr.map(function (color, i) {
+				if (i == 3) { // alpha
+					if (type == 'hex') return '';
+					color = Math.round(color * 255);
+				}
+				var bit = color.toString(16);
+				return bit.length == 1 ? '0' + bit : bit;
+			}).join('');
+		} else {
+			return 'rgba(' + arr + ')';
+		}
+	},
+	/** @returns {number} */
+	toNumber: function () {
+		// maybe needs optimizations
+		return parseInt( this.toString('hexA').substr(1) , 16)
+	},
+	/** @returns {object} */
+	toObject: function (abbreviationNames) {
+		return atom.array.associate( this.toArray(),
+			abbreviationNames ?
+				['r'  , 'g'    , 'b'   ,'a'    ] :
+				['red', 'green', 'blue','alpha']
+		);
+	},
+
+	// manipulations
+
+	/**
+	 * @param {atom.Color} color
+	 * @returns {atom.Color}
+	 */
+	diff: function (color) {
+		// we can't use this.constructor, because context exists in such way
+		// && invoke is not called
+		color = atom.Color( color );
+		return new atom.Color.Shift([
+			color.red   - this.red  ,
+			color.green - this.green,
+			color.blue  - this.blue ,
+			color.alpha - this.alpha
+		]);
+	},
+	/**
+	 * @param {atom.Color} color
+	 * @returns {atom.Color}
+	 */
+	move: function (color) {
+		color = atom.Color.Shift(color);
+		this.red   += color.red  ;
+		this.green += color.green;
+		this.blue  += color.blue ;
+		this.alpha += color.alpha;
+		return this;
+	},
+	/** @deprecated - use `clone`+`move` instead */
+	shift: function (color) {
+		return this.clone().move(color);
+	},
+	map: function (fn) {
+		var color = this;
+		['red', 'green', 'blue', 'alpha'].forEach(function (component) {
+			color[component] = fn.call( color, color[component], component, color );
+		});
+		return color;
+	},
+	add: function (factor) {
+		return this.map(function (value) {
+			return value + factor;
+		});
+	},
+	mul: function (factor) {
+		return this.map(function (value) {
+			return value * factor;
+		});
+	},
+	/**
+	 * @param {atom.Color} color
+	 * @returns {boolean}
+	 */
+	equals: function (color) {
+		return color &&
+			color instanceof this.constructor &&
+			color.red   == this.red   &&
+			color.green == this.green &&
+			color.blue  == this.blue  &&
+			color.alpha == this.alpha;
+	},
+
+	/** @private */
+	dump: function () {
+		return '[atom.Color(' + this.toString('hexA') + ')]';
+	},
+
+	/**
+	 * @returns {atom.Color}
+	 */
+	clone: function () {
+		return new this.constructor(this);
+	}
+}).own({
+	invoke: declare.castArguments,
+
+	/**
+	 * Checks if string is color description
+	 * @param {string} string
+	 * @returns {boolean}
+	 */
+	isColorString : function (string) {
+		if (typeof string != 'string') return false;
+		return Boolean(
+			string in this.colorNames  ||
+			string.match(/^#\w{3,6}$/) ||
+			string.match(/^rgba?\([\d\., ]+\)$/)
+		);
+	},
+
+	colorNames: {
+		white:  '#ffffff',
+		silver: '#c0c0c0',
+		gray:   '#808080',
+		black:  '#000000',
+		red:    '#ff0000',
+		maroon: '#800000',
+		yellow: '#ffff00',
+		olive:  '#808000',
+		lime:   '#00ff00',
+		green:  '#008000',
+		aqua:   '#00ffff',
+		teal:   '#008080',
+		blue:   '#0000ff',
+		navy:   '#000080',
+		fuchsia:'#ff00ff',
+		purple: '#800080',
+		orange: '#ffa500'
+	},
+
+	/**
+	 * @param {boolean} [html=false] - only html color names
+	 * @returns {atom.Color}
+	 */
+	random: function (html) {
+		var random = atom.number.random;
+		if (html) {
+			return new this(atom.array.random(
+				Object.keys(this.colorNames)
+			));
+		} else {
+			return new this([
+				random(0, 255),
+				random(0, 255),
+				random(0, 255)
 			]);
-		},
-
-		// Casting
-
-		/** @returns {int[]} */
-		toArray: function () {
-			return [this.r, this.g, this.b, this.a];
-		},
-		/** @returns {string} */
-		toString: function (type) {
-			var arr = this.toArray();
-			if (type == 'hex' || type == 'hexA') {
-				return '#' + arr.map(function (color, i) {
-					if (i == 3) { // alpha
-						if (type == 'hex') return '';
-						color = Math.round(color * 255);
-					}
-					var bit = color.toString(16);
-					return bit.length == 1 ? '0' + bit : bit;
-				}).join('');
-			} else {
-				return 'rgba(' + arr + ')';
-			}
-		},
-		/** @returns {number} */
-		toNumber: function () {
-			// maybe needs optimizations
-			return parseInt( this.toString('hexA').substr(1) , 16)
-		},
-		/** @returns {object} */
-		toObject: function (abbreviationNames) {
-			return atom.array.associate( this.toArray(),
-				abbreviationNames ?
-					['r'  , 'g'    , 'b'   ,'a'    ] :
-					['red', 'green', 'blue','alpha']
-			);
-		},
-
-		// manipulations
-
-		/**
-		 * @param {atom.Color} color
-		 * @returns {atom.Color}
-		 */
-		diff: function (color) {
-			// we can't use this.constructor, because context exists in such way
-			// && invoke is not called
-			color = atom.Color( color );
-			return new atom.Color.Shift([
-				color.red   - this.red  ,
-				color.green - this.green,
-				color.blue  - this.blue ,
-				color.alpha - this.alpha
-			]);
-		},
-		/**
-		 * @param {atom.Color} color
-		 * @returns {atom.Color}
-		 */
-		move: function (color) {
-			color = atom.Color.Shift(color);
-			this.red   += color.red  ;
-			this.green += color.green;
-			this.blue  += color.blue ;
-			this.alpha += color.alpha;
-			return this;
-		},
-		/** @deprecated - use `clone`+`move` instead */
-		shift: function (color) {
-			return this.clone().move(color);
-		},
-		map: function (fn) {
-			var color = this;
-			['red', 'green', 'blue', 'alpha'].forEach(function (component) {
-				color[component] = fn.call( color, color[component], component, color );
-			});
-			return color;
-		},
-		add: function (factor) {
-			return this.map(function (value) {
-				return value + factor;
-			});
-		},
-		mul: function (factor) {
-			return this.map(function (value) {
-				return value * factor;
-			});
-		},
-		/**
-		 * @param {atom.Color} color
-		 * @returns {boolean}
-		 */
-		equals: function (color) {
-			return color &&
-				color instanceof this.constructor &&
-				color.red   == this.red   &&
-				color.green == this.green &&
-				color.blue  == this.blue  &&
-				color.alpha == this.alpha;
-		},
-
-		/** @private */
-		dump: function () {
-			return '[atom.Color(' + this.toString('hexA') + ')]';
-		},
-
-		/**
-		 * @returns {atom.Color}
-		 */
-		clone: function () {
-			return new this.constructor(this);
 		}
 	}
 });
 
-['red', 'green', 'blue', 'alpha'].forEach(function (color, index) {
-	atom.accessors.define( atom.Color.prototype, index, {
-		get: function () {
-			return this[color];
-		},
-		set: function (value) {
-			this[color] = value;
-		}
-	});
-});
-
-
-declare( 'atom.Color.Shift',
 /** @class atom.Color.Shift */
-{
-	parent: atom.Color,
+declare( 'atom.Color.Shift', atom.Color, { noLimits: true });
 
-	prototype: { noLimits: true }
+/*
+---
+
+name: "Types.String"
+
+description: "Contains string-manipulation methods like repeat, substitute, replaceAll and begins."
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+requires:
+	- Core
+
+provides: Types.String
+
+...
+*/
+
+new function () {
+
+var UID = Date.now();
+
+atom.string = {
+	/**
+	 * @returns {string} - unique for session value in 36-radix
+	 */
+	uniqueID: function () {
+		return (UID++).toString(36);
+	},
+	/**
+	 * escape all html unsafe characters - & ' " < >
+	 * @param {string} string
+	 * @returns {string}
+	 */
+	safeHtml: function (string) {
+		return string.replaceAll(/[<'&">]/g, {
+			'&'  : '&amp;',
+			'\'' : '&#039;',
+			'\"' : '&quot;',
+			'<'  : '&lt;',
+			'>'  : '&gt;'
+		});
+	},
+	/**
+	 * repeat string `times` times
+	 * @param {string} string
+	 * @param {int} times
+	 * @returns {string}
+	 */
+	repeat: function(string, times) {
+		return new Array(times + 1).join(string);
+	},
+	/**
+	 * @param {string} string
+	 * @param {Object} object
+	 * @param {RegExp} [regexp=null]
+	 * @returns {string}
+	 */
+	substitute: function(string, object, regexp){
+		return string.replace(regexp || /\\?\{([^{}]+)\}/g, function(match, name){
+			return (match[0] == '\\') ? match.slice(1) : (object[name] == null ? '' : object[name]);
+		});
+	},
+	/**
+	 * @param {string} string
+	 * @param {Object|RegExp|string} find
+	 * @param {Object|string} [replace=null]
+	 * @returns {String}
+	 */
+	replaceAll: function (string, find, replace) {
+		if (toString.call(find) == '[object RegExp]') {
+			return string.replace(find, function (symb) { return replace[symb]; });
+		} else if (typeof find == 'object') {
+			for (var i in find) string = string.replaceAll(i, find[i]);
+			return string;
+		}
+		return string.split(find).join(replace);
+	},
+	/**
+	 * Checks if string contains such substring
+	 * @param {string} string
+	 * @param {string} substr
+	 */
+	contains: function (string, substr) {
+		return string ? string.indexOf( substr ) >= 0 : false;
+	},
+	/**
+	 * Checks if string begins with such substring
+	 * @param {string} string
+	 * @param {string} substring
+	 * @param {boolean} [caseInsensitive=false]
+	 * @returns {boolean}
+	 */
+	begins: function (string, substring, caseInsensitive) {
+		if (!string) return false;
+		return (!caseInsensitive) ? substring == string.substr(0, substring.length) :
+			substring.toLowerCase() == string.substr(0, substring.length).toLowerCase();
+	},
+	/**
+	 * Checks if string ends with such substring
+	 * @param {string} string
+	 * @param {string} substring
+	 * @param {boolean} [caseInsensitive=false]
+	 * @returns {boolean}
+	 */
+	ends: function (string, substring, caseInsensitive) {
+		if (!string) return false;
+		return (!caseInsensitive) ? substring == string.substr(string.length - substring.length) :
+			substring.toLowerCase() == string.substr(string.length - substring.length).toLowerCase();
+	},
+	/**
+	 * Uppercase first character
+	 * @param {string} string
+	 * @returns {string}
+	 */
+	ucfirst : function (string) {
+		return string ? string[0].toUpperCase() + string.substr(1) : '';
+	},
+	/**
+	 * Lowercase first character
+	 * @param {string} string
+	 * @returns {string}
+	 */
+	lcfirst : function (string) {
+		return string ? string[0].toLowerCase() + string.substr(1) : '';
+	}
+};
+
+}();
+
+/*
+---
+
+name: "ImagePreloader"
+
+description: ""
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+requires:
+	- Core
+	- declare
+	- Events
+	- Settings
+	- Types.Object
+	- Types.String
+	- Types.Number
+
+provides: ImagePreloader
+
+...
+*/
+
+/** @class ImagePreloader */
+atom.declare( 'atom.ImagePreloader', {
+	processed : 0,
+	number    : 0,
+
+	initialize: function (settings) {
+		this.events   = new Events(this);
+		this.settings = new Settings(settings).addEvents(this.events);
+
+		this.count = {
+			error: 0,
+			abort: 0,
+			load : 0
+		};
+
+		this.suffix    = this.settings.get('suffix') || '';
+		this.usrImages = this.prefixImages(this.settings.get('images'));
+		this.domImages = this.createDomImages();
+		this.images    = {};
+	},
+	get isReady () {
+		return this.number == this.processed;
+	},
+	get info () {
+		var stat = atom.string.substitute(
+			"Images loaded: {load}; Errors: {error}; Aborts: {abort}",
+			this.count
+		);
+		if (this.isReady) stat = "Image preloading has completed;\n" + stat;
+		return stat;
+	},
+	get progress () {
+		return this.isReady ? 1 : atom.number.round(this.processed / this.number, 4);
+	},
+	exists: function (name) {
+		return !!this.images[name];
+	},
+	get: function (name) {
+		var image = this.images[name];
+		if (image) {
+			return image;
+		} else {
+			throw new Error('No image «' + name + '»');
+		}
+	},
+
+	/** @private */
+	cropImage: function (img, c) {
+		if (!c) return img;
+
+		var canvas = document.createElement('canvas');
+		canvas.width  = c[2];
+		canvas.height = c[3];
+		canvas.getContext('2d').drawImage( img,
+			c[0], c[1], c[2], c[3], 0, 0, c[2], c[3]
+		);
+		return canvas;
+	},
+	/** @private */
+	withoutPrefix: function (src) {
+		return src.indexOf('http://') === 0 || src.indexOf('https://') === 0;
+	},
+	/** @private */
+	prefixImages: function (images) {
+		var prefix = this.settings.get('prefix');
+		if (!prefix) return images;
+
+		return atom.object.map(images, function (src) {
+			return this.withoutPrefix(src) ? src : prefix + src;
+		}.bind(this));
+	},
+	/** @private */
+	cutImages: function () {
+		var i, parts, img;
+		for (i in this.usrImages) if (this.usrImages.hasOwnProperty(i)) {
+			parts = this.splitUrl( this.usrImages[i] );
+			img   = this.domImages[ parts.url ];
+			this.images[i] = this.cropImage(img, parts.coords);
+		}
+		return this;
+	},
+	/** @private */
+	splitUrl: function (str) {
+		var url = str, size, cell, match, coords = null;
+
+				// searching for pattern 'url [x:y:w:y]'
+		if (match = str.match(/ \[(\d+):(\d+):(\d+):(\d+)\]$/)) {
+			coords = match.slice( 1 );
+				// searching for pattern 'url [w:y]{x:y}'
+		} else if (match = str.match(/ \[(\d+):(\d+)\]\{(\d+):(\d+)\}$/)) {
+			coords = match.slice( 1 ).map( Number );
+			size = coords.slice( 0, 2 );
+			cell = coords.slice( 2, 4 );
+			coords = [ cell[0] * size[0], cell[1] * size[1], size[0], size[1] ];
+		}
+		if (match) {
+			url = str.substr(0, str.lastIndexOf(match[0]));
+			coords = coords.map( Number );
+		}
+		if (this.suffix) {
+			if (typeof this.suffix == 'function') {
+				url = this.suffix( url );
+			} else {
+				url += this.suffix;
+			}
+		}
+
+		return { url: url, coords: coords };
+	},
+	/** @private */
+	createDomImages: function () {
+		var i, result = {}, url, images = this.usrImages;
+		for (i in images) if (images.hasOwnProperty(i)) {
+			url = this.splitUrl( images[i] ).url;
+			if (!result[url]) result[url] = this.createDomImage( url );
+		}
+		return result;
+	},
+	/** @private */
+	createDomImage : function (src) {
+		var img = new Image();
+		img.src = src;
+		if (window.opera && img.complete) {
+			setTimeout(this.onProcessed.bind(this, 'load', img), 10);
+		} else {
+			['load', 'error', 'abort'].forEach(function (event) {
+				img.addEventListener( event, this.onProcessed.bind(this, event, img), false );
+			}.bind(this));
+		}
+		this.number++;
+		return img;
+	},
+	/** @private */
+	onProcessed : function (type, img) {
+		if (type == 'load' && window.opera) {
+			// opera fullscreen bug workaround
+			img.width  = img.width;
+			img.height = img.height;
+			img.naturalWidth  = img.naturalWidth;
+			img.naturalHeight = img.naturalHeight;
+		}
+		this.count[type]++;
+		this.processed++;
+		if (this.isReady) this.cutImages().events.ready('ready', [this]);
+		return this;
+	}
+}).own({
+	run: function (images, callback, context) {
+		var preloader = new this({ images: images });
+
+		preloader.events.add( 'ready', context ? callback.bind(context) : callback );
+
+		return preloader;
+	}
 });
 
 /*
@@ -3753,7 +4111,8 @@ provides: Keyboard
 
 var Keyboard = function () {
 
-var keyName,
+var
+	keyName,
 	codeNames = {},
 	keyCodes  = {
 		// Alphabet
@@ -3790,88 +4149,87 @@ var keyName,
 		aleft:37, aup:38, aright:39, adown:40
 	};
 
-for (keyName in keyCodes) codeNames[ keyCodes[keyName] ] = keyName;
+for (keyName in keyCodes) if (keyCodes.hasOwnProperty(keyName)) {
+	codeNames[ keyCodes[keyName] ] = keyName;
+}
 
-return declare( 'atom.Keyboard',
-{
-	own: {
-		keyCodes : keyCodes,
-		codeNames: codeNames,
-		keyName: function (code) {
-			if (code && code.keyCode != null) {
-				code = code.keyCode;
-			}
-
-			var type = typeof code;
-
-			if (type == 'number') {
-				return this.codeNames[code];
-			} else if (type == 'string' && code in this.keyCodes) {
-				return code;
-			}
-
-			return null;
+/** @class atom.Keyboard */
+return declare( 'atom.Keyboard', {
+	initialize : function (element, preventDefault) {
+		if (Array.isArray(element)) {
+			preventDefault = element;
+			element = null;
 		}
+		if (element == null) element = document;
+
+		if (element == document) {
+			if (this.constructor.instance) {
+				return this.constructor.instance;
+			}
+			this.constructor.instance = this;
+		}
+
+		this.events = new Events(this);
+		this.keyStates = {};
+		this.preventDefault = preventDefault;
+
+		atom.dom(element).bind({
+			keyup:    this.keyEvent('up'),
+			keydown:  this.keyEvent('down'),
+			keypress: this.keyEvent('press')
+		});
 	},
-	prototype: {
-		initialize : function (element, preventDefault) {
-			if (Array.isArray(element)) {
-				preventDefault = element;
-				element = null;
-			}
-			if (element == null) element = document;
+	/** @private */
+	keyEvent: function (event) {
+		return this.onKeyEvent.bind(this, event);
+	},
+	/** @private */
+	onKeyEvent: function (event, e) {
+		var key = this.constructor.keyName(e),
+			prevent = this.prevent(key);
 
-			if (element == document) {
-				if (this.constructor.instance) {
-					return this.constructor.instance;
-				}
-				this.constructor.instance = this;
-			}
+		e.keyName = key;
 
-			this.events = new Events(this);
-			this.keyStates = {};
-			this.preventDefault = preventDefault;
+		if (prevent) e.preventDefault();
+		this.events.fire( event, [e] );
 
-			atom.dom(element).bind({
-				keyup:    this.keyEvent('up'),
-				keydown:  this.keyEvent('down'),
-				keypress: this.keyEvent('press')
-			});
-		},
-		/** @private */
-		keyEvent: function (event) {
-			return this.onKeyEvent.bind(this, event);
-		},
-		/** @private */
-		onKeyEvent: function (event, e) {
-			var key = this.constructor.keyName(e),
-				prevent = this.prevent(key);
-
-			e.keyName = key;
-
-			if (prevent) e.preventDefault();
-			this.events.fire( event, [e] );
-			
-			if (event == 'down') {
-				this.events.fire(key, [e]);
-				this.keyStates[key] = true;
-			} else if (event == 'up') {
-				this.events.fire(key + ':up', [e]);
-				delete this.keyStates[key];
-			} else if (event == 'press') {
-				this.events.fire(key + ':press', [e]);
-			}
-			
-			return !prevent;
-		},
-		/** @private */
-		prevent : function (key) {
-			var pD = this.preventDefault;
-			return pD && (pD === true || pD.indexOf(key) >= 0);
-		},
-		key: function (keyName) {
-			return !!this.keyStates[ this.constructor.keyName(keyName) ];
+		if (event == 'down') {
+			this.events.fire(key, [e]);
+			this.keyStates[key] = true;
+		} else if (event == 'up') {
+			this.events.fire(key + ':up', [e]);
+			delete this.keyStates[key];
+		} else if (event == 'press') {
+			this.events.fire(key + ':press', [e]);
 		}
+
+		return !prevent;
+	},
+	/** @private */
+	prevent : function (key) {
+		var pD = this.preventDefault;
+		return pD && (pD === true || pD.indexOf(key) >= 0);
+	},
+	key: function (keyName) {
+		return !!this.keyStates[ this.constructor.keyName(keyName) ];
+	}
+}).own({
+	keyCodes : keyCodes,
+	codeNames: codeNames,
+	keyName: function (code) {
+		if (code && code.keyCode != null) {
+			code = code.keyCode;
+		}
+
+		var type = typeof code;
+
+		if (type == 'number') {
+			return this.codeNames[code];
+		} else if (type == 'string' && code in this.keyCodes) {
+			return code;
+		}
+
+		return null;
 	}
 });
 
@@ -3897,9 +4255,12 @@ provides: Registry
 ...
 */
 
-var Registry = declare( 'atom.Registry', {
-	initialize: function () {
+/** @class atom.Registry */
+declare( 'atom.Registry', {
+	items: {},
+	initialize: function (initial) {
 		this.items = {};
+		if (initial) this.set(initial);
 	},
 	set: atom.core.overloadSetter(function (name, value) {
 		this.items[name] = value;
@@ -3908,6 +4269,8 @@ var Registry = declare( 'atom.Registry', {
 		return this.items[name];
 	})
 });
+
+var Registry = atom.Registry;
 
 /*
 ---
@@ -3931,121 +4294,117 @@ provides: trace
 */
 
 atom.trace = declare( 'atom.trace', {
-	own: {
-		dumpRec : function (obj, level, plain) {
-			level  = parseInt(level) || 0;
-
-			var escape = function (v) {
-				return plain ? v : atom.string.safeHtml(v);
-			};
-
-			if (level > 5) return '*TOO_DEEP*';
-
-			if (obj && typeof obj == 'object' && coreIsFunction(obj.dump)) return obj.dump();
-
-			var subDump = function (elem, index) {
-					return tabs + '\t' + index + ': ' + this.dumpRec(elem, level+1, plain) + '\n';
-				}.bind(this),
-				type = atom.typeOf(obj),
-				tabs = '\t'.repeat(level);
-
-			switch (type) {
-				case 'array':
-					return '[\n' + obj.map(subDump).join('') + tabs + ']';
-					break;
-				case 'object':
-					var html = '';
-					for (var index in obj) html += subDump(obj[index], index);
-					return '{\n' + html + tabs + '}';
-				case 'element':
-					var prop = (obj.width && obj.height) ? '('+obj.width+'×'+obj.height+')' : '';
-					return '[DOM ' + obj.tagName.toLowerCase() + prop + ']';
-				case 'textnode':
-				case 'whitespace':
-					return '[DOM ' + type + ']';
-				case 'null':
-					return 'null';
-				case 'boolean':
-					return obj ? 'true' : 'false';
-				case 'string':
-					return escape('"' + obj + '"');
-				default:
-					return escape('' + obj);
-			}
-		},
-		dumpPlain: function (object) {
-			return (this.dumpRec(object, 0, true));
-		},
-		dump : function (object) {
-			return (this.dumpRec(object, 0));
+	initialize : function (object) {
+		this.value = object;
+		this.stopped = false;
+	},
+	set value (value) {
+		if (!this.stopped) {
+			var html = atom.string.replaceAll( this.constructor.dump(value), {
+				'\t': '&nbsp;'.repeat(3),
+				'\n': '<br />'
+			});
+			this.createNode().html(html);
 		}
 	},
-
-	/** @class atom.trace */
-	prototype: {
-		initialize : function (object) {
-			this.value = object;
-			this.stopped = false;
-		},
-		set value (value) {
-			if (!this.stopped && !this.blocked) {
-				var html = atom.string.replaceAll( this.constructor.dump(value), {
-					'\t': '&nbsp;'.repeat(3),
-					'\n': '<br />'
-				});
-				this.createNode().html(html);
+	destroy : function (force) {
+		var trace = this;
+		if (force) this.stop();
+		trace.node.addClass('atom-trace-node-destroy');
+		trace.timeout = setTimeout(function () {
+			if (trace.node) {
+				trace.node.destroy();
+				trace.node = null;
 			}
-		},
-		destroy : function (force) {
-			var trace = this;
-			if (force) this.stop();
-			trace.node.addClass('atom-trace-node-destroy');
-			trace.timeout = setTimeout(function () {
-				if (trace.node) {
-					trace.node.destroy();
-					trace.node = null;
-				}
-			}, 500);
-			return trace;
-		},
-		/** @private */
-		stop  : function () {
-			this.stopped = true;
-			return this;
-		},
-		/** @private */
-		getContainer : function () {
-			var cont = atom.dom('#atom-trace-container');
-			return cont.length ? cont :
-				atom.dom.create('div', { 'id' : 'atom-trace-container'})
-					.appendTo('body');
-		},
-		/** @deprecated */
-		trace : function (value) {
-			this.value = value;
-			return this;
-		},
-		/** @private */
-		createNode : function () {
-			var trace = this, node = trace.node;
+		}, 500);
+		return trace;
+	},
+	/** @private */
+	stop  : function () {
+		this.stopped = true;
+		return this;
+	},
+	/** @private */
+	getContainer : function () {
+		var cont = atom.dom('#atom-trace-container');
+		return cont.length ? cont :
+			atom.dom.create('div', { 'id' : 'atom-trace-container'})
+				.appendTo('body');
+	},
+	/** @deprecated */
+	trace : function (value) {
+		this.value = value;
+		return this;
+	},
+	/** @private */
+	createNode : function () {
+		var trace = this, node = trace.node;
 
-			if (node) {
-				if (trace.timeout) {
-					clearTimeout(trace.timeout);
-					node.removeClass('atom-trace-node-destroy');
-				}
-				return node;
+		if (node) {
+			if (trace.timeout) {
+				clearTimeout(trace.timeout);
+				node.removeClass('atom-trace-node-destroy');
 			}
-
-			return trace.node = atom.dom
-				.create('div')
-				.addClass('atom-trace-node')
-				.appendTo(trace.getContainer())
-				.bind({
-					click    : function () { trace.destroy(0) },
-					dblclick : function () { trace.destroy(1) }
-				});
+			return node;
 		}
+
+		return trace.node = atom.dom
+			.create('div')
+			.addClass('atom-trace-node')
+			.appendTo(trace.getContainer())
+			.bind({
+				click    : function () { trace.destroy(0) },
+				dblclick : function () { trace.destroy(1) }
+			});
+	}
+}).own({
+	dumpRec : function dumpRec (obj, level, plain) {
+		var html = '', type, tabs;
+
+		level  = parseInt(level) || 0;
+
+		if (level > 5) return '*TOO_DEEP*';
+
+		if (obj && typeof obj == 'object' && coreIsFunction(obj.dump)) return obj.dump();
+
+		function escape (v) {
+			return plain ? v : atom.string.safeHtml(v);
+		}
+
+		function subDump (elem, index) {
+			return tabs + '\t' + index + ': ' + dumpRec(elem, level+1, plain) + '\n';
+		}
+
+		type = atom.typeOf(obj);
+		tabs = '\t'.repeat(level);
+
+		switch (type) {
+			case 'object':
+				for (var index in obj) if (obj.hasOwnProperty(index)) {
+					html += subDump(obj[index], index);
+				}
+				return '{\n' + html + tabs + '}';
+
+			case 'element':
+				var prop = (obj.width && obj.height) ? '('+obj.width+'×'+obj.height+')' : '';
+				return '[DOM ' + obj.tagName.toLowerCase() + prop + ']';
+
+			case 'textnode':
+			case 'whitespace':
+				return '[DOM ' + type + ']';
+
+			case 'array'  : return '[\n' + obj.map(subDump).join('') + tabs + ']';
+			case 'null'   : return 'null';
+			case 'boolean': return obj ? 'true' : 'false';
+			case 'string' : return escape('"' + obj + '"');
+			default       : return escape('' + obj);
+		}
+	},
+	dumpPlain: function (object) {
+		return (this.dumpRec(object, 0, true));
+	},
+	dump : function (object) {
+		return (this.dumpRec(object, 0));
 	}
 });
 
@@ -4242,6 +4601,69 @@ new function () {
 /*
 ---
 
+name: "Types.Math"
+
+description: ""
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+requires:
+	- Core
+
+provides: Types.Math
+
+...
+*/
+
+(function () {
+
+var
+	degree = Math.PI / 180,
+	deg360 = Math.PI * 2;
+
+atom.math = {
+
+	DEGREE360: deg360,
+
+	/**
+	 * Cast degrees to radians
+	 * atom.math.degree(90) == Math.PI/2
+	 */
+	degree: function (degrees) {
+		return degrees * degree;
+	},
+
+	/**
+	 * Cast radians to degrees
+	 * atom.math.getDegree(Math.PI/2) == 90
+	 */
+	getDegree: function (radians, round) {
+		radians /= degree;
+
+		return round ? Math.round(radians) : radians;
+	},
+	normalizeAngle : function (radians) {
+		radians %= deg360;
+
+		return radians + ( radians < 0 ? deg360 : 0 );
+	},
+
+	hypotenuse: function (cathetus1, cathetus2)  {
+		return Math.sqrt(cathetus1*cathetus1 + cathetus2*cathetus2);
+	},
+	cathetus: function (hypotenuse, cathetus2)  {
+		return Math.sqrt(hypotenuse*hypotenuse - cathetus2*cathetus2);
+	}
+};
+
+})();
+
+
+/*
+---
+
 name: "Prototypes.Number"
 
 description: "Contains Number Prototypes like limit, round, times, and ceil."
@@ -4252,6 +4674,7 @@ license:
 
 requires:
 	- Types.Number
+	- Types.Math
 	- Prototypes.Abstract
 
 provides: Prototypes.Number
@@ -4261,7 +4684,8 @@ provides: Prototypes.Number
 
 prototypize
 	.own(Number, atom.number, 'random')
-	.proto(Number, prototypize.fn(atom.number), 'between equals limit round stop' );
+	.proto(Number, prototypize.fn(atom.number), 'between equals limit round stop' )
+	.proto(Number, prototypize.fn(atom.math  ), 'degree getDegree normalizeAngle' );
 
 coreAppend(Number.prototype, {
 	toFloat: function(){
@@ -4281,8 +4705,6 @@ coreAppend(Number.prototype, {
 			return Math[method].apply(null, [this].append(arguments));
 		};
 	});
-
-
 
 
 /*
@@ -4305,137 +4727,6 @@ provides: Prototypes.Object
 */
 
 coreAppend(Object, atom.object);
-
-/*
----
-
-name: "Types.String"
-
-description: "Contains string-manipulation methods like repeat, substitute, replaceAll and begins."
-
-license:
-	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
-	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
-requires:
-	- Core
-
-provides: Types.String
-
-...
-*/
-
-new function () {
-
-var UID = Date.now();
-
-atom.string = {
-	/**
-	 * @returns {string} - unique for session value in 36-radix
-	 */
-	uniqueID: function () {
-		return (UID++).toString(36);
-	},
-	/**
-	 * escape all html unsafe characters - & ' " < >
-	 * @param {string} string
-	 * @returns {string}
-	 */
-	safeHtml: function (string) {
-		return string.replaceAll(/[<'&">]/g, {
-			'&'  : '&amp;',
-			'\'' : '&#039;',
-			'\"' : '&quot;',
-			'<'  : '&lt;',
-			'>'  : '&gt;'
-		});
-	},
-	/**
-	 * repeat string `times` times
-	 * @param {string} string
-	 * @param {int} times
-	 * @returns {string}
-	 */
-	repeat: function(string, times) {
-		return new Array(times + 1).join(string);
-	},
-	/**
-	 * @param {string} string
-	 * @param {Object} object
-	 * @param {RegExp} [regexp=null]
-	 * @returns {string}
-	 */
-	substitute: function(string, object, regexp){
-		return string.replace(regexp || /\\?\{([^{}]+)\}/g, function(match, name){
-			return (match[0] == '\\') ? match.slice(1) : (object[name] == null ? '' : object[name]);
-		});
-	},
-	/**
-	 * @param {string} string
-	 * @param {Object|RegExp|string} find
-	 * @param {Object|string} [replace=null]
-	 * @returns {String}
-	 */
-	replaceAll: function (string, find, replace) {
-		if (toString.call(find) == '[object RegExp]') {
-			return string.replace(find, function (symb) { return replace[symb]; });
-		} else if (typeof find == 'object') {
-			for (var i in find) string = string.replaceAll(i, find[i]);
-			return string;
-		}
-		return string.split(find).join(replace);
-	},
-	/**
-	 * Checks if string contains such substring
-	 * @param {string} string
-	 * @param {string} substr
-	 */
-	contains: function (string, substr) {
-		return string ? string.indexOf( substr ) >= 0 : false;
-	},
-	/**
-	 * Checks if string begins with such substring
-	 * @param {string} string
-	 * @param {string} substring
-	 * @param {boolean} [caseInsensitive=false]
-	 * @returns {boolean}
-	 */
-	begins: function (string, substring, caseInsensitive) {
-		if (!string) return false;
-		return (!caseInsensitive) ? substring == string.substr(0, substring.length) :
-			substring.toLowerCase() == string.substr(0, substring.length).toLowerCase();
-	},
-	/**
-	 * Checks if string ends with such substring
-	 * @param {string} string
-	 * @param {string} substring
-	 * @param {boolean} [caseInsensitive=false]
-	 * @returns {boolean}
-	 */
-	ends: function (string, substring, caseInsensitive) {
-		if (!string) return false;
-		return (!caseInsensitive) ? substring == string.substr(string.length - substring.length) :
-			substring.toLowerCase() == string.substr(string.length - substring.length).toLowerCase();
-	},
-	/**
-	 * Uppercase first character
-	 * @param {string} string
-	 * @returns {string}
-	 */
-	ucfirst : function (string) {
-		return string ? string[0].toUpperCase() + string.substr(1) : '';
-	},
-	/**
-	 * Lowercase first character
-	 * @param {string} string
-	 * @returns {string}
-	 */
-	lcfirst : function (string) {
-		return string ? string[0].toLowerCase() + string.substr(1) : '';
-	}
-};
-
-}();
 
 /*
 ---
