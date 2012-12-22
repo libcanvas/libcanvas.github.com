@@ -139,6 +139,12 @@ LibCanvas.declare( 'LibCanvas.App', 'App', {
 		atom.frame.add( this.tick );
 	},
 
+	destroy: function () {
+		atom.array.invoke( this.layers, 'destroy' );
+		atom.frame.remove( this.tick );
+		this.container.destroy();
+	},
+
 	get rectangle () {
 		return this.container.rectangle;
 	},
@@ -241,6 +247,11 @@ declare( 'LibCanvas.App.Container', {
 		return this.currentSize;
 	},
 
+	destroy: function () {
+		this.wrapper.destroy();
+		return this;
+	},
+
 	createDom: function (settings) {
 		var dom = new App.Dom( this, settings );
 		this.doms.push(dom);
@@ -338,6 +349,11 @@ declare( 'LibCanvas.App.Dom', {
 
 	get size() {
 		return this.currentSize;
+	},
+
+	destroy: function () {
+		this.element.destroy();
+		this.size = new Size(0,0);
 	},
 
 	/**
@@ -662,13 +678,18 @@ declare( 'LibCanvas.App.Element', {
 		return this.shape.hasPoint( point );
 	},
 
-	hasMousePoint: function (point) {
-		return this.hasPoint(point);
+	isTriggerPoint: function (point) {
+		if (this.hasMousePoint) {
+			return this.hasMousePoint(point);
+		} else {
+			return this.hasPoint(point);
+		}
 	},
 
 	addShift: function (shift) {
 		this.shape.move( shift );
-		this.previousBoundingShape.move( shift );
+		if (this.previousBoundingShape)
+			this.previousBoundingShape.move( shift );
 		return this;
 	},
 
@@ -750,9 +771,14 @@ declare( 'LibCanvas.App.ElementsMouseSearch', {
 		return this;
 	},
 
+	removeAll: function () {
+		this.elements.length = 0;
+		return this;
+	},
+
 	findByPoint: function (point) {
 		var e = this.elements, i = e.length, result = [];
-		while (i--) if (e[i].hasMousePoint( point )) {
+		while (i--) if (e[i].isTriggerPoint( point )) {
 			result.push(e[i]);
 		}
 		return result;
@@ -809,6 +835,21 @@ declare( 'LibCanvas.App.Layer', {
 	/** @private */
 	stopped: false,
 
+	destroy: function () {
+		atom.array.invoke( this.elements, 'destroy' );
+		this.dom.destroy();
+	},
+
+	hide: function () {
+		this.dom.element.css({ display: 'none' });
+		return this.stop();
+	},
+
+	show: function () {
+		this.dom.element.css({ display: null });
+		return this.stop();
+	},
+
 	start: function () {
 		this.stopped = false;
 		return this;
@@ -842,42 +883,47 @@ declare( 'LibCanvas.App.Layer', {
 
 	/** @private */
 	draw: function () {
-		var i, elem,
+		var
 			ctx = this.dom.canvas.ctx,
-			redraw = this.redraw,
-			clear  = this.clear,
 			resources = this.app.resources;
 
 		if (this.settings.get('intersection') === 'auto') {
 			this.addIntersections();
 		}
 
-		// draw elements with the lower zIndex first
-		atom.array.sortBy( redraw, 'zIndex' );
+		if (this.shouldRedrawAll) {
+			atom.array.invoke(this.clear, 'clearPrevious', ctx, resources);
+		}
+
+		atom.array.invoke(this.redraw, 'clearPrevious', ctx, resources);
+
+		this.drawElements(this.redraw, ctx, resources);
 
 		if (this.shouldRedrawAll) {
-			for (i = clear.length; i--;) {
-				clear[i].clearPrevious( ctx, resources );
+			this.clear.length = 0;
+		} else {
+			this.redraw.length = 0;
+		}
+	},
+
+	/** @private */
+	drawElements: function (elements, ctx, resources) {
+		// draw elements with the lower zIndex first
+		atom.array.sortBy( elements, 'zIndex' );
+
+		for (var i = elements.length; i--;) {
+			this.drawElement(elements[i], ctx, resources);
+		}
+	},
+
+	/** @private */
+	drawElement: function (elem, ctx, resources) {
+		if (elem.layer == this) {
+			elem.redrawRequested = false;
+			if (elem.isVisible()) {
+				elem.renderToWrapper( ctx, resources );
+				elem.saveCurrentBoundingShape();
 			}
-		}
-
-		for (i = redraw.length; i--;) {
-			redraw[i].clearPrevious( ctx, resources );
-		}
-
-		for (i = redraw.length; i--;) {
-			elem = redraw[i];
-			if (elem.layer == this) {
-				elem.redrawRequested = false;
-				if (elem.isVisible()) {
-					elem.renderToWrapper( ctx, resources );
-					elem.saveCurrentBoundingShape();
-				}
-			}
-		}
-
-		if (!this.shouldRedrawAll) {
-			redraw.length = 0;
 		}
 	},
 
@@ -1056,10 +1102,15 @@ declare( 'LibCanvas.App.MouseHandler', {
 		return this;
 	},
 
+	unsubscribeAll: function () {
+		this.subscribers.length = 0;
+		this.search.removeAll();
+		return this;
+	},
+
 	fall: function () {
-		var value = this.falling;
-		this.falling = false;
-		return value;
+		this.falling = true;
+		return this;
 	},
 
 	getOverElements: function () {
@@ -1118,6 +1169,7 @@ declare( 'LibCanvas.App.MouseHandler', {
 			// о mouseover, mousedown, click, если необходимо
 			if (!stopped) {
 				if (this.fireElem( type, elem, eventArgs )) {
+					stopped = true;
 					if (!isChangeCoordEvent) break;
 				}
 			// предыдущий элемент принял событие на себя
@@ -1453,6 +1505,9 @@ var Point = LibCanvas.declare( 'LibCanvas.Point', 'Point', Geometry, {
 	/** @returns {object} */
 	toObject: function () {
 		return { x: this.x, y: this.y };
+	},
+	toArray: function () {
+		return [ this.x, this.y ];
 	},
 	/** @returns {Point} */
 	invoke: function (method) {
@@ -2530,7 +2585,7 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 			to     : null,
 			align  : 'left', /* center|left|right */
 			size   : 16,
-			weigth : 'normal', /* bold|normal */
+			weight : 'normal', /* bold|normal */
 			style  : 'normal', /* italic|normal */
 			family : 'arial,sans-serif', /* @fontFamily */
 			lineHeight : null,
@@ -3031,11 +3086,7 @@ var Mouse = LibCanvas.declare( 'LibCanvas.Mouse', 'Mouse', {
 	/** @private */
 	eventActions: {
 		wheel: function (e) {
-			e.delta =
-				// IE, Opera, Chrome
-				e.wheelDelta ? e.wheelDelta > 0 ? 1 : -1 :
-				// Fx
-				e.detail     ? e.detail     < 0 ? 1 : -1 : null;
+			this.constructor.addWheelDelta(e);
 		},
 
 		move: function (e) {
@@ -3077,6 +3128,15 @@ var Mouse = LibCanvas.declare( 'LibCanvas.Mouse', 'Mouse', {
 	}
 }).own({
 	prevent: function (e) {e.preventDefault()},
+	addWheelDelta: function (e) {
+		e.delta =
+			// IE, Opera, Chrome
+			e.wheelDelta ? e.wheelDelta > 0 ? 1 : -1 :
+			// Fx
+			e.detail     ? e.detail     < 0 ? 1 : -1 : null;
+
+		return e;
+	},
 	eventSource: function (e) {
 		return e.changedTouches ? e.changedTouches[0] : e;
 	},
@@ -3479,6 +3539,95 @@ atom.declare( 'LibCanvas.Plugins.Animation.Image', {
 		return new this(animation).element;
 	}
 });
+
+/*
+---
+
+name: "Canvas2DContext"
+
+description: "LibCanvas.Canvas2DContext is similar to original 2d context (and chainable). Can be used for creating your own contexts"
+
+license: "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+
+provides: Canvas2DContext
+
+...
+*/
+
+new function () {
+
+var object = {
+	initialize: function (canvas) {
+		if (canvas instanceof CanvasRenderingContext2D) {
+			this.ctx2d  = canvas;
+			this.canvas = this.ctx2d.canvas;
+		} else {
+			this.canvas = canvas;
+			this.ctx2d  = canvas.getOriginalContext('2d');
+		}
+	},
+	get width () { return this.canvas.width  },
+	get height() { return this.canvas.height  },
+	set width (width)  { this.canvas.width  = width  },
+	set height(height) { this.canvas.height = height }
+},
+
+methods = (
+	'arc arcTo beginPath bezierCurveTo clearRect clip ' +
+	'closePath drawImage fill fillRect fillText lineTo moveTo ' +
+	'quadraticCurveTo rect restore rotate save scale setTransform ' +
+	'stroke strokeRect strokeText transform translate'
+).split(' '),
+
+getterMethods = (
+	'createPattern drawFocusRing isPointInPath measureText ' +
+	'createImageData createLinearGradient ' +
+	'createRadialGradient getImageData putImageData'
+).split(' '),
+
+properties = (
+	'fillStyle font globalAlpha globalCompositeOperation lineCap ' +
+	'lineJoin lineWidth miterLimit shadowOffsetX shadowOffsetY ' +
+	'shadowBlur shadowColor strokeStyle textAlign textBaseline'
+).split(' ');
+
+properties.forEach(function (property) {
+	atom.accessors.define(object, property, {
+		set: function (value) {
+			try {
+				this.ctx2d[property] = value;
+			} catch (e) {
+				throw TypeError('Exception while setting «' + property + '» to «' + value + '»: ' + e.message);
+			}
+		},
+		get: function () {
+			return this.ctx2d[property];
+		}
+	})
+});
+
+methods.forEach(function (method) {
+	object[method] = function () {
+		this.ctx2d[method].apply(this.ctx, arguments);
+		return this;
+	};
+});
+
+getterMethods.forEach(function (method) {
+	object[method] = function () {
+		return this.ctx2d[method].apply(this.ctx, arguments);
+	};
+});
+
+atom.declare( 'LibCanvas.Canvas2DContext', object );
+
+};
 
 /*
  ---
@@ -4758,8 +4907,11 @@ atom.declare( 'LibCanvas.Plugins.SpriteFont.Render', {
 			color: 'black',
 			align: 'left',
 			lines: null,
+			noWrap: false,
 			letterSpacing: 0
 		}, options);
+
+		this.options.text = String( this.options.text );
 
 		var steps = new SpriteFont.Steps(this, new SpriteFont.Lexer(
 			this.options.text, this.options.tags
@@ -4768,16 +4920,30 @@ atom.declare( 'LibCanvas.Plugins.SpriteFont.Render', {
 		steps.countSizes(this.options.font, this.options.letterSpacing);
 
 		var lines = this.options.lines;
-		if (!lines) lines = new SpriteFont.LinesEnRu( this.options.font );
+		if (!lines) lines = new SpriteFont.LinesEnRu( this.options.font, this.options.noWrap );
 
 		this.render( lines.run( steps.steps, this.options.shape.width ) );
 	},
 
 	render: function (lines) {
-		var x, y, l, i, from = this.options.shape.from;
+		var x, y, w, l, i, from = this.options.shape.from;
 
-		for (l = 0, y = from.y; l < lines.length; l++) {
-			for (i = 0, x = from.x; i < lines[l].length; i++) {
+		for (l = 0, y = from.y.floor(); l < lines.length; l++) {
+			x = from.x.floor();
+
+			if (this.options.align != 'left') {
+				w = lines[l].reduce(function (current, elem) { return current + elem.width }, 0);
+
+				if (this.options.align == 'center') {
+					x += parseInt((this.options.shape.width - w) / 2);
+				}
+
+				if (this.options.align == 'right') {
+					x += this.options.shape.width - w;
+				}
+			}
+
+			for (i = 0; i < lines[l].length; i++) {
 				this.ctx.drawImage( lines[l][i].image, x, y );
 				x += lines[l][i].width;
 			}
@@ -4897,8 +5063,7 @@ atom.declare( 'LibCanvas.Plugins.SpriteFont.Lexer', {
 			last,
 			symbol = '',
 			result = [],
-			length = string.length,
-			startTag = false;
+			length = string.length;
 
 		for (; i < length; i++) {
 			symbol = string[i];
@@ -4969,15 +5134,23 @@ atom.declare( 'LibCanvas.Plugins.SpriteFont.Lexer', {
 atom.declare( 'LibCanvas.Plugins.SpriteFont.LinesEnRu', {
 	vowels: 'AEIOUYaeiouyАОУЮИЫЕЭЯЁаоуюиыеэяёьЄІЇЎєіїў',
 
-	initialize: function (font) {
-		this.font = font;
+	initialize: function (font, noWrap) {
+		this.font   = font;
+		this.noWrap = noWrap;
 	},
 
 	run: function (steps, maxWidth) {
+		var i, line = [], morphemes = [], tmpMark = false;
 
-		var i, line = [], morphemes = [];
 		for (i = 0; i < steps.length; i++) {
+
+			if (steps[i].type == 'icon') tmpMark = true;
+
 			if (steps[i].type == 'nl' || i == steps.length - 1) {
+				if (steps[i].type != 'nl') {
+					line.push(steps[i]);
+				}
+
 				morphemes.push( this.findMorphemes(line) );
 				line = [];
 			} else {
@@ -5008,7 +5181,7 @@ atom.declare( 'LibCanvas.Plugins.SpriteFont.LinesEnRu', {
 					throw new Error('Morpheme too long');
 				}
 
-				if (width + mWidth > maxWidth || (i == 0 && l > 0)) {
+				if (!this.noWrap && (width + mWidth > maxWidth || (i == 0 && l > 0))) {
 					lines.push(line);
 					line  = [];
 					width = 0;
@@ -5017,6 +5190,8 @@ atom.declare( 'LibCanvas.Plugins.SpriteFont.LinesEnRu', {
 				add(mLines[l][i]);
 			}
 		}
+
+		if (line.length > 0) lines.push(line);
 
 		lines.forEach(function (l) {
 			l.height = 0;
@@ -5060,9 +5235,30 @@ atom.declare( 'LibCanvas.Plugins.SpriteFont.LinesEnRu', {
 	findMorphemes: function (line) {
 		var i = 0, c, morphemes = [], lastStr = '', last = [], prev;
 
+		var pushLast = function () {
+			prev = morphemes[ morphemes.length - 1 ];
+			if (Array.isArray(prev)) {
+				atom.array.append( prev, last );
+			} else {
+				morphemes.push(last);
+			}
+			last = [];
+			lastStr = '';
+
+			if (!this.isLetter(c)) {
+				morphemes.push( line[i] );
+			}
+		}.bind(this);
+
 		for (; i < line.length; i++) {
 			c = line[i].content;
-			if (line[i].type == 'symbol' && this.isLetter(c)) {
+
+			if (line[i].type == 'icon') {
+				morphemes.push(last);
+				last = [];
+				lastStr = '';
+				morphemes.push( line[i] );
+			} else if (line[i].type == 'symbol' && this.isLetter(c)) {
 				lastStr += c;
 				last.push(line[i]);
 				if (this.isMorpheme(lastStr)) {
@@ -5071,26 +5267,18 @@ atom.declare( 'LibCanvas.Plugins.SpriteFont.LinesEnRu', {
 					lastStr = '';
 				}
 			} else if (lastStr) {
-				prev = morphemes[ morphemes.length - 1 ];
-				if (Array.isArray(prev)) {
-					atom.array.append( prev, last );
-				} else {
-					morphemes.push(last);
-				}
-				last = [];
-				lastStr = '';
-
-				if (!this.isLetter(c)) {
-					morphemes.push( line[i] );
-				}
+				pushLast();
 			} else {
 				morphemes.push( line[i] );
 			}
 		}
 
+		if (lastStr) pushLast();
+
 		return morphemes;
 	}
 });
+
 
 /*
 ---
@@ -5976,10 +6164,17 @@ return declare( 'LibCanvas.App.Behaviors.Clickable', Behavior, {
 
 	callbacks: {
 		'mouseover'   : setValueFn('hover' , true ),
-		'mouseout'    : setValueFn('hover' , false),
+		'mouseout'    : (function () {
+			var dehover  = setValueFn('hover' , false),
+				deactive = setValueFn('active', false);
+
+			return function (e) {
+				dehover .call(this, e);
+				deactive.call(this, e);
+			};
+		})(),
 		'mousedown'   : setValueFn('active', true ),
-		'mouseup'     : setValueFn('active', false),
-		'away:mouseup': setValueFn('active', false)
+		'mouseup'     : setValueFn('active', false)
 	},
 
 	initialize: function (behaviors, args) {
@@ -6807,6 +7002,7 @@ var TileEngine = LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 	},
 
 	getCellByIndex: function (point) {
+		point = new Point(point);
 		return this.isIndexOutOfBounds(point) ? null:
 			this.cells[ this.width * point.y + point.x ];
 	},
@@ -6816,7 +7012,8 @@ var TileEngine = LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 			settings   = this.settings,
 			cellSize   = settings.get('cellSize'),
 			cellMargin = settings.get('cellMargin');
-
+		point = new Point(point);
+		
 		return this.getCellByIndex(new Point(
 			parseInt(point.x / (cellSize.width  + cellMargin.x)),
 			parseInt(point.y / (cellSize.height + cellMargin.y))
