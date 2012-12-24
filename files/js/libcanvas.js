@@ -1044,7 +1044,7 @@ provides: App.MouseHandler
 /** @class App.MouseHandler */
 declare( 'LibCanvas.App.MouseHandler', {
 
-	events: [ 'down', 'up', 'move', 'out', 'dblclick', 'contextmenu', 'wheel' ],
+	events: 'down up move out dblclick contextmenu wheel'.split(' '),
 
 	/** @private */
 	mouse: null,
@@ -1065,8 +1065,7 @@ declare( 'LibCanvas.App.MouseHandler', {
 		};
 		handler.search =
 			handler.settings.get('search') ||
-			new App.ElementsMouseSearch(handler.subscribers);
-
+			new App.ElementsMouseSearch();
 
 		this.events.forEach(function (type) {
 			handler.mouse.events.add( type, function (e) {
@@ -1097,6 +1096,8 @@ declare( 'LibCanvas.App.MouseHandler', {
 		var index = this.subscribers.indexOf(elem);
 		if (index != -1) {
 			this.subscribers.splice(index, 1);
+			atom.core.eraseOne(this.lastMouseDown, elem);
+			atom.core.eraseOne(this.lastMouseMove, elem);
 			this.search.remove(elem);
 		}
 		return this;
@@ -1116,13 +1117,16 @@ declare( 'LibCanvas.App.MouseHandler', {
 	getOverElements: function () {
 		if (!this.mouse.inside) return [];
 
-		var elements = this.search.findByPoint( this.mouse.point );
+		var
+			elements = this.search.findByPoint( this.mouse.point ),
+			i = elements.length;
 
-		try {
-			return elements.sort( this.compareFunction );
-		} catch (e) {
-			throw new Error('Element binded to mouse, but without layer, check elements');
+		while (i--) if (!elements[i].layer) {
+			this.unsubscribe(elements[i]);
+			elements.splice(i, 1);
 		}
+
+		return elements.sort( this.compareFunction );
 	},
 
 	/** @private */
@@ -6238,8 +6242,7 @@ declare( 'LibCanvas.App.Behaviors.Draggable', Behavior, {
 	},
 
 	bindMouse: function (method) {
-		var mouse = this.behaviors.getMouse(), stop = this.stopDrag;
-		if (!mouse) throw new Error('No mouse in element');
+		var mouse = this.mouse, stop = this.stopDrag;
 
 		mouse.events
 			[method]( 'move', this.onDrag )
@@ -6251,6 +6254,8 @@ declare( 'LibCanvas.App.Behaviors.Draggable', Behavior, {
 	start: function () {
 		if (!this.changeStatus(true)) return this;
 
+		this.mouse = this.behaviors.getMouse();
+		if (!this.mouse) throw new Error('No mouse in element');
 		this.eventArgs(arguments, 'moveDrag');
 		this.events.add( 'mousedown', this.onStart );
 	},
@@ -6271,16 +6276,21 @@ declare( 'LibCanvas.App.Behaviors.Draggable', Behavior, {
 
 	/** @private */
 	onDrag: function (e) {
+		if (!this.element.layer) {
+			return this.onStop(e, true);
+		}
+
 		var delta = this.behaviors.getMouse().delta;
 		this.element.move( delta );
 		this.events.fire('moveDrag', [delta, e]);
 	},
 
 	/** @private */
-	onStop: function (e) {
-		if (e.button !== 0) return;
-		this.bindMouse('remove');
-		this.events.fire('stopDrag', [ e ]);
+	onStop: function (e, forced) {
+		if (e.button === 0 || forced === true) {
+			this.bindMouse('remove');
+			this.events.fire('stopDrag', [ e ]);
+		}
 	}
 }).own({ index: 'draggable' });
 
@@ -6333,7 +6343,6 @@ declare( 'LibCanvas.App.Light', {
 
 	createVector: function (shape, settings) {
 		settings = atom.core.append({ shape:shape }, settings || {});
-
 		return new App.Light.Vector(this.layer, settings);
 	},
 
@@ -6357,7 +6366,7 @@ declare( 'LibCanvas.App.Light', {
 /*
 ---
 
-name: "App.Light.Vector"
+name: "App.Light.Element"
 
 description: ""
 
@@ -6373,21 +6382,18 @@ requires:
 	- App
 	- App.Light
 
-provides: App.Light.Vector
+provides: App.Light.Element
 
 ...
 */
 
 /** @class App.Light.Vector */
-App.Light.Vector = atom.declare( 'LibCanvas.App.Light.Vector', App.Element, {
+App.Light.Element = atom.declare( 'LibCanvas.App.Light.Element', App.Element, {
 	configure: function () {
 		var behaviors = this.settings.get('behaviors');
 
-		this.style       = {};
-		this.styleActive = {};
-		this.styleHover  = {};
-
 		this.animate = new atom.Animatable(this).animate;
+
 		Behaviors.attach( this, [ 'Draggable', 'Clickable' ], this.redraw );
 		if (this.settings.get('mouse') !== false) {
 			this.listenMouse();
@@ -6397,30 +6403,6 @@ App.Light.Vector = atom.declare( 'LibCanvas.App.Light.Vector', App.Element, {
 	move: function (point) {
 		this.shape.move(point);
 		this.redraw();
-	},
-
-	setStyle: function (key, values) {
-		if (typeof key == 'object') {
-			values = key;
-			key = '';
-		}
-		key = 'style' + atom.string.ucfirst(key);
-
-		atom.core.append( this[key], values );
-		return this.redraw();
-	},
-
-	getStyle: function (type) {
-		if (!this.style) return null;
-
-		var
-			active = (this.active || null) && this.styleActive[type],
-			hover  = (this.hover || null)  && this.styleHover [type],
-			plain  = this.style[type];
-
-		return active != null ? active :
-		       hover  != null ? hover  :
-		       plain  != null ? plain  : null;
 	},
 
 	/**
@@ -6436,33 +6418,6 @@ App.Light.Vector = atom.declare( 'LibCanvas.App.Light.Vector', App.Element, {
 	destroy: function method () {
 		this.listenMouse(true);
 		return method.previous.call(this);
-	},
-
-	get currentBoundingShape () {
-		var
-			br = this.shape.getBoundingRectangle(),
-			lw = this.getStyle('stroke') && (this.getStyle('lineWidth') || 1);
-
-		return lw ? br.fillToPixel().grow(2 * Math.ceil(lw)) : br;
-	},
-
-	renderTo: function (ctx) {
-		var fill    = this.getStyle('fill'),
-		    stroke  = this.getStyle('stroke'),
-		    lineW   = this.getStyle('lineWidth'),
-		    opacity = this.getStyle('opacity');
-
-		if (opacity === 0) return this;
-
-		ctx.save();
-		if (opacity) ctx.globalAlpha = atom.number.round(opacity, 3);
-		if (fill) ctx.fill(this.shape, fill);
-		if (stroke ) {
-			ctx.lineWidth = lineW || 1;
-			ctx.stroke(this.shape, stroke);
-		}
-		ctx.restore();
-		return this;
 	}
 });
 
@@ -6482,7 +6437,7 @@ authors:
 
 requires:
 	- LibCanvas
-	- App.Light.Vector
+	- App.Light.Element
 
 provides: App.Light.Image
 
@@ -6490,7 +6445,7 @@ provides: App.Light.Image
 */
 
 /** @class App.Light.Image */
-App.Light.Image = atom.declare( 'LibCanvas.App.Light.Image', App.Light.Vector, {
+App.Light.Image = atom.declare( 'LibCanvas.App.Light.Image', App.Light.Element, {
 	get currentBoundingShape () {
 		return this.shape.clone().fillToPixel();
 	},
@@ -6529,8 +6484,12 @@ provides: App.Light.Text
 
 /** @class App.Light.Text */
 atom.declare( 'LibCanvas.App.Light.Text', App.Element, {
+	get style () {
+		return this.settings.get('style') || {};
+	},
+
 	get content () {
-		return this.settings.get('content') || '';
+		return this.style.text || '';
 	},
 
 	set content (c) {
@@ -6538,21 +6497,107 @@ atom.declare( 'LibCanvas.App.Light.Text', App.Element, {
 
 		if (c != this.content) {
 			this.redraw();
-			this.settings.set('content', String(c) || '');
+			this.style.text = String(c) || '';
 		}
 	},
 
 	renderTo: function (ctx) {
 		var
-			style = this.settings.get('style') || {},
+			style = this.style,
 			bg    = this.settings.get('background');
 		ctx.save();
 		if (bg) ctx.fill( this.shape, bg );
 		ctx.text(atom.core.append({
-			text: this.content,
 			to  : this.shape
 		}, style));
 		ctx.restore();
+	}
+});
+
+/*
+---
+
+name: "App.Light.Vector"
+
+description: ""
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- App.Light.Element
+
+provides: App.Light.Vector
+
+...
+*/
+
+/** @class App.Light.Vector */
+App.Light.Vector = atom.declare( 'LibCanvas.App.Light.Vector', App.Light.Element, {
+	active: false,
+	hover : false,
+
+	configure: function method () {
+		method.previous.call(this);
+
+		this.style       = {};
+		this.styleActive = {};
+		this.styleHover  = {};
+	},
+
+	setStyle: function (key, values) {
+		if (typeof key == 'object') {
+			values = key;
+			key = '';
+		}
+		key = 'style' + atom.string.ucfirst(key);
+
+		atom.core.append( this[key], values );
+		return this.redraw();
+	},
+
+	getStyle: function (type) {
+		if (!this.style) return null;
+
+		var
+			active = (this.active || null) && this.styleActive[type],
+			hover  = (this.hover  || null)  && this.styleHover [type],
+			plain  = this.style[type];
+
+		return active != null ? active :
+		       hover  != null ? hover  :
+		       plain  != null ? plain  : null;
+	},
+
+	get currentBoundingShape () {
+		var
+			br = this.shape.getBoundingRectangle(),
+			lw = this.getStyle('stroke') && (this.getStyle('lineWidth') || 1);
+
+		return lw ? br.fillToPixel().grow(2 * Math.ceil(lw)) : br;
+	},
+
+	renderTo: function (ctx) {
+		var fill    = this.getStyle('fill'),
+		    stroke  = this.getStyle('stroke'),
+		    lineW   = this.getStyle('lineWidth'),
+		    opacity = this.getStyle('opacity');
+
+		if (opacity === 0) return this;
+
+		ctx.save();
+		if (opacity) ctx.globalAlpha = atom.number.round(opacity, 3);
+		if (fill) ctx.fill(this.shape, fill);
+		if (stroke) {
+			ctx.lineWidth = lineW || 1;
+			ctx.stroke(this.shape, stroke);
+		}
+		ctx.restore();
+		return this;
 	}
 });
 
