@@ -54,6 +54,7 @@ atom.declare('Solar.Planet', App.Element, {
 	checkStatus: function (visible) {
 		if (this.info.isVisible() != visible) {
 			this.info[visible ? 'show' : 'hide']();
+			this.layer.dom.element.css('cursor', visible ? 'pointer' : 'default');
 		}
 	},
 
