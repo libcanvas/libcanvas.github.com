@@ -1987,6 +1987,11 @@ var Circle = LibCanvas.declare( 'LibCanvas.Shapes.Circle', 'Circle', Shape, {
 	}
 });
 
+/** @private */
+Circle.from = function (object) {
+	return object instanceof Circle ? object : new Circle(object);
+};
+
 /*
 ---
 
@@ -2067,6 +2072,10 @@ authors:
 
 requires:
 	- LibCanvas
+	- Point
+	- Size
+	- Shapes.Rectangle
+	- Shapes.Circle
 
 provides: Context.DrawImage
 
@@ -2112,18 +2121,21 @@ LibCanvas.declare( 'LibCanvas.Context.DrawImage', {
 			this.drawRect (image, draw, crop  , a.optimize) :
 			this.drawPoint(image, from, center, a.optimize);
 		if (pivot) this.ctx2d.restore();
+
+		return this.context;
 	},
 
+	/** @private */
 	run: function (array) {
 		this.ctx2d.drawImage.apply( this.ctx2d, array );
 	},
-
+	/** @private */
 	transform: function (center, angle, scale) {
 		this.ctx2d.save();
 		if (angle) this.context.rotate(angle, center);
 		if (scale) this.context.scale (scale, center);
 	},
-
+	/** @private */
 	checkNonObject: function (args) {
 		var image = args[0], length = args.length, target;
 		if (length > 2) {
@@ -2156,7 +2168,7 @@ LibCanvas.declare( 'LibCanvas.Context.DrawImage', {
 
 		return false;
 	},
-
+	/** @private */
 	drawPoint: function (image, from, center, optimize) {
 		var
 			point = center || from,
@@ -2175,7 +2187,7 @@ LibCanvas.declare( 'LibCanvas.Context.DrawImage', {
 
 		this.ctx2d.drawImage(image, fromX, fromY);
 	},
-
+	/** @private */
 	drawRect: function (image, rect, crop, optimize) {
 		var deltaX, deltaY, fromX, fromY;
 
@@ -2209,7 +2221,7 @@ LibCanvas.declare( 'LibCanvas.Context.DrawImage', {
 			rect.width , rect.height
 		);
 	},
-
+	/** @private */
 	getTransformPivot: function (angle, scale, image, center, from, draw) {
 		if ( !angle && (!scale || (scale.x == 1 && scale.y == 1)) ) return null;
 
@@ -2217,6 +2229,133 @@ LibCanvas.declare( 'LibCanvas.Context.DrawImage', {
 		if ( draw ) return draw.center;
 
 		return new Point(from.x + image.width/2, from.y + image.height/2);
+	}
+});
+
+};
+
+
+/*
+---
+
+name: "Context.Gradients"
+
+description: "LibCanvas.Context2D adds new canvas context '2d-libcanvas'"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- Point
+	- Size
+	- Shapes.Rectangle
+	- Shapes.Circle
+
+provides: Context.Gradients
+
+...
+*/
+
+new function () {
+
+var toPoint = Point.from, toRectangle = Rectangle.from, toCircle = Circle.from;
+
+
+var addColorStopSource = document
+	.createElement('canvas')
+	.getContext('2d')
+	.createLinearGradient(0,0,1,1)
+	.addColorStop;
+
+var addColorStop = function (colors) {
+	if (typeof colors == 'object') {
+		for (var position in colors) if (colors.hasOwnProperty(position)) {
+			addColorStopSource.call( this, parseFloat(position), colors[position] );
+		}
+	} else {
+		addColorStopSource.apply( this, arguments );
+	}
+	return this;
+};
+
+
+var fixGradient = function (grad) {
+	grad.addColorStop = addColorStop;
+	return grad;
+};
+
+/** @class LibCanvas.Context.Gradients */
+LibCanvas.declare( 'LibCanvas.Context.Gradients', {
+	initialize: function (context) {
+		this.context = context;
+		this.ctx2d   = context.ctx2d;
+	},
+
+	/** @returns {CanvasGradient} */
+	createGradient: function (from, to, colors) {
+		var gradient;
+		if ( from instanceof Rectangle ) {
+			colors   = to;
+			gradient = this.createLinearGradient([ from ]);
+		} else if (from instanceof Circle) {
+			gradient = this.createRadialGradient([ from, to ]);
+		} else if (from instanceof Point) {
+			gradient = this.createLinearGradient([ from, to ]);
+		} else {
+			throw new Error('Unknown arguments in Context.Gradients.createGradient');
+		}
+		if (typeof colors == 'object') gradient.addColorStop( colors );
+		return gradient;
+	},
+	/** @returns {CanvasGradient} */
+	createRectangleGradient: function (rectangle, colors) {
+		rectangle = toRectangle( rectangle );
+
+		var from = rectangle.from, line = new Line( rectangle.bottomLeft, rectangle.topRight );
+
+		return this.createGradient( from, line.perpendicular(from).scale(2, from), colors );
+	},
+	/** @returns {CanvasGradient} */
+	createLinearGradient : function (a) {
+		var from, to;
+		if (a.length != 4) {
+			if (a.length == 2) {
+				to   = toPoint(a[0]);
+				from = toPoint(a[1]);
+			} else if (a.length == 1) {
+				to   = toPoint(a[0].to);
+				from = toPoint(a[0].from);
+			} else {
+				throw new TypeError('Wrong arguments.length in the Context.createLinearGradient');
+			}
+			a = [from.x, from.y, to.x, to.y];
+		}
+		return fixGradient( this.ctx2d.createLinearGradient.apply(this.ctx2d, a) );
+	},
+	/** @returns {CanvasGradient} */
+	createRadialGradient: function (a) {
+		var points, c1, c2, length = a.length;
+		if (length == 1 || length == 2) {
+			if (length == 2) {
+				c1 = toCircle( a[0] );
+				c2 = toCircle( a[1] );
+			} else {
+				c1 = toCircle( a.start );
+				c2 = toCircle( a.end   );
+			}
+			points = [c1.center.x, c1.center.y, c1.radius, c2.center.x, c2.center.y, c2.radius];
+		} else if (length == 6) {
+			points = a;
+		} else {
+			throw new TypeError('Wrong arguments.length in the Context.createRadialGradient');
+		}
+
+		return fixGradient( this.ctx2d.createRadialGradient.apply(this.ctx2d, points) );
 	}
 });
 
@@ -2245,6 +2384,7 @@ requires:
 	- Shapes.Circle
 	- Core.Canvas
 	- Context.DrawImage
+	- Context.Gradients
 
 provides: Context2D
 
@@ -2257,8 +2397,6 @@ provides: Context2D
  * @name LibCanvas.Context2D
  */
 var Context2D = function () {
-
-var toRectangle = Rectangle.from, toPoint = Point.from;
 
 var office = {
 	all : function (type, style) {
@@ -2294,8 +2432,6 @@ var office = {
 		return this.original(func, [point.x, point.y]);
 	}
 };
-
-var size1 = new Size(1,1);
 
 /* In some Mobile browsers shadowY should be inverted (bug) */
 var shadowBug = function () {
@@ -2400,7 +2536,13 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 				canvas.getContext('2d');
 		}
 
-		this.imageDrawer = new LibCanvas.Context.DrawImage(this);
+		this.helpers = {
+			image    : new LibCanvas.Context.DrawImage(this),
+			gradients: new LibCanvas.Context.Gradients(this),
+			pixels   : new LibCanvas.Context.Pixels   (this),
+			text     : new LibCanvas.Context.Text     (this),
+			path     : new LibCanvas.Context.Path     (this)
+		};
 	},
 	get width () { return this.canvas.width; },
 	get height() { return this.canvas.height; },
@@ -2467,14 +2609,8 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 	},
 	/** @returns {Context2D} */
 	original : function (method, args, returnResult) {
-		try {
-			var result = this.ctx2d[method].apply(this.ctx2d, args || []);
-			if (returnResult) return result;
-		} catch (e) {
-			console.log('Error in context2d.original(', method, ',', (args || []), ')');
-			throw e;
-		}
-		return this;
+		var result = this.ctx2d[method].apply(this.ctx2d, args || []);
+		return returnResult ? result: this;
 	},
 	/** @returns {HTMLCanvasElement} */
 	getClone : function (width, height) {
@@ -2520,11 +2656,13 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 	// Save/Restore
 	/** @returns {Context2D} */
 	save : function () {
-		return this.original('save');
+		this.ctx2d.save();
+		return this;
 	},
 	/** @returns {Context2D} */
 	restore : function () {
-		return this.original('restore');
+		this.ctx2d.restore();
+		return this;
 	},
 
 	// Fill/Stroke
@@ -2544,7 +2682,7 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 				.set({ globalCompositeOperation: Context2D.COMPOSITE.DESTINATION_OUT })
 				[stroke ? 'stroke' : 'fill']( shape )
 				.restore() :
-			this.clearRect( Rectangle(arguments) );
+			this.clearRect( Rectangle.from(shape) );
 	},
 
 	// Path
@@ -2567,104 +2705,29 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 	lineTo : function (point) {
 		return office.originalPoint.call(this, 'lineTo', arguments);
 	},
-
 	/** @returns {Context2D} */
 	arc : function (x, y, r, startAngle, endAngle, anticlockwise) {
-		var a = atom.array.pickFrom(arguments), circle, angle, acw;
-		if (a.length > 1) {
-			return this.original('arc', a);
-		} else if ('circle' in a[0]) {
-			circle = Circle(a[0].circle);
-			angle  = Array.isArray(a[0].angle) ?
-				atom.array.associate(a[0].angle, ['start', 'end']) :
-				atom.object.collect(a[0].angle, ['start', 'end', 'size']);
-
-			if (Array.isArray(angle)) {
-				angle = atom.array.associate(angle, ['start', 'end']);
-			} else if (angle.size != null) {
-				if ('end' in angle) {
-					angle.end = angle.size + angle.start;
-				} else if ('start' in angle) {
-					angle.start = angle.end - angle.size;
-				}
-			}
-			acw = !!(a[0].anticlockwise || a[0].acw);
-		} else {
-			throw new TypeError('Wrong arguments in CanvasContext.arc');
-		}
-		return this.original('arc', [
-			circle.center.x, circle.center.y, circle.radius, angle.start, angle.end, acw
-		]);
+		return this.helpers.path.arc(arguments);
 	},
-
 	/** @returns {Context2D} */
 	arcTo : function () {
-		// @todo Beauty arguments
-		return this.original('arcTo', arguments);
+		return this.helpers.path.arcTo(arguments);
 	},
 	/** @returns {Context2D} */
 	curveTo: function (curve) {
-		var p, l, to;
-
-		if (typeof curve == 'number') {
-			if (arguments.length === 4) {
-				return this.original('quadraticCurveTo', arguments);
-			} else if (arguments.length === 6) {
-				return this.original('bezierCurveTo', arguments);
-			}
-		} else if (arguments.length > 1) {
-			p  = atom.array.from( arguments ).map(Point);
-			to = p.shift()
-		} else {
-			p  = atom.array.from( curve.points ).map(Point);
-			to = Point(curve.to);
-		}
-
-		l = p.length;
-
-		if (l == 2) {
-			this.original('bezierCurveTo', [
-				p[0].x, p[0].y, p[1].x, p[1].y, to.x, to.y
-			]);
-		} else if (l == 1) {
-			this.original('quadraticCurveTo', [
-				p[0].x, p[0].y, to.x, to.y
-			]);
-		} else {
-			this.original('lineTo', [to]);
-		}
-		return this;
+		return this.helpers.path.curveTo(arguments);
 	},
 	/** @returns {Context2D} */
 	quadraticCurveTo : function () {
-		var a = arguments;
-		if (a.length == 4) {
-			return this.original('bezierCurveTo', arguments);
-		} else {
-			a = a.length == 2 ? atom.array.associate(a, ['p', 'to']) : a[0];
-			return this.curveTo({
-				to: a.to,
-				points: [a.p]
-			});
-		}
+		return this.helpers.path.quadraticCurveTo(arguments);
 	},
 	/** @returns {Context2D} */
 	bezierCurveTo : function () {
-		var a = arguments;
-		if (a.length == 6) {
-			return this.original('bezierCurveTo', arguments);
-		} else {
-			a = a.length == 3 ? {p1:a[0], p2:a[1], to:a[2]} : a[0];
-			return this.curveTo({
-				to: a.to,
-				points: [a.p1, a.p2]
-			});
-		}
+		return this.helpers.path.bezierCurveTo(arguments);
 	},
 	/** @returns {boolean} */
 	isPointInPath : function (x, y) {
-		var point = Point(arguments);
-		return this.original('isPointInPath', [point.x, point.y], true);
+		return this.helpers.path.isPointInPath(x, y);
 	},
 	/** @returns {Context2D} */
 	clip : function (shape) {
@@ -2734,318 +2797,73 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 		return office.rect.call(this, 'clearRect', arguments);
 	},
 
-	// text
+	// === helpers.text === //
+
 	/** @returns {Context2D} */
 	fillText : function (text, x, y, maxWidth) {
-		var type = typeof x;
-		if (type != 'number' && type != 'string') {
-			maxWidth = y;
-			x = Point( x );
-			y = x.y;
-			x = x.x;
-		}
-		var args = [text, x, y];
-		if (maxWidth) args.push( maxWidth );
-		return this.original('fillText', args);
+		return this.helpers.text.fillText(text, x, y, maxWidth);
 	},
 	/** @returns {Context2D} */
 	strokeText : function (text, x, y, maxWidth) {
-		var type = typeof x;
-		if (type != 'number' && type != 'string') {
-			maxWidth = y;
-			x = Point( x );
-			y = x.y;
-			x = x.x;
-		}
-		var args = [text, x, y];
-		if (maxWidth) args.push( maxWidth );
-		return this.original('strokeText', args);
+		return this.helpers.text.strokeText(text, x, y, maxWidth);
 	},
 	/** @returns {object} */
 	measureText : function (textToMeasure) {
-		return this.original('measureText', arguments, true);
+		return this.helpers.text.measureText(arguments);
 	},
 	/** @returns {Context2D} */
 	text : function (cfg) {
-		if (!this.ctx2d.fillText) return this;
-
-		cfg = atom.core.append({
-			text   : '',
-			color  : null, /* @color */
-			wrap   : 'normal', /* no|normal */
-			to     : null,
-			align  : 'left', /* center|left|right */
-			size   : 16,
-			weight : 'normal', /* bold|normal */
-			style  : 'normal', /* italic|normal */
-			family : 'arial,sans-serif', /* @fontFamily */
-			lineHeight : null,
-			overflow   : 'visible', /* hidden|visible */
-			padding : [0,0],
-			shadow : null
-		}, cfg);
-
-		this.save();
-		if (atom.typeOf(cfg.padding) == 'number') {
-			cfg.padding = [cfg.padding, cfg.padding];
-		}
-		var to = cfg.to ? Rectangle(cfg.to) : this.rectangle;
-		var lh = Math.round(cfg.lineHeight || (cfg.size * 1.15));
-		this.set('font', atom.string.substitute(
-			'{style}{weight}{size}px {family}', {
-				style  : cfg.style == 'italic' ? 'italic ' : '',
-				weight : cfg.weight == 'bold'  ? 'bold '   : '',
-				size   : cfg.size,
-				family : cfg.family
-			})
-		);
-		if (cfg.shadow) this.shadow = cfg.shadow;
-		if (cfg.color) this.set({ fillStyle: cfg.color });
-		if (cfg.overflow == 'hidden') this.clip(to);
-
-		var xGet = function (lineWidth) {
-			var al = cfg.align, pad = cfg.padding[1];
-			return Math.round(
-				al == 'left'  ? to.from.x + pad :
-				al == 'right' ? to.to.x - lineWidth - pad :
-					to.from.x + (to.width - lineWidth)/2
-			);
-		};
-		var lines = String(cfg.text).split('\n');
-
-		var measure = function (text) { return Number(this.measureText(text).width); }.bind(this);
-		if (cfg.wrap == 'no') {
-			lines.forEach(function (line, i) {
-				if (!line) return;
-
-				this.fillText(line, xGet(cfg.align == 'left' ? 0 : measure(line)), to.from.y + (i+1)*lh);
-			}.bind(this));
-		} else {
-			var lNum = 0;
-			lines.forEach(function (line) {
-				if (!line) {
-					lNum++;
-					return;
-				}
-
-				var words = (line || ' ').match(/.+?(\s|$)/g);
-				if (!words) {
-					lNum++;
-					return;
-				}
-				var L  = '';
-				var Lw = 0;
-				for (var i = 0; i <= words.length; i++) {
-					var last = i == words.length;
-					if (!last) {
-						var text = words[i];
-						// @todo too slow. 2-4ms for 50words
-						var wordWidth = measure(text);
-						if (!Lw || Lw + wordWidth < to.width) {
-							Lw += wordWidth;
-							L  += text;
-							continue;
-						}
-					}
-					if (Lw) {
-						this.fillText(L, xGet(Lw), to.from.y + (++lNum)*lh + cfg.padding[0]);
-						if (last) {
-							L  = '';
-							Lw = 0;
-						} else {
-							L  = text;
-							Lw = wordWidth;
-						}
-					}
-				}
-				if (Lw) {
-					this.fillText(L, xGet(Lw), to.from.y + (++lNum)*lh + cfg.padding[0]);
-					L  = '';
-					Lw = 0;
-				}
-			}.bind(this));
-
-		}
-		return this.restore();
+		return this.helpers.text.text(cfg);
 	},
 
-	// image
+	// === helpers.drawImage === //
+
 	/** @returns {Context2D} */
 	drawImage : function () {
-		this.imageDrawer.drawImage(arguments);
-		return this;
+		return this.helpers.image.drawImage(arguments);
 	},
 
-	// image data
+	// === helpers.pixels === //
+
 	/** @returns {CanvasPixelArray} */
-	createImageData : function () {
-		var w, h;
-
-		var args = atom.array.pickFrom(arguments);
-		switch (args.length) {
-			case 0:{
-				w = this.canvas.width;
-				h = this.canvas.height;
-			} break;
-
-			case 1: {
-				var obj = args[0];
-				if (atom.typeOf(obj) == 'object' && ('width' in obj) && ('height' in obj)) {
-					w = obj.width;
-					h = obj.height;
-				}
-				else {
-					throw new TypeError('Wrong argument in the Context.createImageData');
-				}
-			} break;
-
-			case 2: {
-				w = args[0];
-				h = args[1];
-			} break;
-
-			default: throw new TypeError('Wrong args number in the Context.createImageData');
-		}
-
-		return this.original('createImageData', [w, h], true);
+	createImageData : function (w, h) {
+		return this.helpers.pixels.createImageData(w, h);
 	},
-
 	/** @returns {Context2D} */
 	putImageData : function () {
-		var a = arguments, put = {}, args, rect;
-
-		switch (a.length) {
-			case 1: {
-				if (!typeof a == 'object') {
-					throw new TypeError('Wrong argument in the Context.putImageData');
-				}
-
-				a = a[0];
-				put.image = a.image;
-				put.from = Point(a.from);
-
-				if (a.crop) put.crop = Rectangle(a.crop);
-			} break;
-
-			case 3: {
-				put.image = a[0];
-				put.from = Point([a[1], a[2]]);
-			} break;
-
-			case 7: {
-				put.image = a[0];
-				put.from = new Point(a[1], a[2]);
-				put.crop = new Rectangle(a[3], a[4], a[5], a[6]);
-			} break;
-
-			default : throw new TypeError('Wrong args number in the Context.putImageData');
-		}
-
-		args = [put.image, put.from.x, put.from.y];
-
-		if (put.crop) {
-			rect = put.crop;
-			atom.array.append(args, [rect.from.x, rect.from.y, rect.width, rect.height])
-		}
-
-		return this.original('putImageData', args);
+		return this.helpers.pixels.putImageData(arguments);
 	},
 	/** @returns {CanvasPixelArray} */
 	getImageData : function (rectangle) {
-		var rect = office.makeRect.call(this, arguments);
-
-		return this.original('getImageData', [rect.from.x, rect.from.y, rect.width, rect.height], true);
+		return this.helpers.pixels.getImageData(arguments);
 	},
 	getPixels : function (rectangle) {
-		var rect = Rectangle(arguments),
-			data = this.getImageData(rect).data,
-			result = [],
-			line = [];
-		for (var i = 0, L = data.length; i < L; i+=4)  {
-			line.push({
-				r : data[i],
-				g : data[i+1],
-				b : data[i+2],
-				a : data[i+3] / 255
-			});
-			if (line.length == rect.width) {
-				result.push(line);
-				line = [];
-			}
-		}
-		return result;
+		return this.helpers.pixels.getPixels(arguments);
 	},
-
 	getPixel: function (point) {
-		var
-			rect = new Rectangle(Point( arguments ), size1),
-			data = slice.call(this.getImageData(rect).data);
-		data[3] /= 255;
-
-		return new atom.Color(data);
+		return this.helpers.pixels.getPixel(point);
 	},
 
+	// === helpers.gradients === //
 
 	/** @returns {CanvasGradient} */
 	createGradient: function (from, to, colors) {
-		var gradient;
-		if ( from instanceof Rectangle ) {
-			colors   = to;
-			gradient = this.createLinearGradient( from );
-		} else if (from instanceof Circle) {
-			gradient = this.createRadialGradient( from, to );
-		} else if (from instanceof Point) {
-			gradient = this.createLinearGradient( from, to, colors );
-		} else {
-			throw new Error('Unknown arguments');
-		}
-		if (typeof colors == 'object') gradient.addColorStop( colors );
-		return gradient;
+		return this.helpers.gradients.createGradient(from, to, colors);
 	},
 	/** @returns {CanvasGradient} */
 	createRectangleGradient: function (rectangle, colors) {
-		rectangle = Rectangle( rectangle );
-
-		var from = rectangle.from, line = new Line( rectangle.bottomLeft, rectangle.topRight );
-
-		return this.createGradient( from, line.perpendicular(from).scale(2, from), colors );
+		return this.helpers.gradients.createRectangleGradient(rectangle, colors);
 	},
 	/** @returns {CanvasGradient} */
-	createLinearGradient : function (from, to) {
-		var a = arguments;
-		if (a.length != 4) {
-			if (a.length == 2) {
-				to   = Point(to);
-				from = Point(from);
-			} else if (a.length == 1) {
-				// wee
-				to   = Point(a[0].to);
-				from = Point(a[0].from);
-			}
-			a = [from.x, from.y, to.x, to.y];
-		}
-		return fixGradient( this.original('createLinearGradient', a, true) );
+	createLinearGradient : function () {
+		return this.helpers.gradients.createLinearGradient(arguments);
 	},
 	/** @returns {CanvasGradient} */
 	createRadialGradient: function () {
-		var points, c1, c2, a = arguments;
-		if (a.length == 1 || a.length == 2) {
-			if (a.length == 2) {
-				c1 = Circle( a[0] );
-				c2 = Circle( a[1] );
-			} else {
-				c1 = Circle( a.start );
-				c2 = Circle( a.end   );
-			}
-			points = [c1.center.x, c1.center.y, c1.radius, c2.center.x, c2.center.y, c2.radius];
-		} else if (a.length == 6) {
-			points = a;
-		} else {
-			throw new TypeError('Wrong args number in the Context.createRadialGradient');
-		}
-
-		return fixGradient( this.original('createRadialGradient', points, true) );
+		return this.helpers.gradients.createRadialGradient(arguments);
 	},
+
+	// === etc === //
 
 	/** @returns {CanvasPattern} */
 	createPattern : function () {
@@ -3075,31 +2893,6 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 	})
 });
 
-var addColorStop = function () {
-	var orig = document
-		.createElement('canvas')
-		.getContext('2d')
-		.createLinearGradient(0,0,1,1)
-		.addColorStop;
-		
-	return function (colors) {
-		if (typeof colors == 'object') {
-			for (var position in colors) {
-				orig.call( this, parseFloat(position), colors[position] );
-			}
-		} else {
-			orig.apply( this, arguments );
-		}
-		return this;
-	};
-}();
-
-
-var fixGradient = function (grad) {
-	grad.addColorStop = addColorStop;
-	return grad;
-};
-
 Context2D.office = office;
 
 if (atom.core.isFunction(HTMLCanvasElement.addContext)) {
@@ -3108,6 +2901,470 @@ if (atom.core.isFunction(HTMLCanvasElement.addContext)) {
 
 return Context2D;
 }();
+
+/*
+---
+
+name: "Context.Path"
+
+description: "LibCanvas.Context2D adds new canvas context '2d-libcanvas'"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- Point
+	- Size
+	- Shapes.Circle
+
+provides: Context.Path
+
+...
+*/
+
+new function () {
+
+var toPoint = Point.from, toCircle = Circle.from;
+
+
+/** @class LibCanvas.Context.Path */
+LibCanvas.declare( 'LibCanvas.Context.Path', {
+	initialize: function (context) {
+		this.context = context;
+		this.ctx2d   = context.ctx2d;
+	},
+
+
+	/** @returns {Context2D} */
+	arc : function (a) {
+
+		if (a.length > 1) {
+			return this.ctx2d.arc.apply(this.ctx2d, a);
+		} else if (!a[0].circle) {
+			throw new TypeError('Wrong arguments in CanvasContext.arc');
+		}
+
+		var f = a[0], circle, angle, angleStart, angleEnd, angleSize;
+		circle = toCircle(f.circle);
+		angle = f.angle;
+
+		if (Array.isArray(angle)) {
+			angleStart = angle[0];
+			angleEnd   = angle[1];
+		} else {
+			angleStart = angle.start;
+			angleEnd   = angle.end;
+			angleSize  = angle.size;
+
+			if (angleSize == null) {
+				// do nothing
+			} else if (angleEnd == null) {
+				angleEnd = angleSize + angleStart;
+			} else if (angleStart == null) {
+				angleStart = angleEnd - angleSize;
+			}
+		}
+		this.ctx2d.arc(
+			circle.center.x, circle.center.y, circle.radius,
+			angleStart, angleEnd, !!(f.anticlockwise || f.acw)
+		);
+		return this.context;
+	},
+
+	/** @returns {Context2D} */
+	arcTo : function () {
+		// @todo Beauty arguments
+		this.ctx2d.arcTo.apply(this.ctx2d, arguments);
+		return this.context;
+	},
+	/** @returns {Context2D} */
+	curveTo: function (a) {
+		var p, l, to, curve = a[0];
+
+		if (typeof curve == 'number') {
+			if (a.length === 4) {
+				return this.quadraticCurveTo(a);
+			} else if (a.length === 6) {
+				return this.bezierCurveTo(a);
+			}
+		} else if (a.length > 1) {
+			p  = atom.array.from( a ).map(toPoint);
+			to = p.shift()
+		} else {
+			p  = atom.array.from( curve.points ).map(toPoint);
+			to = toPoint(curve.to);
+		}
+
+		l = p.length;
+
+		if (l == 2) {
+			this.ctx2d.bezierCurveTo(
+				p[0].x, p[0].y, p[1].x, p[1].y, to.x, to.y
+			);
+		} else if (l == 1) {
+			this.ctx2d.quadraticCurveTo(
+				p[0].x, p[0].y, to.x, to.y
+			);
+		} else {
+			this.ctx2d.lineTo(to.x, to.y);
+		}
+		return this.context;
+	},
+	/** @returns {Context2D} */
+	quadraticCurveTo : function (a) {
+		if (a.length == 4) {
+			this.ctx2d.quadraticCurveTo.apply(this.ctx2d, a);
+			return this.context;
+		} else {
+			a = a.length == 2 ? {p:a[0], to:a[1]} : a[0];
+			return this.curveTo([{
+				to: a.to,
+				points: [a.p]
+			}]);
+		}
+	},
+	/** @returns {Context2D} */
+	bezierCurveTo : function (a) {
+		if (a.length == 6) {
+			this.ctx2d.bezierCurveTo.apply(this.ctx2d, a);
+			return this.context;
+		} else {
+			a = a.length == 3 ? {p1:a[0], p2:a[1], to:a[2]} : a[0];
+			return this.curveTo([{
+				to: a.to,
+				points: [a.p1, a.p2]
+			}]);
+		}
+	},
+	isPointInPath: function (x, y) {
+		if (y == null) {
+			x = toPoint(x);
+			y = x.y;
+			x = x.x;
+		}
+		return this.ctx2d.isPointInPath(x, y);
+	}
+
+});
+
+};
+
+
+/*
+---
+
+name: "Context.Pixels"
+
+description: "LibCanvas.Context2D adds new canvas context '2d-libcanvas'"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- Point
+	- Size
+	- Shapes.Rectangle
+	- Shapes.Circle
+
+provides: Context.Pixels
+
+...
+*/
+
+new function () {
+
+var toPoint = Point.from, toRectangle = Rectangle.from, size1x1 = new Size(1,1);
+
+
+/** @class LibCanvas.Context.Pixels */
+LibCanvas.declare( 'LibCanvas.Context.Pixels', {
+	initialize: function (context) {
+		this.context = context;
+		this.ctx2d   = context.ctx2d;
+	},
+
+	// image data
+	/** @returns {CanvasPixelArray} */
+	createImageData : function (w, h) {
+		if (w == null) {
+			w = this.context.width;
+			h = this.context.height;
+		} else if (h == null) {
+			if (w.width == null && w.height == null) {
+				throw new TypeError('Wrong argument in the Context.createImageData');
+			} else {
+				h = w.height;
+				w = w.width;
+			}
+		}
+
+		return this.ctx2d.createImageData(w, h);
+	},
+
+	/** @returns {Context2D} */
+	putImageData : function (a) {
+		var put = {}, args, rect;
+
+		switch (a.length) {
+			case 1: {
+				if (typeof a != 'object') {
+					throw new TypeError('Wrong argument in the Context.putImageData');
+				}
+
+				a = a[0];
+				put.image = a.image;
+				put.from = toPoint(a.from);
+
+				if (a.crop) put.crop = toRectangle(a.crop);
+			} break;
+
+			case 3: {
+				put.image = a[0];
+				put.from = new Point(a[1], a[2]);
+			} break;
+
+			case 7: {
+				put.image = a[0];
+				put.from = new Point(a[1], a[2]);
+				put.crop = new Rectangle(a[3], a[4], a[5], a[6]);
+			} break;
+
+			default : throw new TypeError('Wrong args number in the Context.putImageData');
+		}
+
+		args = [put.image, put.from.x, put.from.y];
+
+		if (put.crop) {
+			rect = put.crop;
+			atom.array.append(args, [rect.from.x, rect.from.y, rect.width, rect.height])
+		}
+
+		this.ctx2d.putImageData.apply(this.ctx2d, args);
+		return this.context;
+	},
+	/** @returns {CanvasPixelArray} */
+	getImageData : function (args) {
+		var rect = toRectangle(args.length > 1 ? args : args[0]);
+
+		return this.ctx2d.getImageData(rect.from.x, rect.from.y, rect.width, rect.height);
+	},
+	getPixels : function (args) {
+		var
+			rect = toRectangle(args.length > 1 ? args : args[0]),
+			data = this.getImageData(rect).data,
+			result = [],
+			line = [];
+		for (var i = 0, L = data.length; i < L; i+=4)  {
+			line.push({
+				r : data[i],
+				g : data[i+1],
+				b : data[i+2],
+				a : data[i+3] / 255
+			});
+			if (line.length == rect.width) {
+				result.push(line);
+				line = [];
+			}
+		}
+		return result;
+	},
+
+	getPixel: function (point) {
+		var
+			rect = new Rectangle(toPoint( point ), size1x1),
+			data = slice.call(this.getImageData([rect]).data);
+
+		data[3] /= 255;
+
+		return new atom.Color(data);
+	}
+
+});
+
+};
+
+
+/*
+---
+
+name: "Context.Text"
+
+description: "LibCanvas.Context2D adds new canvas context '2d-libcanvas'"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- Point
+	- Size
+	- Shapes.Rectangle
+	- Shapes.Circle
+
+provides: Context.Text
+
+...
+*/
+
+new function () {
+
+var toPoint = Point.from, toRectangle = Rectangle.from, size1x1 = new Size(1,1);
+
+
+/** @class LibCanvas.Context.Text */
+LibCanvas.declare( 'LibCanvas.Context.Text', {
+	initialize: function (context) {
+		this.context = context;
+		this.ctx2d   = context.ctx2d;
+	},
+	// text
+	/** @returns {Context2D} */
+	method: function (method, text, x, y, maxWidth) {
+		var type = typeof x;
+		if (type != 'number' && type != 'string') {
+			maxWidth = y;
+			x = toPoint( x );
+			y = x.y;
+			x = x.x;
+		}
+		var args = [text, x, y];
+		if (maxWidth) args.push( maxWidth );
+		this.ctx2d[method].apply( this.ctx2d, args );
+		return this.context;
+	},
+	fillText : function (text, x, y, maxWidth) {
+		return this.method(  'fillText', text, x, y, maxWidth);
+	},
+	strokeText : function (text, x, y, maxWidth) {
+		return this.method('strokeText', text, x, y, maxWidth);
+	},
+	/** @returns {object} */
+	measureText : function (args) {
+		return this.ctx2d.measureText.call(this.ctx2d, args)
+	},
+	/** @returns {Context2D} */
+	text : function (cfg) {
+		if (!this.ctx2d.fillText) return this;
+
+		var ctx = this.ctx2d;
+
+		cfg = atom.core.append({
+			text   : '',
+			color  : null, /* @color */
+			wrap   : 'normal', /* no|normal */
+			to     : null,
+			align  : 'left', /* center|left|right */
+			size   : 16,
+			weight : 'normal', /* bold|normal */
+			style  : 'normal', /* italic|normal */
+			family : 'arial,sans-serif', /* @fontFamily */
+			lineHeight : null,
+			overflow   : 'visible', /* hidden|visible */
+			padding : [0,0],
+			shadow : null
+		}, cfg);
+
+		ctx.save();
+		if (typeof cfg.padding == 'number') {
+			cfg.padding = [cfg.padding, cfg.padding];
+		}
+		var to = cfg.to ? toRectangle(cfg.to) : this.context.rectangle;
+		var lh = Math.round(cfg.lineHeight || (cfg.size * 1.15));
+		this.context.set('font', atom.string.substitute(
+			'{style}{weight}{size}px {family}', {
+				style  : cfg.style == 'italic' ? 'italic ' : '',
+				weight : cfg.weight == 'bold'  ? 'bold '   : '',
+				size   : cfg.size,
+				family : cfg.family
+			})
+		);
+		if (cfg.shadow) this.context.shadow = cfg.shadow;
+		if (cfg.color) this.context.set({ fillStyle: cfg.color });
+		if (cfg.overflow == 'hidden') this.context.clip(to);
+
+		function xGet (lineWidth) {
+			var al = cfg.align, pad = cfg.padding[1];
+			return Math.round(
+				al == 'left'  ? to.from.x + pad :
+				al == 'right' ? to.to.x - lineWidth - pad :
+					to.from.x + (to.width - lineWidth)/2
+			);
+		}
+		function measure (text) {
+			return Number(ctx.measureText(text).width);
+		}
+		var lines = String(cfg.text).split('\n');
+
+		if (cfg.wrap == 'no') {
+			lines.forEach(function (line, i) {
+				if (!line) return;
+
+				ctx.fillText(line, xGet(cfg.align == 'left' ? 0 : measure(line)), to.from.y + (i+1)*lh);
+			});
+		} else {
+			var lNum = 0;
+			lines.forEach(function (line) {
+				if (!line) {
+					lNum++;
+					return;
+				}
+
+				var words = (line || ' ').match(/.+?(\s|$)/g);
+				if (!words) {
+					lNum++;
+					return;
+				}
+				var L  = '';
+				var Lw = 0;
+				for (var i = 0; i <= words.length; i++) {
+					var last = i == words.length;
+					if (!last) {
+						var text = words[i];
+						// @todo too slow. 2-4ms for 50words
+						var wordWidth = measure(text);
+						if (!Lw || Lw + wordWidth < to.width) {
+							Lw += wordWidth;
+							L  += text;
+							continue;
+						}
+					}
+					if (Lw) {
+						ctx.fillText(L, xGet(Lw), to.from.y + (++lNum)*lh + cfg.padding[0]);
+						if (last) {
+							L  = '';
+							Lw = 0;
+						} else {
+							L  = text;
+							Lw = wordWidth;
+						}
+					}
+				}
+				if (Lw) ctx.fillText(L, xGet(Lw), to.from.y + (++lNum)*lh + cfg.padding[0]);
+			});
+
+		}
+		ctx.restore();
+		return this.context;
+	}
+
+});
+
+};
+
 
 /*
 ---
