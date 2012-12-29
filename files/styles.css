@@ -53,3 +53,7 @@ input {
 .atom-trace-node-destroy {
 	background : #300;
 }
+
+canvas.single {
+	border: 1px dashed #660;
+}

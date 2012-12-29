@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>LibCanvas :: Speed Tesd</title>
+		<link href="/files/styles.css" rel="stylesheet" />
+
+		<!-- Libs -->
+		<script src="/files/js/atom.js"></script>
+		<script src="/files/js/libcanvas.js"></script>
+
+
+		<script>
+atom.dom(function () {
+	var ctx = atom.dom('canvas').first.getContext('2d-libcanvas');
+
+	var img = new Image();
+	img.src = '/files/img/html5-logo-small.png';
+
+
+	var rects = Array.range(0, 150).map(function () {
+		var small = !Number.random(0, 3);
+
+		var rect = new LibCanvas.Shapes.Rectangle(
+			Number.random(0, 550),
+			Number.random(0, 350),
+			small ?  32 : 64,
+			small ?  32 : 64
+		);
+
+		rect.crop = new LibCanvas.Shapes.Rectangle(
+			Number.random(0, 64),
+			Number.random(0, 64),
+			small ?  32 : 64,
+			small ?  32 : 64
+		);
+
+		return rect;
+	});
+
+	function redraw () {
+		ctx.clearAll();
+
+		for (var i = 150; i--;) {
+			var rect = rects[i], x = rect.from.x, delta;
+
+			delta = x > 550 ? -x : 1;
+			rect.from.x += delta;
+			rect.to  .x += delta;
+
+			ctx.drawImage({ image: img, draw: rect, crop: rect.crop });
+		}
+	}
+
+	img.onload = function () {
+		atom.frame.add(redraw);
+	}
+});
+		</script>
+	</head>
+	<body>
+		<p><a href="/">Return to index</a></p>
+		<ul>
+			<li><a href="from.html">From</a></li>
+			<li><a href="draw.html">Draw</a></li>
+			<li><a href="crop.html">Crop</a></li>
+			<li><a href="rotate.html">Rotate</a></li>
+		</ul>
+		<canvas width=600 height=400 class=single></canvas>
+	</body>
+</html>
