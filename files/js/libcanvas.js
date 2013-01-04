@@ -2879,7 +2879,7 @@ var Context2D = LibCanvas.declare( 'LibCanvas.Context2D', 'Context2D',
 
 [ 'fillStyle','font','globalAlpha','globalCompositeOperation','lineCap',
   'lineJoin','lineWidth','miterLimit','shadowOffsetX','shadowColor',
-	'strokeStyle','textAlign','textBaseline'
+  'strokeStyle','textAlign','textBaseline'
 	// we'll set this values manually because of bug in Mobile Phones
 	// 'shadowOffsetY','shadowBlur'
 ].forEach(function (property) {
@@ -2900,6 +2900,7 @@ if (atom.core.isFunction(HTMLCanvasElement.addContext)) {
 }
 
 return Context2D;
+
 }();
 
 /*
@@ -7389,24 +7390,21 @@ var TileEngine = LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 	 * @param {Size} settings.cellMargin
 	 */
 	initialize: function (settings) {
-		this.cells    = [];
-		this.methods  = {};
+		this.cells   = [];
+		this.methods = {};
 		this.cellsUpdate = [];
 
 		this.events   = new Events(this);
 		this.settings = new Settings(settings).addEvents(this.events);
-
 		this.createMatrix();
 	},
 
 	setMethod: atom.core.overloadSetter(function (name, method) {
-		var type = typeof method;
-
-		if (type != 'function' && type != 'string' && !atom.dom.isElement(method)) {
-			throw new TypeError( 'Unknown method: «' + method + '»' );
+		if (this.isValidMethod(method)) {
+			this.methods[ name ] = method;
+		} else {
+			throw new TypeError( 'Unknown method: «' + name + '»' );
 		}
-
-		this.methods[ name ] = method;
 	}),
 
 	countSize: function () {
@@ -7422,7 +7420,7 @@ var TileEngine = LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 	},
 
 	getCellByIndex: function (point) {
-		point = new Point(point);
+		point = Point.from(point);
 		return this.isIndexOutOfBounds(point) ? null:
 			this.cells[ this.width * point.y + point.x ];
 	},
@@ -7432,7 +7430,8 @@ var TileEngine = LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 			settings   = this.settings,
 			cellSize   = settings.get('cellSize'),
 			cellMargin = settings.get('cellMargin');
-		point = new Point(point);
+
+		point = Point.from(point);
 		
 		return this.getCellByIndex(new Point(
 			parseInt(point.x / (cellSize.width  + cellMargin.x)),
@@ -7464,8 +7463,17 @@ var TileEngine = LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 	},
 
 	/** @private */
+	isValidMethod: function (method) {
+		var type = typeof method;
+
+		return type == 'function'
+			|| type == 'string'
+			|| atom.dom.isElement(method);
+	},
+
+	/** @private */
 	createMatrix : function () {
-		var x, y, cell, point, shape,
+		var x, y,
 			settings   = this.settings,
 			size       = settings.get('size'),
 			value      = settings.get('defaultValue'),
@@ -7473,13 +7481,21 @@ var TileEngine = LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 			cellMargin = settings.get('cellMargin');
 
 		for (y = 0; y < size.height; y++) for (x = 0; x < size.width; x++) {
-			point = new Point(x, y);
-			shape = this.createCellRectangle(point, cellSize, cellMargin);
-			cell  = new TileEngine.Cell( this, point, shape, value );
-
-			this.cells.push( cell );
+			this.createMatrixCell(new Point(x, y), cellSize, cellMargin, value);
 		}
 		return this;
+	},
+
+	/** @private */
+	createMatrixCell: function (point, size, margin, value) {
+		var shape = this.createCellRectangle(point, size, margin);
+
+		this.cells.push(this.createCell(point, shape, value));
+	},
+
+	/** @private */
+	createCell: function (point, shape, value) {
+		return new TileEngine.Cell( this, point, shape, value );
 	},
 
 	/** @private */
@@ -7617,6 +7633,7 @@ declare( 'LibCanvas.Engines.Tile.Element', App.Element, {
 }).own({
 	app: function (app, engine, from) {
 		return new this( app.createLayer({
+			name: 'tile-engine',
 			intersection: 'manual',
 			invoke: false
 		}), {
@@ -7649,49 +7666,68 @@ provides: Engines.Tile.Mouse
 */
 /** @class TileEngine.Mouse */
 declare( 'LibCanvas.Engines.Tile.Mouse', {
+	eventsList: 'mousemove mouseout mousedown mouseup contextmenu'
+		.split(' '),
+
 	initialize: function (element, mouse) {
-		var handler = this;
+		this.bindMethods(this.eventsList);
 
-		handler.mouse    = mouse;
-		handler.element  = element;
-		handler.events   = new Events(handler);
-		handler.previous = null;
-		handler.lastDown = null;
+		this.events   = new Events(this);
 
-		element.events.add({
-			mousemove: function () {
-				var cell = handler.get();
-				if (handler.previous != cell) {
-					handler.outCell();
-					handler.fire( 'over', cell );
-					handler.previous = cell;
-				}
-			},
-			mouseout: function () {
-				handler.outCell();
-			},
-			mousedown: function () {
-				var cell = handler.get();
-				handler.fire( 'down', cell );
-				handler.lastDown = cell;
-			},
-			mouseup: function () {
-				var cell = handler.get();
-				handler.fire( 'up', cell );
-				if (cell != null && cell == handler.lastDown) {
-					handler.fire( 'click', cell );
-				}
-				handler.lastDown = null;
-			},
-			contextmenu: function () {
-				var cell = handler.get();
-				if (cell != null) {
-					handler.fire( 'contextmenu', cell );
-				}
-			}
-		});
+		/** @private */
+		this.mouse    = mouse;
+		/** @private */
+		this.element  = element;
+		/** @private */
+		this.previous = null;
+		/** @private */
+		this.lastDown = null;
+		this.subscribe(false);
 	},
 
+	/** @private */
+	subscribe: function (un) {
+		var events = atom.object.collect(this, this.eventsList, null);
+
+		this.element.events
+			[ un ? 'remove' : 'add' ]
+			(events);
+	},
+	/** @private */
+	mousemove: function () {
+		var cell = this.get();
+		if (this.previous != cell) {
+			this.outCell();
+			this.fire( 'over', cell );
+			this.previous = cell;
+		}
+	},
+	/** @private */
+	mouseout: function () {
+		this.outCell();
+	},
+	/** @private */
+	mousedown: function () {
+		var cell = this.get();
+		this.fire( 'down', cell );
+		this.lastDown = cell;
+	},
+	/** @private */
+	mouseup: function () {
+		var cell = this.get();
+		this.fire( 'up', cell );
+		if (cell != null && cell == this.lastDown) {
+			this.fire( 'click', cell );
+		}
+		this.lastDown = null;
+	},
+	/** @private */
+	contextmenu: function () {
+		var cell = this.get();
+		if (cell != null) {
+			this.fire( 'contextmenu', cell );
+		}
+	},
 	/** @private */
 	get: function () {
 		return this.element.engine.getCellByPoint(
@@ -7701,7 +7737,7 @@ declare( 'LibCanvas.Engines.Tile.Mouse', {
 
 	/** @private */
 	fire: function (event, cell) {
-		return this.events.fire( event, [ cell, this ]);
+		return this.events.fire( event, [ cell ]);
 	},
 
 	/** @private */
