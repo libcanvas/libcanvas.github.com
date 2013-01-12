@@ -33,7 +33,7 @@ atom.declare( 'Eye.Map', {
 	createTileEngine: function () {
 		this.tileEngine = new TileEngine({
 			size: new Size(this.width, this.height),
-			cellSize: new Size(24, 24),
+			cellSize: new Size(12, 12),
 			cellMargin: new Size(0, 0),
 			defaultValue: ' '
 		}).setMethod({
@@ -65,7 +65,7 @@ atom.declare( 'Eye.Map', {
 		'5                              5'+
 		'5  777                         5'+
 		'5  7 7  555655555655565        5'+
-		'5  7 8     6     6             5'+
+		'5  7 8                         5'+
 		'5    7                         5'+
 		'5    7                    755555'+
 		'5  7 7                         5'+

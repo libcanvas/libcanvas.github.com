@@ -1,7 +1,7 @@
 /** @class Eye.Player */
 atom.declare( 'Eye.Player', App.Element, {
 
-	angle: 0,
+	angle: (30).degree(),
 
 	speed: {
 		rotate: (90).degree(),
@@ -27,15 +27,23 @@ atom.declare( 'Eye.Player', App.Element, {
 		this.angle = (this.angle + this.speed.rotate * time / 1000).normalizeAngle();
 	},
 
+	strafe: function (time) {
+		this.shiftPosition(time, (90).degree());
+	},
+
 	move: function (time) {
+		this.shiftPosition(time, 0);
+	},
+
+	shiftPosition: function (time, angleAdd) {
 		var
 			map = this.controller.map,
 			pos = this.position,
 			radius = 0.25,
 			factor =  this.speed.move * time / 1000;
 
-		var toX = pos.x + Math.cos(this.angle) * factor;
-		var toY = pos.y + Math.sin(this.angle) * factor;
+		var toX = pos.x + Math.cos(this.angle + angleAdd) * factor;
+		var toY = pos.y + Math.sin(this.angle + angleAdd) * factor;
 
 		var blockX = ~~toX;
 		var blockY = ~~toY;
@@ -108,7 +116,8 @@ atom.declare( 'Eye.Player', App.Element, {
 			keyboard = atom.Keyboard();
 
 		update = this.checkAction('rotate', time, 'aright', 'aleft') || update;
-		update = this.checkAction('move', time, 'w', 's') || update;
+		update = this.checkAction('move'  , time, 'w', 's') || update;
+		update = this.checkAction('strafe', time, 'd', 'a') || update;
 
 		if (update) {
 			this.updateShape();
