@@ -25,7 +25,6 @@ atom.declare( 'Eye.Ray', {
 			var buffer = LibCanvas.buffer(256,256,true);
 			buffer.ctx.drawImage(this.controller.images.get('textures'+i));
 			var imageData   = buffer.ctx.ctx2d.getImageData(0, 0, buffer.width, buffer.height);
-			atom.dom(buffer).appendTo('body');
 			return new Uint32Array( imageData.data.buffer );
 		}.bind(this));
 	},
@@ -34,7 +33,8 @@ atom.declare( 'Eye.Ray', {
 		var ctx = this.canvas.ctx.ctx2d;
 		this.canvas.ctx.fillAll('black');
 
-		var images   = this.controller.images;
+		var vShift     = (this.controller.player.vShift * this.height).round();
+		var images     = this.controller.images;
 		var stripWidth = this.stripWidth;
 		var numRays    = this.width / stripWidth;
 		var viewDist   = this.viewDist;
@@ -172,7 +172,7 @@ atom.declare( 'Eye.Ray', {
 			dist = m.sqrt(dist) * fixCos;
 
 			var height = m.round(this.wallHeight * viewDist / dist);
-			var top    = m.round(this.height/2 - height * ( 1 - player.height ));
+			var top    = m.round(this.height/2 - height * ( 1 - player.height )) + vShift;
 			var bottom = top + height;
 
 			if (dist) {
@@ -197,7 +197,7 @@ atom.declare( 'Eye.Ray', {
 
 				if (top > 0) for (var ceilRay = 0; ceilRay < top; ceilRay++) {
 					// отдалённость от центра
-					rayScreenY    = this.height/2 - ceilRay;
+					rayScreenY    = this.height/2 - ceilRay + vShift;
 					// котангенс угла, по отношению к потолку
 					projDegreeCoTan = viewDist / rayScreenY;
 					// расстояние по потолку , но не напрямик
@@ -224,7 +224,7 @@ atom.declare( 'Eye.Ray', {
 				if (bottom < this.height) for (var floorRay = bottom; floorRay < this.height; floorRay++) {
 					if (floorRay + stripWidth < 0) continue;
 					// отдалённость от центра
-					rayScreenY    = floorRay - this.height/2;
+					rayScreenY    = floorRay - this.height/2 - vShift;
 					// котангенс угла, по отношению к полу
 					projDegreeTan = rayScreenY / viewDist;
 					// расстояние по полу , но не напрямик

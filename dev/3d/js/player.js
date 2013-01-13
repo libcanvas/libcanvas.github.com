@@ -3,20 +3,75 @@ atom.declare( 'Eye.Player', App.Element, {
 
 	angle: (45).degree(),
 
-	height: 0.4,
+	vShift: 0,
+	height: 0,
+	origHeight: 0.4,
 
 	speed: {
 		rotate: (90).degree(),
-		move  : 3
+		vert: 0.001,
+		move: 3
 	},
 
 	configure: function () {
+		this.height = this.origHeight;
 		this.controller = this.settings.get('controller');
 		this.position   = this.settings.get('position');
+		this.animatable = new atom.Animatable(this);
 
 		this.shape = new Circle(0, 0, 8);
 
+		atom.Keyboard().events.add({
+			'space'   : this.jump   .bind(this),
+			'shift'   : this.sitDown.bind(this),
+			'shift:up': this.sitUp  .bind(this)
+		});
+
+
+		atom.Keyboard().events.add(
+			['aup', 'adown', 'aright', 'aleft', 'w', 's', 'd', 'a', 'space', 'shift'],
+			Mouse.prevent
+		);
+
 		this.updateShape();
+	},
+
+	jumping: false,
+	jump: function (e) {
+		if (!this.jumping && !this.sitting) {
+			this.jumping = true;
+			this.animateHeight((this.origHeight*2).limit(0,0.99), function () {
+				this.animateHeight(this.origHeight, function () {
+					this.jumping = false;
+				});
+			})
+		}
+	},
+
+	sitting: false,
+	sitDown: function (e) {
+		if (!this.jumping && !this.sitting) {
+			this.sitting = true;
+			this.animateHeight(this.origHeight/2, function (){});
+		}
+	},
+
+	sitUp: function (e) {
+		if (this.sitting) {
+			this.animateHeight(this.origHeight, function () {
+				this.sitting = false;
+			});
+		}
+	},
+
+	animateHeight: function (target, onComplete) {
+		this.animatable.animate({
+			fn: target > this.height ? 'sine-out' : 'sine-in',
+			time: (target - this.height).abs() * 1000,
+			props: { height: target },
+			onTick: this.redraw,
+			onComplete: onComplete.bind(this)
+		});
 	},
 
 	updateShape: function () {
@@ -37,12 +92,16 @@ atom.declare( 'Eye.Player', App.Element, {
 		this.shiftPosition(time, 0);
 	},
 
+	vert: function (time) {
+		this.vShift = (this.vShift + (this.speed.vert * time)).limit(-1, 1);
+	},
+
 	shiftPosition: function (time, angleAdd) {
 		var
 			map = this.controller.map,
 			pos = this.position,
 			radius = 0.25,
-			factor =  this.speed.move * time / 1000;
+			factor =  this.speed.move * time / 1000 / (this.sitting ? 2 : 1);
 
 		var toX = pos.x + Math.cos(this.angle + angleAdd) * factor;
 		var toY = pos.y + Math.sin(this.angle + angleAdd) * factor;
@@ -99,28 +158,46 @@ atom.declare( 'Eye.Player', App.Element, {
 		pos.y = toY;
 	},
 
-	checkAction: function (action, time, keyFor, keyRev) {
+	actionExists: function (time, keyFor, keyRev) {
 		var keyboard = atom.Keyboard();
 
 		if (keyboard.key(keyFor)) {
-			this[action](time);
-			return true;
+			return time;
 		} else if (keyboard.key(keyRev)) {
-			this[action](-time);
+			return -time;
+		}
+		return 0;
+	},
+
+	checkAction: function (action, time, keyFor, keyRev) {
+		time = this.actionExists(time, keyFor, keyRev);
+
+		if (time) {
+			this[action](time);
 			return true;
 		}
 		return false;
 	},
 
 	onUpdate: function (time) {
-		var update = false;
+		var update = false, moveTime, strafeTime;
 
+		update = this.checkAction('vert'  , time, 'aup'   , 'adown') || update;
 		update = this.checkAction('rotate', time, 'aright', 'aleft') || update;
-		update = this.checkAction('move'  , time, 'w', 's') || update;
-		update = this.checkAction('strafe', time, 'd', 'a') || update;
+
+		moveTime   = this.actionExists(time, 'w', 's');
+		strafeTime = this.actionExists(time, 'd', 'a');
+
+		if (moveTime || strafeTime) update = true;
+		if (moveTime && strafeTime) {
+			moveTime   /= Math.SQRT2;
+			strafeTime /= Math.SQRT2;
+		}
+
+		if (  moveTime) this.move  (moveTime);
+		if (strafeTime) this.strafe(strafeTime);
 
 		if (update) {
-			this.controller.ray.cast();
 			this.updateShape();
 			this.redraw();
 		}
@@ -131,7 +208,9 @@ atom.declare( 'Eye.Player', App.Element, {
 			image : resources.get('images').get('player'),
 			center: this.shape.center,
 			angle : this.angle
-		})
+		});
+
+		this.controller.ray.cast();
 	}
 
 });
