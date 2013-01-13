@@ -3,7 +3,12 @@ atom.declare( 'Eye.Controller', {
 
 	initialize: function () {
 		atom.ImagePreloader.run({
-			textures: 'textures.png',
+			textures0: 'textures-0.png',
+			textures1: 'textures-1.png',
+			textures2: 'textures-2.png',
+			textures3: 'textures-3.png',
+			textures4: 'textures-4.png',
+			textures5: 'textures-5.png',
 			player  : 'player.png'
 		}, this.start, this);
 	},
@@ -11,7 +16,7 @@ atom.declare( 'Eye.Controller', {
 	player: null,
 
 	start: function (images) {
-		this.textures = images.get('textures');
+		this.images = images;
 		this.map = new Eye.Map(this);
 		this.app = new App({ size: this.map.size });
 		this.app.resources.set({ images: images });

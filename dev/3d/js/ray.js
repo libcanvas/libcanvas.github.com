@@ -21,20 +21,20 @@ atom.declare( 'Eye.Ray', {
 		this.imageData   = this.canvas.ctx.ctx2d.getImageData(0, 0, this.canvas.width, this.canvas.height);
 		this.imagePixels = new Uint32Array( this.imageData.data.buffer );
 
-		this.sourcePixels = function () {
+		this.sourcePixels = Array.range(0,5).map(function (i) {
 			var buffer = LibCanvas.buffer(256,256,true);
-			buffer.ctx.drawImage(this.controller.textures);
+			buffer.ctx.drawImage(this.controller.images.get('textures'+i));
 			var imageData   = buffer.ctx.ctx2d.getImageData(0, 0, buffer.width, buffer.height);
 			atom.dom(buffer).appendTo('body');
 			return new Uint32Array( imageData.data.buffer );
-		}.call(this);
+		}.bind(this));
 	},
 
 	cast: function () {
 		var ctx = this.canvas.ctx.ctx2d;
 		this.canvas.ctx.fillAll('black');
 
-		var textures   = this.controller.textures;
+		var images   = this.controller.images;
 		var stripWidth = this.stripWidth;
 		var numRays    = this.width / stripWidth;
 		var viewDist   = this.viewDist;
@@ -101,6 +101,14 @@ atom.declare( 'Eye.Ray', {
 			x = right ? m.ceil(playerPos.x) : m.floor(playerPos.x);	// starting horizontal position, at one of the edges of the current map block
 			y = playerPos.y + (x - playerPos.x) * slope;			// starting vertical position. We add the small horizontal step we just made, multiplied by the slope.
 
+			function textI (dist) {
+				return dist > 18 ? 5 :
+				       dist > 14 ? 4 :
+				       dist > 10 ? 3 :
+				       dist >  7 ? 2 :
+				       dist >  2 ? 1 : 0;
+			}
+
 			while (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
 				wallX = m.floor(x + (right ? 0 : -1));
 				wallY = m.floor(y);
@@ -152,7 +160,7 @@ atom.declare( 'Eye.Ray', {
 						yHit = y;
 						textureX = x % 1;
 						if (up) textureX = 1 - textureX;
-						wallHeight = true;
+						wallIsHorizontal = true;
 						wallType = map.cells[wallY*mapWidth + wallX];
 					}
 					break;
@@ -168,16 +176,17 @@ atom.declare( 'Eye.Ray', {
 			var bottom = top + height;
 
 			if (dist) {
+				x = i * stripWidth;
 
 				walls.push([
-					textures,
+					images.get('textures' + textI(dist)),
 					//cropX
 					parseInt(texWidth * (textureX + (wallIsHorizontal ? 1 : 0))),
 					//cropY
 					texHeight * (wallType-1),
 					1,
 					texHeight,
-					i * stripWidth,
+					x,
 					top,
 					stripWidth,
 					height
@@ -185,7 +194,6 @@ atom.declare( 'Eye.Ray', {
 
 
 				var rayScreenY, ceilDist, projDegreeTan, projDegreeCoTan, floorDist;
-				x = i * stripWidth;
 
 				if (top > 0) for (var ceilRay = 0; ceilRay < top; ceilRay++) {
 					// отдалённость от центра
@@ -206,9 +214,11 @@ atom.declare( 'Eye.Ray', {
 					if (textureY < 0) textureY = texHeight - textureY;
 					if (textureX + stripWidth > texWidth ) textureX = texWidth  - stripWidth;
 					if (textureY + stripWidth > texHeight) textureY = texHeight - stripWidth;
-					if (fCeilX % 3 && fCeilY % 3) textureY += 64;
+					if (fCeilX % 7 == 0 || fCeilY % 3 == 0) textureY += 64;
+					if (fCeilX % 3 == 0 || fCeilY % 7 == 0) textureY += 64;
+					if (fCeilX % 9 == 0 || fCeilY % 9 == 0) textureY += 64;
 
-					pixels[x+ceilRay*this.width] = source[m.floor(textureX+192+textureY*256)];
+					pixels[x+ceilRay*this.width] = source[textI(ceilDist)][m.floor(textureX+192+textureY*256)];
 				}
 
 				if (bottom < this.height) for (var floorRay = bottom; floorRay < this.height; floorRay++) {
@@ -222,25 +232,30 @@ atom.declare( 'Eye.Ray', {
 
 					var floorX = playerPos.x + angleCos * floorDist;
 					var floorY = playerPos.y + angleSin * floorDist;
-					textureX = m.round((floorX - m.floor(floorX)) * texWidth);
-					textureY = m.round((floorY - m.floor(floorY)) * texHeight);
+					var fFloorX = m.floor(floorX);
+					var fFloorY = m.floor(floorY);
+					textureX = m.round((floorX - fFloorX) * texWidth);
+					textureY = m.round((floorY - fFloorY) * texHeight);
 					if (textureX + stripWidth > texWidth ) textureX = texWidth  - stripWidth;
 					if (textureY + stripWidth > texHeight) textureY = texHeight - stripWidth;
-					if (m.floor(floorX) % 3 && m.floor(floorY) % 3) textureY += 64;
-					if (m.floor(floorX) % 2 && m.floor(floorY) % 2) textureY += 64;
+
+					if (fFloorX % 7 == 0 || fFloorY % 4 == 0) textureY += 64;
+					if (fFloorX % 4 == 0 || fFloorY % 2 == 0) textureY += 64;
+					if (fFloorX % 6 == 0 || fFloorY % 7 == 0) textureY += 64;
+
 					if (textureX < 0) textureX = 0;
 					if (textureY < 0) textureY = 0;
 
-					pixels[x+floorRay*this.width] = source[m.floor(textureX+128+textureY*256)];
+					pixels[x+floorRay*this.width] = source[textI(floorDist)][m.floor(textureX+128+textureY*256)];
 				}
 
 
-				var
+				/*var
 					wallRay = Math.max(top, 0),
 					max = Math.min(bottom, this.height);
 				for (; wallRay < max; wallRay++) {
 					pixels[x+wallRay*this.width] = 0xff666666;
-				}
+				}*/
 			}
 		}
 		ctx.putImageData(this.imageData, 0, 0);
