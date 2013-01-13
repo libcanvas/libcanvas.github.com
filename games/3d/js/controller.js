@@ -4,7 +4,7 @@ atom.declare( 'Eye.Controller', {
 	initialize: function () {
 		if (atom.pointerLock.supports) {
 			atom.dom.create('p')
-				.html('Click on game screen to lock mouse')
+				.html('Click on game screen to lock mouse, click on walls to destroy them')
 				.appendTo('body');
 		}
 
@@ -52,6 +52,12 @@ atom.declare( 'Eye.Controller', {
 		atom.dom(element).bind('click', function () {
 			atom.pointerLock.request(element, onMove);
 		});
+
+		atom.dom().bind('click', function (e) {
+			if (atom.pointerLock.locked(element)) {
+				player.activate(e);
+			}
+		}, false);
 	}
 
 });

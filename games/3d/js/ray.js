@@ -61,129 +61,38 @@ atom.declare( 'Eye.Ray', {
 
 		var walls = [] ;
 
+		function textI (dist) {
+			return dist > 18 ? 5 :
+			       dist > 14 ? 4 :
+			       dist > 10 ? 3 :
+			       dist >  7 ? 2 :
+			       dist >  2 ? 1 : 0;
+		}
+
 		for (var i = numRays; i--;) {
 			// x-координата луча на мониторе
 			var rayScreenPos = (i - numRays/2) * stripWidth;
-			// расстояние между пользователем и точкой на мониторе
-			var rayViewDist  = Math.sqrt(rayScreenPos*rayScreenPos + viewDist*viewDist);
-			// реальный угол луча (угол игрока+угол луча)
-			var rayAngle = player.angle + Math.asin(rayScreenPos / rayViewDist);
-			rayAngle = rayAngle.normalizeAngle();
 
-			// направление движения
-			var right = rayAngle > d270 || rayAngle < d90;
-			var up    = rayAngle > d180 || rayAngle < 0;
+			var ray = this.castSingleRay(rayScreenPos);
 
-			var angleSin = m.sin(rayAngle);
-			var angleCos = m.cos(rayAngle);
-
-
-			var dist = 0; // the distance to the block we hit
-			var xHit = 0; // the x and y coord of where the ray hit the block
-			var yHit = 0;
-
-			var textureX, textureY;	// the x-coord on the texture of the block, ie. what part of the texture are we going to render
-			var wallX, wallY;	// the (x,y) map coords of the block
-
-			var slope, dX, dY, x ,y, distX, distY;
-
-			var wallType, wallIsHorizontal = false;
-
-			// first check against the vertical map/wall lines
-			// we do this by moving to the right or left edge of the block we're standing in
-			// and then moving in 1 map unit steps horizontally. The amount we have to move vertically
-			// is determined by the slope of the ray, which is simply defined as sin(angle) / cos(angle).
-
-			slope = angleSin / angleCos; 	// the slope of the straight line made by the ray
-			dX = right ? 1 : -1; 	// we move either 1 map unit to the left or right
-			dY = dX * slope; 		// how much to move up or down
-
-			x = right ? m.ceil(playerPos.x) : m.floor(playerPos.x);	// starting horizontal position, at one of the edges of the current map block
-			y = playerPos.y + (x - playerPos.x) * slope;			// starting vertical position. We add the small horizontal step we just made, multiplied by the slope.
-
-			function textI (dist) {
-				return dist > 18 ? 5 :
-				       dist > 14 ? 4 :
-				       dist > 10 ? 3 :
-				       dist >  7 ? 2 :
-				       dist >  2 ? 1 : 0;
-			}
-
-			while (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
-				wallX = m.floor(x + (right ? 0 : -1));
-				wallY = m.floor(y);
-
-				// is this point inside a wall block?
-				if (mapBlocks[wallY*mapWidth + wallX]) {
-
-					distX = x - playerPos.x;
-					distY = y - playerPos.y;
-					dist = distX*distX + distY*distY;	// the distance from the player to this point, squared.
-
-					textureX = y % 1;	// where exactly are we on the wall? textureX is the x coordinate on the texture that we'll use when texturing the wall.
-					if (!right) textureX = 1 - textureX; // if we're looking to the left side of the map, the texture should be reversed
-
-					xHit = x;	// save the coordinates of the hit. We only really use these to draw the rays on minimap.
-					yHit = y;
-
-					wallType = map.cells[wallY*mapWidth + wallX];
-
-					break;
-				}
-				x += dX;
-				y += dY;
-			}
-
-
-
-			// now check against horizontal lines. It's basically the same, just "turned around".
-			// the only difference here is that once we hit a map block,
-			// we check if there we also found one in the earlier, vertical run. We'll know that if dist != 0.
-			// If so, we only register this hit if this distance is smaller.
-
-			slope = angleCos / angleSin;
-			dY = up ? -1 : 1;
-			dX = dY * slope;
-			y = up ? m.floor(playerPos.y) : m.ceil(playerPos.y);
-			x = playerPos.x + (y - playerPos.y) * slope;
-
-			while (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
-				wallY = m.floor(y + (up ? -1 : 0));
-				wallX = m.floor(x);
-				if (mapBlocks[wallY*mapWidth + wallX]) {
-					distX = x - playerPos.x;
-					distY = y - playerPos.y;
-					var blockDist = distX*distX + distY*distY;
-					if (!dist || blockDist < dist) {
-						dist = blockDist;
-						xHit = x;
-						yHit = y;
-						textureX = x % 1;
-						if (up) textureX = 1 - textureX;
-						wallIsHorizontal = true;
-						wallType = map.cells[wallY*mapWidth + wallX];
-					}
-					break;
-				}
-				x += dX;
-				y += dY;
-			}
-			var fixCos = m.cos(player.angle - rayAngle);
-			dist = m.sqrt(dist) * fixCos;
+			var fixCos = m.cos(player.angle - ray.angle);
+			var dist = m.sqrt(ray.dist) * fixCos;
 
 			var height = m.round(this.wallHeight * viewDist / dist);
 			var top    = m.round(this.height/2 - height * ( 1 - player.height )) + vShift;
 			var bottom = top + height;
+			var textureX, textureY;
 
 			if (dist) {
-				x = i * stripWidth;
+
+				var x = i * stripWidth;
 
 				walls.push([
 					images.get('textures' + textI(dist)),
 					//cropX
-					parseInt(texWidth * (textureX + (wallIsHorizontal ? 1 : 0))),
+					parseInt(texWidth * (ray.textureX + (ray.wallIsHorizontal ? 1 : 0))),
 					//cropY
-					texHeight * (wallType-1),
+					texHeight * (ray.wallType-1),
 					1,
 					texHeight,
 					x,
@@ -191,7 +100,6 @@ atom.declare( 'Eye.Ray', {
 					stripWidth,
 					height
 				]);
-
 
 				var rayScreenY, ceilDist, projDegreeTan, projDegreeCoTan, floorDist;
 
@@ -203,9 +111,8 @@ atom.declare( 'Eye.Ray', {
 					// расстояние по потолку , но не напрямик
 					ceilDist = (wallHeight - player.height) * projDegreeCoTan / fixCos;
 
-
-					var ceilX = playerPos.x + angleCos * ceilDist;
-					var ceilY = playerPos.y + angleSin * ceilDist;
+					var ceilX = playerPos.x + ray.angleCos * ceilDist;
+					var ceilY = playerPos.y + ray.angleSin * ceilDist;
 					var fCeilX = m.floor(ceilX);
 					var fCeilY = m.floor(ceilY);
 					textureX = m.round((ceilX - fCeilX) * texWidth);
@@ -230,8 +137,8 @@ atom.declare( 'Eye.Ray', {
 					// расстояние по полу , но не напрямик
 					floorDist = player.height / projDegreeTan / fixCos;
 
-					var floorX = playerPos.x + angleCos * floorDist;
-					var floorY = playerPos.y + angleSin * floorDist;
+					var floorX = playerPos.x + ray.angleCos * floorDist;
+					var floorY = playerPos.y + ray.angleSin * floorDist;
 					var fFloorX = m.floor(floorX);
 					var fFloorY = m.floor(floorY);
 					textureX = m.round((floorX - fFloorX) * texWidth);
@@ -265,6 +172,136 @@ atom.declare( 'Eye.Ray', {
 		}
 
 
+	},
+
+	castSingleRay: function (rayScreenPos) {
+		if (rayScreenPos == null) rayScreenPos = 0;
+
+		var m  = Math;
+		var pi = m.PI;
+		var viewDist   = this.viewDist;
+		var map        = this.controller.map;
+		var player     = this.controller.player;
+		var playerPos  = player.position;
+		var mapBlocks  = map.blocks;
+		var mapWidth   = map.width;
+		var mapHeight  = map.height;
+
+		var
+			degree = pi/180,
+			d90  =  90*degree,
+			d180 = 180*degree,
+			d270 = 270*degree;
+
+		// расстояние между пользователем и точкой на мониторе
+		var rayViewDist  = Math.sqrt(rayScreenPos*rayScreenPos + viewDist*viewDist);
+		// реальный угол луча (угол игрока+угол луча)
+		var rayAngle = player.angle + Math.asin(rayScreenPos / rayViewDist);
+		rayAngle = rayAngle.normalizeAngle();
+
+		// направление движения
+		var right = rayAngle > d270 || rayAngle < d90;
+		var up    = rayAngle > d180 || rayAngle < 0;
+
+		var angleSin = m.sin(rayAngle);
+		var angleCos = m.cos(rayAngle);
+
+
+		var dist = 0; // the distance to the block we hit
+		var xHit = 0; // the x and y coord of where the ray hit the block
+		var yHit = 0;
+
+		var textureX;	// the x-coord on the texture of the block, ie. what part of the texture are we going to render
+		var wallXH, wallYH, wallXV, wallYV;	// the (x,y) map coords of the block
+
+		var slope, dX, dY, x ,y, distX, distY;
+
+		var wallType, wallIsHorizontal = false;
+
+		// first check against the vertical map/wall lines
+		// we do this by moving to the right or left edge of the block we're standing in
+		// and then moving in 1 map unit steps horizontally. The amount we have to move vertically
+		// is determined by the slope of the ray, which is simply defined as sin(angle) / cos(angle).
+
+		slope = angleSin / angleCos; 	// the slope of the straight line made by the ray
+		dX = right ? 1 : -1; 	// we move either 1 map unit to the left or right
+		dY = dX * slope; 		// how much to move up or down
+
+		x = right ? m.ceil(playerPos.x) : m.floor(playerPos.x);	// starting horizontal position, at one of the edges of the current map block
+		y = playerPos.y + (x - playerPos.x) * slope;			// starting vertical position. We add the small horizontal step we just made, multiplied by the slope.
+
+
+		while (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
+			wallXV = m.floor(x + (right ? 0 : -1));
+			wallYV = m.floor(y);
+
+			// is this point inside a wall block?
+			if (mapBlocks[wallYV*mapWidth + wallXV]) {
+
+				distX = x - playerPos.x;
+				distY = y - playerPos.y;
+				dist = distX*distX + distY*distY;	// the distance from the player to this point, squared.
+
+				textureX = y % 1;	// where exactly are we on the wall? textureX is the x coordinate on the texture that we'll use when texturing the wall.
+				if (!right) textureX = 1 - textureX; // if we're looking to the left side of the map, the texture should be reversed
+
+				xHit = x;	// save the coordinates of the hit. We only really use these to draw the rays on minimap.
+				yHit = y;
+
+				wallType = map.cells[wallYV*mapWidth + wallXV];
+
+				break;
+			}
+			x += dX;
+			y += dY;
+		}
+
+
+
+		// now check against horizontal lines. It's basically the same, just "turned around".
+		// the only difference here is that once we hit a map block,
+		// we check if there we also found one in the earlier, vertical run. We'll know that if dist != 0.
+		// If so, we only register this hit if this distance is smaller.
+
+		slope = angleCos / angleSin;
+		dY = up ? -1 : 1;
+		dX = dY * slope;
+		y = up ? m.floor(playerPos.y) : m.ceil(playerPos.y);
+		x = playerPos.x + (y - playerPos.y) * slope;
+
+		while (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
+			wallYH = m.floor(y + (up ? -1 : 0));
+			wallXH = m.floor(x);
+			if (mapBlocks[wallYH*mapWidth + wallXH]) {
+				distX = x - playerPos.x;
+				distY = y - playerPos.y;
+				var blockDist = distX*distX + distY*distY;
+				if (!dist || blockDist < dist) {
+					dist = blockDist;
+					xHit = x;
+					yHit = y;
+					textureX = x % 1;
+					if (up) textureX = 1 - textureX;
+					wallIsHorizontal = true;
+					wallType = map.cells[wallYH*mapWidth + wallXH];
+				}
+				break;
+			}
+			x += dX;
+			y += dY;
+		}
+
+		return {
+			dist: dist,
+			textureX: textureX,
+			wallIsHorizontal: wallIsHorizontal,
+			wallType: wallType,
+			angle: rayAngle,
+			angleCos: angleCos,
+			angleSin: angleSin,
+			x: wallIsHorizontal ? wallXH : wallXV,
+			y: wallIsHorizontal ? wallYH : wallYV
+		};
 	}
 
 

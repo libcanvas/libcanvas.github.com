@@ -36,6 +36,14 @@ atom.declare( 'Eye.Player', App.Element, {
 		this.updateShape();
 	},
 
+	activate: function () {
+		var target = this.controller.ray.castSingleRay();
+		if (target.dist < 12 && target.wallType != '1') {
+			this.controller.map.change(target.x, target.y, ' ');
+			this.redraw();
+		}
+	},
+
 	jumping: false,
 	jump: function (e) {
 		if (!this.jumping && !this.sitting) {

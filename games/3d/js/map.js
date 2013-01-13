@@ -9,13 +9,17 @@ atom.declare( 'Eye.Map', {
 	initialize: function (controller) {
 		this.controller = controller;
 		this.cells = this.constructor.maps[0].split('');
-		this.blocks = this.cells.map(function (cell) {
-			cell = Number(cell);
-
-			return !!(cell && atom.number.between(cell,1,4,true));
-		});
+		this.blocks = this.cells.map(
+			this.isBlocker.bind(this)
+		);
 
 		this.createTileEngine();
+	},
+
+	isBlocker: function (value) {
+		value = Number(value);
+
+		return !!(value && atom.number.between(value,1,4,true));
 	},
 
 	get size () {
@@ -49,6 +53,12 @@ atom.declare( 'Eye.Map', {
 		});
 	},
 
+	change: function (x, y, value) {
+		this.tileEngine.getCellByIndex([x, y]).value = value;
+		this.blocks[x + this.width * y] = this.isBlocker(value);
+		this.cells [x + this.width * y] = value;
+	},
+
 	eachCell: function (fn) {
 		for (var x = this.width; x--;) for (var y = this.height; y--;) {
 			fn.call(this, this.cells[x + y*this.width], x, y);
@@ -68,12 +78,12 @@ atom.declare( 'Eye.Map', {
 		'1  3 4                         1'+
 		'1    3                         1'+
 		'1    3                    311111'+
-		'1  3 3                         1'+
-		'1  3 4                         2'+
+		'1  3 3        4                1'+
+		'1  3 4                         1'+
 		'1  3 3                         1'+
 		'1  333                    311111'+
 		'1                              1'+
-		'1        333  333              2'+
+		'1        333  333              1'+
 		'1        333  333              1'+
 		'1        333  333         311111'+
 		'1        333  333              1'+
@@ -93,21 +103,21 @@ atom.declare( 'Eye.Map', {
 		'1  4 3333 3333333331222222   1 1'+
 		'1  4  3 3 3 3 3 3 3 2      2   1'+
 		'1  4 3               111111111 1'+
-		'1  4 111111111111111 1         2'+
+		'1  4 111111111111111 1         1'+
 		'1  4               1 1 111111111'+
 		'1  33333333 33333333 1 1       1'+
 		'1                  3     44444 1'+
-		'1  33333333333333  3333333     2'+
+		'1  33333333333333  3333333     1'+
 		'1  2   3        1          44441'+
 		'1  2 2 3 33333 1444444444444   1'+
 		'1  2 2 3     3 1   4   4   4 4 1'+
 		'1  2 2 33333 3 114   4   4   4 1'+
 		'1  2 2       3  12222222222224 1'+
 		'1    2 33333334 1   2          1'+
-		'122222 4 1111 4 1 1 2 2222222222'+
-		'1    4 4      4   1 2          2'+
-		'1 4444 444444 41111 2222222222 2'+
-		'1             4                2'+
+		'122222 4 1111 4 1 1 2 2222222221'+
+		'1    4 4      4   1 2          1'+
+		'1 4444 444444 41111 2222222222 1'+
+		'1             4                1'+
 		'11111111111111111111111111111111'
 	]
 });
