@@ -819,11 +819,12 @@ declare( 'LibCanvas.App.Layer', {
 			intersection: 'auto' // auto|manual|all
 		}).set(settings);
 
-		this.shouldRedrawAll = this.settings.get('intersection') === 'all';
+		this.intersection = this.settings.get('intersection');
+		this.redrawAll    = this.intersection === 'all' || this.intersection === 'full';
 
 		this.app      = app;
 		this.elements = [];
-		this.redraw   = this.shouldRedrawAll ? this.elements : [];
+		this.redraw   = this.redrawAll ? this.elements : [];
 		this.clear    = [];
 		this.createDom();
 	},
@@ -861,9 +862,6 @@ declare( 'LibCanvas.App.Layer', {
 	},
 
 	/** @private */
-	shouldRedrawAll: false,
-
-	/** @private */
 	tick: function (time) {
 		if (this.stopped) return this;
 
@@ -884,24 +882,27 @@ declare( 'LibCanvas.App.Layer', {
 	/** @private */
 	draw: function () {
 		var
-			ctx = this.dom.canvas.ctx,
-			resources = this.app.resources;
+			intersection = this.intersection,
+			ctx          = this.dom.canvas.ctx,
+			resources    = this.app.resources;
 
-		if (this.settings.get('intersection') === 'auto') {
-			this.addIntersections();
+		if (intersection === 'full') {
+			ctx.clearAll();
+		} else {
+			if (intersection === 'auto') {
+				this.addIntersections();
+			} else if (intersection === 'all') {
+				atom.array.invoke(this.clear, 'clearPrevious', ctx, resources);
+			}
+
+			atom.array.invoke(this.redraw, 'clearPrevious', ctx, resources);
 		}
-
-		if (this.shouldRedrawAll) {
-			atom.array.invoke(this.clear, 'clearPrevious', ctx, resources);
-		}
-
-		atom.array.invoke(this.redraw, 'clearPrevious', ctx, resources);
 
 		this.drawElements(this.redraw, ctx, resources);
 
-		if (this.shouldRedrawAll) {
+		if (intersection === 'all') {
 			this.clear.length = 0;
-		} else {
+		} else if (intersection !== 'full') {
 			this.redraw.length = 0;
 		}
 	},
@@ -922,7 +923,9 @@ declare( 'LibCanvas.App.Layer', {
 			elem.redrawRequested = false;
 			if (elem.isVisible()) {
 				elem.renderToWrapper( ctx, resources );
-				elem.saveCurrentBoundingShape();
+				if (this.intersection !== 'full') {
+					elem.saveCurrentBoundingShape();
+				}
 			}
 		}
 	},
@@ -950,6 +953,10 @@ declare( 'LibCanvas.App.Layer', {
 	/** @private */
 	addElement: function (element) {
 		if (element.layer != this) {
+			if (element.layer) {
+				element.layer.rmElement( element );
+			}
+
 			element.layer = this;
 			this.elements.push( element );
 			this.redrawElement( element );
@@ -960,13 +967,13 @@ declare( 'LibCanvas.App.Layer', {
 	/** @private */
 	rmElement: function (element) {
 		if (element.layer == this) {
-			if (this.shouldRedrawAll) {
+			if (this.intersection === 'all') {
 				this.needUpdate = true;
 				this.clear.push(element);
 			} else {
 				this.redrawElement( element );
 			}
-			atom.array.erase( this.elements, element );
+			atom.core.eraseOne( this.elements, element );
 			element.layer = null;
 		}
 		return this;
@@ -977,7 +984,7 @@ declare( 'LibCanvas.App.Layer', {
 		if (element.layer == this && !element.redrawRequested) {
 			this.needUpdate = true;
 			element.redrawRequested = true;
-			if (!this.shouldRedrawAll) {
+			if (!this.redrawAll) {
 				this.redraw.push( element );
 			}
 		}
@@ -1944,7 +1951,19 @@ var Circle = LibCanvas.declare( 'LibCanvas.Shapes.Circle', 'Circle', Shape, {
 	},
 	intersect : function (obj) {
 		if (obj instanceof this.constructor) {
-			return this.center.distanceTo(obj.center) < this.radius + obj.radius;
+			var
+				tC = this.center,
+				oC = obj .center,
+				minDist = this.radius + obj.radius,
+				deltaX  = Math.abs(tC.x - oC.x),
+				deltaY;
+
+			if (deltaX >= minDist) return false;
+
+			deltaY = Math.abs(tC.y - oC.y);
+			if (deltaY >= minDist) return false;
+
+			return deltaX*deltaY < minDist*minDist;
 		} else {
 			return this.getBoundingRectangle().intersect( obj );
 		}
@@ -3679,248 +3698,6 @@ var Point3D = LibCanvas.declare( 'LibCanvas.Point3D', 'Point3D', Geometry, {
 });
 
 /*
- ---
-
- name: "Animation"
-
- description: ""
-
- license:
- - "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
- - "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
- authors:
- - Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
-
- provides: Plugins.Animation
-
- requires:
- - LibCanvas
- - Plugins.Image
-
- ...
- */
-
-/** @class Animation */
-var Animation = LibCanvas.declare( 'LibCanvas.Plugins.Animation', 'Animation', {
-	currentName : null,
-	ownStartTime: null,
-	timeoutId   : 0,
-	synchronizedWith: null,
-
-	initialize: function (settings) {
-		this.bindMethods('update');
-
-		this.events = new atom.Events(this);
-		this.settings = new atom.Settings(settings).addEvents(this.events);
-		this.run();
-	},
-
-	get sheet () {
-		return this.settings.get('sheet');
-	},
-
-	set sheet (sheet) {
-		return this.settings.set('sheet', sheet);
-	},
-
-	set startTime (time) {
-		this.ownStartTime = time;
-	},
-
-	get startTime () {
-		if (this.synchronizedWith) {
-			return this.synchronizedWith.startTime;
-		} else {
-			return this.ownStartTime;
-		}
-	},
-
-	stop: function () {
-		this.startTime = null;
-		return this.update();
-	},
-
-	run: function () {
-		this.startTime = Date.now();
-		return this.update();
-	},
-
-	synchronize: function (anim) {
-		this.synchronizedWith = anim;
-		return this;
-	},
-
-	get: function () {
-		return this.sheet.get(this.startTime);
-	},
-
-	/** @private */
-	update: function () {
-		var delay = this.getDelay();
-
-		clearTimeout(this.timeoutId);
-
-		if (delay == null || this.startTime == null) {
-			this.events.fire('stop');
-		} else {
-			this.events.fire('update', [ this.get() ]);
-			this.timeoutId = setTimeout( this.update, delay );
-		}
-		return this;
-	},
-
-	/** @private */
-	getDelay: function () {
-		return this.startTime == null ? null :
-			this.sheet.getCurrentDelay(this.startTime);
-	}
-});
-
-/** @class Animation.Frames */
-atom.declare( 'LibCanvas.Plugins.Animation.Frames', {
-	sprites: [],
-
-	initialize: function (image, width, height) {
-		if (image  == null) throw new TypeError('`image` cant be null');
-
-		this.sprites = [];
-		this.image   = image;
-		this.size    = new Size(
-			width  == null ? image.width  : width ,
-			height == null ? image.height : height
-		);
-
-		this.prepare();
-	},
-
-	get length () {
-		return this.sprites.length;
-	},
-
-	/** @private */
-	prepare: function () {
-		var x, y,
-			im = this.image,
-			w  = this.size.width,
-			h  = this.size.height;
-
-		for     (y = 0; y <= im.height - h; y += h) {
-			for (x = 0; x <= im.width  - w; x += w) {
-				this.sprites.push( UtilsImage.sprite(im, new Rectangle(x, y, w, h)) );
-			}
-		}
-
-		if (!this.sprites.length) {
-			throw new TypeError('Animation is empty');
-		}
-	},
-
-	get: function (id) {
-		var sprite = this.sprites[id];
-
-		if (!sprite) {
-			throw new Error('No sprite with such id: ' + id);
-		}
-
-		return sprite;
-	}
-});
-
-/** @class Animation.Sheet */
-atom.declare( 'LibCanvas.Plugins.Animation.Sheet', {
-
-	initialize: function (options) {
-		this.frames   = options.frames;
-		this.delay    = options.delay;
-		this.looped   = options.looped;
-		if (options.sequence == null) {
-			this.sequence = atom.array.range(0, this.frames.length - 1);
-		} else {
-			this.sequence = options.sequence;
-		}
-	},
-
-	get size () {
-		return this.frames.size;
-	},
-
-	get: function (startTime) {
-		if (startTime == null) return startTime;
-
-		var id = this.getFrameId(this.countFrames(startTime));
-		return id == null ? id : this.frames.get( id );
-	},
-
-	getCurrentDelay: function (startTime) {
-		var frames, switchTime;
-
-		frames = this.countFrames(startTime);
-
-		if (this.getFrameId(frames) == null) {
-			return null;
-		}
-
-		// когда был включён текущий кадр
-		switchTime = frames * this.delay + startTime;
-
-		// до следующего кадра - задержка минус время, которое показывается текущий
-		return this.delay - ( Date.now() - switchTime );
-	},
-
-	/** @private */
-	getFrameId: function (framesCount) {
-		if (this.looped) {
-			return this.sequence[ framesCount % this.sequence.length ];
-		} else if (framesCount >= this.sequence.length) {
-			return null;
-		} else {
-			return this.sequence[framesCount];
-		}
-	},
-
-	/** @private */
-	countFrames: function (startTime) {
-		return Math.floor( (Date.now() - startTime) / this.delay );
-	}
-
-});
-
-/**
- * @class
- * @name Animation.Image
- * @name LibCanvas.Plugins.Animation.Image
- */
-atom.declare( 'LibCanvas.Plugins.Animation.Image', {
-	initialize: function (animation) {
-		this.bindMethods('update');
-
-		if (animation instanceof Animation.Sheet) {
-			animation = { sheet: animation };
-		}
-		if (!(animation instanceof Animation)) {
-			animation = new Animation(animation);
-		}
-
-		this.buffer    = LibCanvas.buffer(animation.sheet.size, true);
-		this.element   = atom.dom(this.buffer);
-		this.animation = animation;
-		this.element.controller = this;
-
-		animation.events.add( 'update', this.update );
-	},
-
-	update: function (image) {
-		this.buffer.ctx.clearAll();
-		if (image) this.buffer.ctx.drawImage(image);
-	}
-}).own({
-	element: function (animation) {
-		return new this(animation).element;
-	}
-});
-
-/*
 ---
 
 name: "Canvas2DContext"
@@ -4008,91 +3785,6 @@ getterMethods.forEach(function (method) {
 atom.declare( 'LibCanvas.Canvas2DContext', object );
 
 };
-
-/*
- ---
-
- name: "Plugins.Curve"
-
- description: "Provides math base for bezier curves"
-
- license:
- - "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
- - "[MIT License](http://opensource.org/licenses/mit-license.php)"
-
- authors:
- - Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
-
- provides: Plugins.Curve
-
- requires:
- - LibCanvas
- - Point
-
- ...
- */
-
-/** @name LibCanvas.Plugins.Curve */
-atom.declare( 'LibCanvas.Plugins.Curve', {
-
-	step: 0.0001,
-
-	initialize: function (data) {
-		this.from = data.from;
-		this.to   = data.to;
-		this.cp   = data.points;
-	},
-
-	getAngle: function (t) {
-		var f;
-
-		if (t < this.step) {
-			f = t - this.step;
-		} else {
-			f  = t;
-			t += this.step;
-		}
-
-		return this.getPoint(t).angleTo(this.getPoint(f));
-	}
-
-});
-
-/** @name LibCanvas.Plugins.Curve.Quadratic */
-atom.declare( 'LibCanvas.Plugins.Curve.Quadratic', LibCanvas.Plugins.Curve, {
-
-	getPoint: function (t) {
-		var
-			from = this.from,
-			to   = this.to,
-			point= this.cp[0],
-			i    = 1 - t;
-
-		return new Point(
-			i*i*from.x + 2*t*i*point.x + t*t*to.x,
-			i*i*from.y + 2*t*i*point.y + t*t*to.y
-		);
-	}
-
-});
-
-/** @name LibCanvas.Plugins.Curve.Qubic */
-atom.declare( 'LibCanvas.Plugins.Curve.Qubic', LibCanvas.Plugins.Curve, {
-
-	getPoint: function (t) {
-		var
-			from = this.from,
-			to   = this.to,
-			cp   = this.cp,
-			i    = 1 - t;
-
-		return new Point(
-			i*i*i*from.x + 3*t*i*i*cp[0].x + 3*t*t*i*cp[1].x + t*t*t*to.x,
-			i*i*i*from.y + 3*t*i*i*cp[0].y + 3*t*t*i*cp[1].y + t*t*t*to.y
-		);
-	}
-
-});
 
 /*
 ---
@@ -7356,7 +7048,7 @@ atom.declare( 'LibCanvas.Engines.Isometric.Projection', {
 /*
 ---
 
-name: "Tile Engine"
+name: "TileEngine"
 
 license:
 	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
@@ -7525,7 +7217,7 @@ var TileEngine = LibCanvas.declare( 'LibCanvas.Engines.Tile', 'TileEngine', {
 /*
 ---
 
-name: "Tile Engine Cell"
+name: "TileEngine.Cell"
 
 license:
 	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
@@ -7591,7 +7283,7 @@ declare( 'LibCanvas.Engines.Tile.Cell', {
 /*
 ---
 
-name: "Tile Engine App Element"
+name: "TileEngine.Element"
 
 license:
 	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
@@ -7612,7 +7304,7 @@ provides: Engines.Tile.Element
 declare( 'LibCanvas.Engines.Tile.Element', App.Element, {
 	configure: function () {
 		this.shape = new Rectangle(
-			this.settings.get('from'),
+			this.settings.get('from') || new Point(0, 0),
 			this.engine.countSize()
 		);
 		this.engine.events.add( 'update', this.redraw );
@@ -7635,7 +7327,7 @@ declare( 'LibCanvas.Engines.Tile.Element', App.Element, {
 			invoke: false
 		}), {
 			engine: engine,
-			from: from || new Point(0, 0)
+			from: from
 		});
 	}
 });
@@ -7645,7 +7337,7 @@ declare( 'LibCanvas.Engines.Tile.Element', App.Element, {
 /*
 ---
 
-name: "Tile Engine App Element Mouse Handler"
+name: "TileEngine.Mouse"
 
 license:
 	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
@@ -7745,5 +7437,507 @@ declare( 'LibCanvas.Engines.Tile.Mouse', {
 		}
 	}
 });
+
+/*
+---
+
+name: "Plugins.Animation.Core"
+
+description: ""
+
+license:
+- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
+
+provides:
+- Plugins.Animation
+- Plugins.Animation.Core
+
+requires:
+- LibCanvas
+
+...
+*/
+
+/** @class Animation */
+var Animation = LibCanvas.declare( 'LibCanvas.Plugins.Animation', 'Animation', {
+	/** @private */
+	ownStartTime: null,
+	/** @private */
+	timeoutId   : 0,
+	/** @private */
+	synchronizedWith: null,
+
+	initialize: function (settings) {
+		this.bindMethods('update');
+
+		this.events = new atom.Events(this);
+		this.settings = new atom.Settings(settings).addEvents(this.events);
+		this.run();
+	},
+
+	stop: function () {
+		this.startTime = null;
+		return this.update();
+	},
+
+	run: function () {
+		this.startTime = Date.now();
+		return this.update();
+	},
+
+	synchronize: function (anim) {
+		this.synchronizedWith = anim;
+		return this;
+	},
+
+	get: function () {
+		return this.sheet.get(this.startTime);
+	},
+
+	/** @private */
+	get sheet () {
+		return this.settings.get('sheet');
+	},
+
+	/** @private */
+	set sheet (sheet) {
+		return this.settings.set('sheet', sheet);
+	},
+
+	/** @private */
+	set startTime (time) {
+		this.ownStartTime = time;
+	},
+
+	/** @private */
+	get startTime () {
+		if (this.synchronizedWith) {
+			return this.synchronizedWith.startTime;
+		} else {
+			return this.ownStartTime;
+		}
+	},
+
+	/** @private */
+	update: function () {
+		var delay = this.getDelay();
+
+		clearTimeout(this.timeoutId);
+
+		if (delay == null || this.startTime == null) {
+			this.events.fire('stop');
+		} else {
+			this.timeoutId = setTimeout( this.update, delay );
+			this.events.fire('update', [ this.get() ]);
+		}
+		return this;
+	},
+
+	/** @private */
+	getDelay: function () {
+		return this.startTime == null ? null :
+			this.sheet.getCurrentDelay(this.startTime);
+	}
+});
+
+/*
+---
+
+name: "Plugins.Animation.Frames"
+
+description: ""
+
+license:
+- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
+
+provides:
+- Plugins.Animation
+- Plugins.Animation.Frames
+
+requires:
+- LibCanvas
+- Plugins.Animation.Core
+
+...
+*/
+
+/** @class Animation.Frames */
+atom.declare( 'LibCanvas.Plugins.Animation.Frames', {
+	/** @private */
+	sprites: [],
+
+	initialize: function (image, width, height) {
+		if (image == null) throw new TypeError('`image` cant be null');
+
+		this.sprites = [];
+		this.image   = image;
+		this.size    = new Size(
+			Math.round( width  == null ? image.width  : width  ),
+			Math.round( height == null ? image.height : height )
+		);
+
+		this.prepare();
+	},
+
+	get: function (id) {
+		var sprite = this.sprites[id];
+
+		if (!sprite) {
+			throw new Error('No sprite with such id: ' + id);
+		}
+
+		return sprite;
+	},
+
+	get length () {
+		return this.sprites.length;
+	},
+
+	/** @private */
+	prepare: function () {
+		var x, y,
+			im = this.image,
+			w  = this.size.width,
+			h  = this.size.height;
+
+		for     (y = 0; y <= im.height - h; y += h) {
+			for (x = 0; x <= im.width  - w; x += w) {
+				this.sprites.push( this.makeSprite(new Point(x, y)) );
+			}
+		}
+
+		if (!this.length) {
+			throw new TypeError('Animation is empty');
+		}
+	},
+
+	/** @private */
+	makeSprite: function (from) {
+		var
+			size = this.size,
+			buffer = LibCanvas.buffer(size, true);
+
+		buffer.ctx.drawImage({
+			image: this.image,
+			draw : buffer.ctx.rectangle,
+			crop : new Rectangle(from, size)
+		});
+
+		return buffer;
+	}
+});
+
+/*
+---
+
+name: "Plugins.Animation.Image"
+
+description: ""
+
+license:
+- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
+
+provides:
+- Plugins.Animation
+- Plugins.Animation.Image
+
+requires:
+- LibCanvas
+- Plugins.Animation.Core
+
+...
+*/
+
+/** @name Animation.Image */
+atom.declare( 'LibCanvas.Plugins.Animation.Image', {
+	/** @private */
+	initialize: function (animation) {
+		this.bindMethods('update');
+
+		if (animation instanceof Animation.Sheet) {
+			animation = { sheet: animation };
+		}
+		if (!(animation instanceof Animation)) {
+			animation = new Animation(animation);
+		}
+
+		this.buffer    = LibCanvas.buffer(animation.sheet.size, true);
+		this.element   = atom.dom(this.buffer);
+		this.animation = animation;
+		this.element.controller = this;
+
+		animation.events.add( 'update', this.update );
+	},
+
+	/** @private */
+	update: function (image) {
+		var ctx = this.buffer.ctx;
+
+		ctx.clearAll();
+		if (image) ctx.drawImage(image);
+	}
+}).own({
+	element: function (animation) {
+		return new this(animation).element;
+	}
+});
+
+/*
+---
+
+name: "Plugins.Animation.Sheet"
+
+description: ""
+
+license:
+- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
+
+provides:
+- Plugins.Animation
+- Plugins.Animation.Sheet
+
+requires:
+- LibCanvas
+- Plugins.Animation.Core
+
+...
+*/
+
+/** @class Animation.Sheet */
+atom.declare( 'LibCanvas.Plugins.Animation.Sheet', {
+
+	initialize: function (options) {
+		this.frames = options.frames;
+		this.delay  = options.delay;
+		this.looped = options.looped;
+		if (options.sequence == null) {
+			this.sequence = atom.array.range(0, this.frames.length - 1);
+		} else {
+			this.sequence = options.sequence;
+		}
+	},
+
+	/** @private */
+	get size () {
+		return this.frames.size;
+	},
+
+	/** @private */
+	get: function (startTime) {
+		if (startTime == null) return null;
+
+		var id = this.getFrameId(this.countFrames(startTime));
+		return id == null ? id : this.frames.get( id );
+	},
+
+	/** @private */
+	getCurrentDelay: function (startTime) {
+		var frames, switchTime;
+
+		frames = this.countFrames(startTime);
+
+		if (this.getFrameId(frames) == null) {
+			return null;
+		}
+
+		// когда был включён текущий кадр
+		switchTime = frames * this.delay + startTime;
+
+		// до следующего кадра - задержка минус время, которое уже показывается текущий
+		return this.delay - ( Date.now() - switchTime );
+	},
+
+	/** @private */
+	getFrameId: function (framesCount) {
+		if (this.looped) {
+			return this.sequence[ framesCount % this.sequence.length ];
+		} else if (framesCount >= this.sequence.length) {
+			return null;
+		} else {
+			return this.sequence[framesCount];
+		}
+	},
+
+	/** @private */
+	countFrames: function (startTime) {
+		return Math.floor( (Date.now() - startTime) / this.delay );
+	}
+
+});
+
+/*
+---
+
+name: "Plugins.Curve"
+
+description: "Provides math base for bezier curves"
+
+license:
+- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
+
+provides: Plugins.Curve.Core
+
+requires:
+- LibCanvas
+- Point
+
+...
+*/
+
+/** @name LibCanvas.Plugins.Curve */
+atom.declare( 'LibCanvas.Plugins.Curve', {
+
+	step: 0.0001,
+
+	initialize: function (data) {
+		var Class = this.constructor.classes[data.points.length];
+
+		if (Class) return new Class(data);
+
+		this.setData(data);
+	},
+
+	setData: function (data) {
+		this.from = data.from;
+		this.to   = data.to;
+		this.cp   = data.points;
+	},
+
+	getAngle: function (t) {
+		var f;
+
+		if (t < this.step) {
+			f = t - this.step;
+		} else {
+			f  = t;
+			t += this.step;
+		}
+
+		return this.getPoint(t).angleTo(this.getPoint(f));
+	}
+
+}).own({
+	classes: {},
+
+	addClass: function (points, Class) {
+		this.classes[points] = Class;
+	}
+});
+
+/*
+---
+
+name: "Plugins.Curve.Quadratic"
+
+description: "Provides math base for bezier curves"
+
+license:
+- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
+
+provides:
+- Plugins.Curve
+- Plugins.Curve.Quadratic
+
+requires:
+- Plugins.Curve.Core
+
+...
+*/
+
+/** @name LibCanvas.Plugins.Curve.Quadratic */
+atom.declare( 'LibCanvas.Plugins.Curve.Quadratic', LibCanvas.Plugins.Curve, {
+
+	initialize: function (data) {
+		this.setData(data);
+	},
+
+	getPoint: function (t) {
+		var
+			from = this.from,
+			to   = this.to,
+			point= this.cp[0],
+			i    = 1 - t;
+
+		return new Point(
+			i*i*from.x + 2*t*i*point.x + t*t*to.x,
+			i*i*from.y + 2*t*i*point.y + t*t*to.y
+		);
+	}
+
+});
+
+LibCanvas.Plugins.Curve.addClass(1, LibCanvas.Plugins.Curve.Quadratic);
+
+/*
+---
+
+name: "Plugins.Curve.Qubic"
+
+description: "Provides math base for bezier curves"
+
+license:
+- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+- Pavel Ponomarenko aka Shock <shocksilien@gmail.com>
+
+provides:
+- Plugins.Curve
+- Plugins.Curve.Qubic
+
+requires:
+- Plugins.Curve.Core
+
+...
+*/
+
+/** @name LibCanvas.Plugins.Curve.Qubic */
+atom.declare( 'LibCanvas.Plugins.Curve.Qubic', LibCanvas.Plugins.Curve, {
+
+	initialize: function (data) {
+		this.setData(data);
+	},
+
+	getPoint: function (t) {
+		var
+			from = this.from,
+			to   = this.to,
+			cp   = this.cp,
+			i    = 1 - t;
+
+		return new Point(
+			i*i*i*from.x + 3*t*i*i*cp[0].x + 3*t*t*i*cp[1].x + t*t*t*to.x,
+			i*i*i*from.y + 3*t*i*i*cp[0].y + 3*t*t*i*cp[1].y + t*t*t*to.y
+		);
+	}
+
+});
+
+LibCanvas.Plugins.Curve.addClass(2, LibCanvas.Plugins.Curve.Qubic);
 
 }).call(typeof window == 'undefined' ? exports : window, atom, Math);

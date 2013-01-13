@@ -1,11 +1,13 @@
 /** @class Eye.Player */
 atom.declare( 'Eye.Player', App.Element, {
 
-	angle: (30).degree(),
+	angle: (45).degree(),
+
+	height: 0.4,
 
 	speed: {
 		rotate: (90).degree(),
-		move  : 1
+		move  : 3
 	},
 
 	configure: function () {
@@ -111,15 +113,14 @@ atom.declare( 'Eye.Player', App.Element, {
 	},
 
 	onUpdate: function (time) {
-		var
-			update = false,
-			keyboard = atom.Keyboard();
+		var update = false;
 
 		update = this.checkAction('rotate', time, 'aright', 'aleft') || update;
 		update = this.checkAction('move'  , time, 'w', 's') || update;
 		update = this.checkAction('strafe', time, 'd', 'a') || update;
 
 		if (update) {
+			this.controller.ray.cast();
 			this.updateShape();
 			this.redraw();
 		}

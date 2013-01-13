@@ -8,6 +8,8 @@ atom.declare( 'Eye.Controller', {
 		}, this.start, this);
 	},
 
+	player: null,
+
 	start: function (images) {
 		this.textures = images.get('textures');
 		this.map = new Eye.Map(this);
@@ -17,10 +19,15 @@ atom.declare( 'Eye.Controller', {
 
 		this.layer = this.app.createLayer({ name: 'objects', invoke: true });
 
-		new Eye.Player( this.layer, {
+
+		this.player = new Eye.Player( this.layer, {
 			controller: this,
-			position: new Point(10, 6)
+			position: new Point(10, 5)
 		});
+
+		this.ray = new Eye.Ray(this);
+		this.ray.cast();
+
 	}
 
 });
