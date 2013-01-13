@@ -2,6 +2,12 @@
 atom.declare( 'Eye.Controller', {
 
 	initialize: function () {
+		if (atom.pointerLock.supports) {
+			atom.dom.create('p')
+				.html('Click on game screen to lock mouse')
+				.appendTo('body');
+		}
+
 		atom.ImagePreloader.run({
 			textures0: 'textures-0.png',
 			textures1: 'textures-1.png',
@@ -33,6 +39,19 @@ atom.declare( 'Eye.Controller', {
 		this.ray = new Eye.Ray(this);
 		this.ray.cast();
 
+		this.requestPointerLock(this.ray.canvas)
+	},
+
+	requestPointerLock: function (element) {
+		var player = this.player;
+
+		function onMove (e) {
+			player.pointer(new Point(e.movementX, e.movementY));
+		}
+
+		atom.dom(element).bind('click', function () {
+			atom.pointerLock.request(element, onMove);
+		});
 	}
 
 });

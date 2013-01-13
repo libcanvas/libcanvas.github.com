@@ -179,6 +179,17 @@ atom.declare( 'Eye.Player', App.Element, {
 		return false;
 	},
 
+	pointer: function (delta) {
+		if (delta.y) {
+			this.vert(-delta.y*4);
+			this.redraw();
+		}
+		if (delta.x) {
+			this.rotate(delta.x*2);
+			this.redraw();
+		}
+	},
+
 	onUpdate: function (time) {
 		var update = false, moveTime, strafeTime;
 
