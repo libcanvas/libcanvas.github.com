@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="utf-8" />
-		<title>LibCanvas :: Polygon</title>
+		<title>LibCanvas :: Polygon & Path</title>
 		<link href="/files/styles.css" rel="stylesheet" />
 		<script src="/files/js/atom.js"></script>
 		<script src="/files/js/libcanvas.js"></script>
@@ -13,7 +13,7 @@
 		<p>Z + Mouse Wheel - scaling</p>
 		<script>
 new function () {
-	var helper, first, second, keyboard = new atom.Keyboard();
+	var helper, first, second, path, pathFrom, keyboard = new atom.Keyboard();
 
 	LibCanvas.extract();
 
@@ -35,8 +35,16 @@ new function () {
 		[300,  10]
 	]);
 
+	pathFrom = new Point(150, 200);
 
-	[first, second].forEach(function (poly, i) {
+	path = new Path()
+		.moveTo ( pathFrom )
+		.curveTo([300, 200], [250, 150])
+		.curveTo([200, 280], [290, 250])
+		.curveTo( pathFrom , [220, 220]);
+
+
+	[first, second, path].forEach(function (poly, i) {
 		var vector = helper.createVector(poly)
 			.setStyle({ opacity: 0.65, fill: '#300', stroke: '#600' })
 			.setStyle( 'hover' ,     { fill: '#600', stroke: '#900' })
@@ -55,9 +63,9 @@ new function () {
 		});
 	});
 
-	[].append(first.points, second.points).forEach(function (point, i) {
+	[].append(first.points, second.points, path.points).forEach(function (point, i) {
 		var vector = helper.createVector(new Circle(point, 5))
-			.setStyle({opacity: 0, stroke: '#f66' })
+			.setStyle({opacity: 0.1, stroke: '#f66' })
 			.setStyle('hover' , { opacity: 1 })
 			.setStyle('active', { stroke : '#0f0' });
 
