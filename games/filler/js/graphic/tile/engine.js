@@ -3,9 +3,9 @@ atom.declare('Filler.Graphic.Tile.Engine', TileEngine, {
 
     offset: new Point(0, 0),
 
-    initialize: function parent (matrix, settings){
+    initialize: function method (matrix, settings){
 
-        parent.previous.call(this, settings);
+	    method.previous.call(this, settings);
 
         this.matrix = matrix;
         this.points = this.cells.map(function(cell){ return cell.point; });
