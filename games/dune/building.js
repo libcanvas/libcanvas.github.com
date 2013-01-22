@@ -3,9 +3,7 @@ atom.declare( 'Dune.Building', App.Element, {
 	hover: false,
 
 	configure: function () {
-		App.Behaviors
-			.attach( this, [ 'Clickable' ], this.redraw )
-			.startAll();
+		new App.Clickable( this, this.redraw ).start();
 	},
 
 	addShift: function (shift) {

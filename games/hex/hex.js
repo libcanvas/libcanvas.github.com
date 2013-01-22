@@ -2,9 +2,7 @@ Hexes.Hex = atom.declare(App.Element, {
 	clicked: false,
 
 	configure: function () {
-		App.Behaviors
-			.attach( this, [ 'Clickable' ], this.redraw )
-			.startAll();
+		new App.Clickable( this, this.redraw ).start();
 
 		this.rectangle = new Rectangle(
 			this.shape.points[0],

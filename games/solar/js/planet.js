@@ -15,7 +15,7 @@ atom.declare('Solar.Planet', App.Element, {
 
 		this.mousePoint = this.layer.app.resources.get('mouse').point;
 
-		App.Behaviors.attach( this, [ 'Clickable' ], this.redraw).startAll();
+		new App.Clickable( this, this.redraw ).start();
 
 		this.rotate();
 

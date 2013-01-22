@@ -3,7 +3,7 @@ atom.declare('Solar.Orbit', App.Element, {
 
 	configure: function () {
 		this.shape = new Circle(this.planet.solarCenter, this.planet.radius);
-		App.Behaviors.attach( this, [ 'Clickable' ], this.redraw).startAll();
+		new App.Clickable( this, this.redraw ).start();
 	},
 
 	get planet () {

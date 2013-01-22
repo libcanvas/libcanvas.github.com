@@ -9,9 +9,7 @@ atom.declare('Filler.Graphic.Button', App.Element, {
         this.disabled = false;
         this.stroke = this.shape.clone().snapToPixel();
 
-	    App.Behaviors
-            .attach( this, [ 'Clickable' ], this.redraw )
-            .startAll();
+	    new App.Clickable( this, this.redraw ).start();
 
         game.events.add('start', this.update.bind(this));
         this.events.add('mousedown', function(){

@@ -19,9 +19,8 @@ new function () {
 
 	Gradient = atom.declare(App.Element, {
 		configure: function () {
-			App.Behaviors
-				.attach( this, [ 'Draggable', 'Clickable' ], this.redraw )
-				.startAll();
+			new App.Draggable(this, this.redraw).start();
+			new App.Clickable(this, this.redraw).start();
 		},
 
 		move: function (point) {
