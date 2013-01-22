@@ -71,7 +71,8 @@ new function () {
 			.setStyle('active', { stroke : '#0f0' });
 
 		vector.zIndex = i+4;
-		vector.behaviors.startAll();
+		vector.clickable.start();
+		vector.draggable.start();
 	});
 };
 		</script>
