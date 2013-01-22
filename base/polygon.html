@@ -51,7 +51,8 @@ new function () {
 			.setStyle( 'active',     { fill: '#060', stroke: '#090' });
 		
 		vector.zIndex = i;
-		vector.behaviors.startAll();
+		vector.clickable.start();
+		vector.draggable.start();
 		vector.events.add( 'wheel', function (e) {
 			if (keyboard.key('z')) {
 				poly.scale( e.delta < 0 ? 1.3 : 0.7, helper.mouse.point );
