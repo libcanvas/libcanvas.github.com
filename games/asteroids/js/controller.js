@@ -73,16 +73,18 @@ declare( 'Ast.Controller', {
 	},
 
 	createLayers: function (size, images) {
-		var targetNode = atom.dom('div.app')
-			.css(size.toObject())
-			.css({ background: 'url(im/stars.jpg)' });
+		this.app = new App({
+			size: size,
+			simple: true
+		});
 
-		this.app = new App({ size: size, appendTo: targetNode });
 		this.layer = this.app.createLayer({
-			name: 'main',
 			intersection: 'all',
 			invoke: true
 		});
+
+		this.layer.dom.element
+			.css({ background: 'url(im/stars.jpg)' });
 
 		this.app.resources.set('images', images);
 	},
