@@ -38,7 +38,7 @@ new function () {
 		}
 	});
 
-	app = new App({ size: engine.countSize() });
+	app = new App({ size: engine.countSize(), simple: true });
 	element = TileEngine.Element.app( app, engine );
 
 	mouse = new Mouse(app.container.bounds);

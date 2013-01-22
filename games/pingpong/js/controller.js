@@ -16,23 +16,22 @@ atom.declare( 'Pong.Controller', {
 		this.app.resources.set('images', images);
 
 		this.units = {
-			left: new Pong.Unit( this.layer, {
-				controller: this,
-				line: 40,
-				size: this.size,
-				controls: { up: 'w', down: 's' }
-			}),
-			right: new Pong.Unit( this.layer, {
-				controller: this,
-				line: 760,
-				size: this.size,
-				controls: { up: 'aup', down: 'adown' }
-			})
+			left : this.createUnit( 40,  'w' , 's'),
+			right: this.createUnit(760, 'aup', 'adown')
 		};
 
 		this.ball = new Pong.Ball( this.layer, {
 			controller: this,
 			size: this.size
+		});
+	},
+
+	createUnit: function (line, up, down) {
+		return new Pong.Unit( this.layer, {
+			controller: this,
+			line: line,
+			size: this.size,
+			controls: { up: up, down: down }
 		});
 	}
 });
