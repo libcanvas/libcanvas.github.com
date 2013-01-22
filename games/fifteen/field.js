@@ -5,13 +5,15 @@ atom.declare( 'Fifteen.Field', {
 		this.settings = new atom.Settings( settings );
 
 		app = new LibCanvas.App({
-			size: this.size()
+			size: this.size(),
+			simple: true
 		});
+		
+		layer = app.createLayer({ intersection: 'manual' });
 
 		mouse = new Mouse(app.container.bounds);
 		this.mouseHandler = new App.MouseHandler({ mouse: mouse, app: app });
-		
-		layer = app.createLayer({ name: 'cells', intersection: 'manual' });
+
 		this.generate( layer );
 		this.bindTouch();
 
@@ -28,7 +30,7 @@ atom.declare( 'Fifteen.Field', {
 
 			for (y in tiles) for (x in tiles[y]) {
 				t = tiles[y][x];
-				if (t && t.hasMousePoint(offset)) {
+				if (t && t.isTriggerPoint(offset)) {
 					this.move(t);
 					break;
 				}
