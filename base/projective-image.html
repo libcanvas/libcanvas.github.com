@@ -15,7 +15,12 @@ new function () {
 
 	LibCanvas.extract();
 
-	ImageDrawer = atom.declare(LibCanvas.App.Element, {
+	ImageDrawer = atom.declare(App.Element, {
+		configure: function () {
+			new App.Draggable(this, this.redraw).start();
+			new App.Clickable(this, this.redraw).start();
+		},
+
 		get currentBoundingShape () {
 			// our stroke is out of bounding rectangle
 			// so we should grow it a little
@@ -23,6 +28,10 @@ new function () {
 		},
 
 		renderTo: function (ctx) {
+			if (this.hover) {
+				ctx.fill( this.shape, 'rgba(255, 0, 0, 0.2)' );
+			}
+
 			ctx.projectiveImage({
 				image: this.settings.get('image'),
 				to: this.shape,
@@ -44,6 +53,8 @@ new function () {
 			[240, 300]
 		]);
 		drawer = new ImageDrawer( helper.layer, { shape: shape, image: img });
+
+		helper.mouseHandler.subscribe(drawer);
 
 		shape.points.forEach(function (point) {
 			var vector = helper.createVector(new Circle(point, 5))
