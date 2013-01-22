@@ -35,7 +35,7 @@ new function () {
 		fill   : 'rgba(153, 0, 0, 0.4)',
 		stroke : 'rgba(255, 0, 0, 0.4)'
 	});
-	vector.behaviors.get('draggable').start(updateTextContent);
+	vector.draggable.start(updateTextContent);
 	updateTextContent();
 
 	// creating draggable vectors to change rectangle size
@@ -46,8 +46,8 @@ new function () {
 			.setStyle('active', { fill : "#090", stroke : "#0f0"});
 
 		vector.zIndex = i+2;
-		vector.behaviors.get('clickable').start();
-		vector.behaviors.get('draggable').start(updateTextContent);
+		vector.clickable.start();
+		vector.draggable.start(updateTextContent);
 	});
 };
 		</script>

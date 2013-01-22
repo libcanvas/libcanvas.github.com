@@ -26,11 +26,12 @@ new function () {
 			.setStyle( 'hover' ,     { fill: '#600', stroke: '#900' })
 			.setStyle( 'active',     { fill: '#060', stroke: '#090' });
 
-		vector.behaviors.get('clickable').start();
-		vector.behaviors.get('draggable').start();
+		vector.clickable.start();
+		vector.draggable.start();
 
 		if (last) {
-			helper.createVector(new Line(point, last), { zIndex: 0 })
+			helper
+				.createVector(new Line(point, last), { zIndex: 0 })
 				.setStyle({ stroke: '#600' });
 		}
 

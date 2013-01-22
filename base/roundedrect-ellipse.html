@@ -23,8 +23,8 @@ new function () {
 			.setStyle('hover' , { stroke: '#f00', fill: '#900' })
 			.setStyle('active', { stroke: '#0f0', fill: '#090' });
 
-		vector.behaviors.get('clickable').start();
-		vector.behaviors.get('draggable').start();
+		vector.clickable.start();
+		vector.draggable.start();
 	});
 
 };

@@ -193,6 +193,145 @@ var App = LibCanvas.App;
 /*
 ---
 
+name: "App.Behavior"
+
+description: ""
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+
+provides: App.Behavior
+
+...
+*/
+
+/** @class App.Behavior */
+var Behavior = declare( 'LibCanvas.App.Behavior', {
+
+	eventName: null,
+
+	initialize: function (element, callback) {
+		this.element = element;
+		this.events  = element.events;
+		this.eventArgs(callback);
+	},
+
+	started: false,
+
+	/** @private */
+	changeStatus: function (status){
+		if (this.started == status) {
+			return false;
+		} else {
+			this.started = status;
+			return true;
+		}
+	},
+
+	/** @private */
+	eventArgs: function (callback) {
+		if (this.eventName && atom.core.isFunction(callback)) {
+			this.events.add( this.eventName, callback );
+		}
+		return this;
+	},
+
+	/** @private */
+	getMouse: function (handler, strict) {
+		var mouse = this.element.layer.app.resources.get(
+			handler ? 'mouseHandler' : 'mouse'
+		);
+
+		if (strict && !mouse) {
+			throw new Error('No mouse in element');
+		}
+
+		return mouse;
+	}
+
+});
+
+/*
+---
+
+name: "App.Clickable"
+
+description: "Provides interface for clickable canvas objects"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- App.Behavior
+
+provides: App.Clickable
+
+...
+*/
+
+/** @class App.Clickable */
+var Clickable = declare( 'LibCanvas.App.Clickable', App.Behavior, {
+
+	eventName: 'statusChange',
+
+	callbacks: {
+		mousedown: function (e) {
+			Clickable.setValue(this, 'active', true , e);
+		},
+		mouseup  : function (e) {
+			Clickable.setValue(this, 'active', false, e);
+		},
+		mouseover: function (e) {
+			Clickable.setValue(this, 'hover' , true , e);
+		},
+		mouseout : function (e) {
+			Clickable.setValue(this, 'hover' , false, e);
+			Clickable.setValue(this, 'active', false, e);
+		}
+	},
+
+	start: function (callback) {
+		if (this.changeStatus(true)) {
+			this.eventArgs(callback);
+			this.events.add(this.callbacks);
+		}
+		return this;
+	},
+
+	stop: function () {
+		if (this.changeStatus(false)) {
+			this.events.remove(this.callbacks);
+		}
+		return this;
+	}
+
+});
+
+Clickable.setValue = function (element, name, val, event) {
+	if (element[name] != val) {
+		element[name] = val;
+		element.events.fire(
+			Clickable.prototype.eventName,
+			[name, val, event]
+		);
+	}
+};
+
+/*
+---
+
 name: "App.Container"
 
 description: ""
@@ -395,6 +534,101 @@ declare( 'LibCanvas.App.Dom', {
 			.attr({ 'data-name': this.name  })
 			.css ({ 'position' : 'absolute' })
 			.appendTo( this.container.bounds );
+	}
+});
+
+/*
+---
+
+name: "App.Draggable"
+
+description: "When object implements LibCanvas.Draggable interface dragging made possible"
+
+license:
+	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
+	- "[MIT License](http://opensource.org/licenses/mit-license.php)"
+
+authors:
+	- "Shock <shocksilien@gmail.com>"
+
+requires:
+	- LibCanvas
+	- App.Behavior
+
+provides: App.Draggable
+
+...
+*/
+
+/** @class App.Draggable */
+declare( 'LibCanvas.App.Draggable', App.Behavior, {
+
+	eventName: 'moveDrag',
+
+	stopDrag: [ 'up', 'out' ],
+
+	initialize: function method (element, callback) {
+		this.bindMethods([ 'onStop', 'onDrag', 'onStart' ]);
+
+		method.previous.call( this, element, callback );
+
+		if (!atom.core.isFunction(this.element.move)) {
+			throw new TypeError( 'Element ' + this.element + ' must has «move» method' );
+		}
+	},
+
+	start: function (callback) {
+		if (this.changeStatus(true)) {
+			this.mouse = this.getMouse(false, true);
+			this.eventArgs(callback);
+			this.events.add( 'mousedown', this.onStart )
+		}
+		return this;
+	},
+
+	stop: function () {
+		if (this.changeStatus(false)) {
+			this.events.remove( 'mousedown', this.onStart );
+		}
+		return this;
+	},
+
+	/** @private */
+	bindMouse: function (method) {
+		var mouse = this.mouse, stop = this.stopDrag;
+
+		mouse.events
+			[method]( 'move', this.onDrag )
+			[method](  stop , this.onStop );
+
+		return mouse;
+	},
+
+	/** @private */
+	onStart: function (e) {
+		if (e.button !== 0) return;
+
+		this.bindMouse('add');
+		this.events.fire('startDrag', [ e ]);
+	},
+
+	/** @private */
+	onDrag: function (e) {
+		if (!this.element.layer) {
+			return this.onStop(e, true);
+		}
+
+		var delta = this.getMouse().delta;
+		this.element.move( delta );
+		this.events.fire('moveDrag', [delta, e]);
+	},
+
+	/** @private */
+	onStop: function (e, forced) {
+		if (e.button === 0 || forced === true) {
+			this.bindMouse('remove');
+			this.events.fire('stopDrag', [ e ]);
+		}
 	}
 });
 
@@ -1373,6 +1607,22 @@ var Point = LibCanvas.declare( 'LibCanvas.Point', 'Point', Geometry, {
 		var diff = this.cast(point).diff(this);
 		return atom.math.hypotenuse(diff.x, diff.y);
 	},
+	/** @returns {Boolean} */
+	checkDistanceTo : function (point, distance, equals) {
+		var deltaX, deltaY, realDistanceSq, maxDistanceSq;
+
+		deltaX = Math.abs(this.x - point.x);
+		if (deltaX > distance) return false;
+
+		deltaY = Math.abs(this.y - point.y);
+		if (deltaY > distance) return false;
+
+		realDistanceSq = deltaX*deltaX + deltaY*deltaY;
+		maxDistanceSq  = distance*distance;
+
+		return (realDistanceSq < maxDistanceSq) ||
+			(equals && realDistanceSq == maxDistanceSq)
+	},
 	/** @returns {Point} */
 	diff : function (point) {
 		return new this.constructor(point).move(this, true);
@@ -1798,7 +2048,7 @@ var Rectangle = LibCanvas.declare( 'LibCanvas.Shapes.Rectangle', 'Rectangle', Sh
 		if (rect instanceof Point) {
 			this.move( this.from.diff(rect) );
 		} else {
-			rect = Rectangle(arguments);
+			rect = Rectangle.from(rect);
 			this.from.moveTo(rect.from);
 			this.  to.moveTo(rect.to);
 		}
@@ -1910,30 +2160,36 @@ provides: Shapes.Circle
 /** @class Circle */
 var Circle = LibCanvas.declare( 'LibCanvas.Shapes.Circle', 'Circle', Shape, {
 	set : function () {
-		var a = atom.array.pickFrom(arguments);
+		var
+			center, radius,
+			a = atom.array.pickFrom(arguments);
 
 		if (a.length >= 3) {
-			this.center = new Point(a[0], a[1]);
-			this.radius = a[2];
+			center = new Point(a[0], a[1]);
+			radius = a[2];
 		} else if (a.length == 2) {
-			this.center = Point(a[0]);
-			this.radius = a[1];
+			center = Point.from(a[0]);
+			radius = a[1];
 		} else {
 			a = a[0];
-			this.radius = a.r == null ? a.radius : a.r;
+			radius = a.r == null ? a.radius : a.r;
 			if ('x' in a && 'y' in a) {
-				this.center = new Point(a.x, a.y);
+				center = new Point(a.x, a.y);
 			} else if ('center' in a) {
-				this.center = Point(a.center);
+				center = Point.from(a.center);
 			} else if ('from' in a) {
-				this.center = new Point(a.from).move({
+				center = new Point(a.from).move({
 					x: this.radius,
 					y: this.radius
 				});
 			}
 		}
-		if (this.center == null) throw new TypeError('center is null');
-		if (this.radius == null) throw new TypeError('radius is null');
+
+		this.center = center;
+		this.radius = radius;
+
+		if (center == null) throw new TypeError('center is null');
+		if (radius == null) throw new TypeError('radius is null');
 	},
 	// we need accessors to redefine parent "get center"
 	get center ( ) { return this._center; },
@@ -1946,7 +2202,7 @@ var Circle = LibCanvas.declare( 'LibCanvas.Shapes.Circle', 'Circle', Shape, {
 		return this.center;
 	},
 	hasPoint : function (point) {
-		return this.center.distanceTo(point) <= this.radius;
+		return this.center.checkDistanceTo(point, this.radius, true);
 	},
 	scale : function (factor, pivot) {
 		if (pivot) this.center.scale(factor, pivot);
@@ -1958,19 +2214,7 @@ var Circle = LibCanvas.declare( 'LibCanvas.Shapes.Circle', 'Circle', Shape, {
 	},
 	intersect : function (obj) {
 		if (obj instanceof this.constructor) {
-			var
-				tC = this.center,
-				oC = obj .center,
-				minDist = this.radius + obj.radius,
-				deltaX  = Math.abs(tC.x - oC.x),
-				deltaY;
-
-			if (deltaX >= minDist) return false;
-
-			deltaY = Math.abs(tC.y - oC.y);
-			if (deltaY >= minDist) return false;
-
-			return deltaX*deltaX + deltaY*deltaY < minDist * minDist;
+			return this.center.checkDistanceTo(obj.center, this.radius + obj.radius, true);
 		} else {
 			return this.getBoundingRectangle().intersect( obj );
 		}
@@ -5845,6 +6089,8 @@ provides: Shapes.Path
  * [empty] grow()
  */
 var Path = LibCanvas.declare( 'LibCanvas.Shapes.Path', 'Path', Polygon, {
+	parts: [],
+
 	initialize : function (parts) {
 		this.parts = [];
 
@@ -5872,8 +6118,8 @@ var Path = LibCanvas.declare( 'LibCanvas.Shapes.Path', 'Path', Polygon, {
 	lineTo: function (point) {
 		return this.push('lineTo', [ Point.from(point) ]);
 	},
-	curveTo: function (to, p1, p2) {
-		var points = atom.array.from(arguments).map(Point);
+	curveTo: function (to, cp1, cp2) {
+		var points = atom.array.pickFrom(arguments).map(Point);
 		return this.push('curveTo', points);
 	},
 
@@ -5919,7 +6165,7 @@ var Path = LibCanvas.declare( 'LibCanvas.Shapes.Path', 'Path', Polygon, {
 		var points = [];
 		this.forEach(function (part) {
 			for (var i = 0, l = part.points.length; i < l; i++) {
-				points.include(part.points[i]);
+				atom.array.include(points, part.points[i]);
 			}
 		});
 		return points;
@@ -6030,7 +6276,7 @@ var RoundedRectangle = LibCanvas.declare(
 
 name: "App.Behaviors"
 
-description: ""
+description: "DEPRECATED"
 
 license:
 	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
@@ -6107,7 +6353,7 @@ var Behaviors = declare( 'LibCanvas.App.Behaviors', {
 });
 
 
-var Behavior = declare( 'LibCanvas.App.Behaviors.Behavior', {
+declare( 'LibCanvas.App.Behaviors.Behavior', {
 	started: false,
 
 	/** @private */
@@ -6133,7 +6379,7 @@ var Behavior = declare( 'LibCanvas.App.Behaviors.Behavior', {
 
 name: "App.Behaviors.Clickable"
 
-description: "Provides interface for clickable canvas objects"
+description: "DEPRECATED"
 
 license:
 	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
@@ -6163,7 +6409,7 @@ function setValueFn (name, val) {
 	};
 }
 
-return declare( 'LibCanvas.App.Behaviors.Clickable', Behavior, {
+return declare( 'LibCanvas.App.Behaviors.Clickable', App.Behaviors.Behavior, {
 
 	callbacks: {
 		'mouseover'   : setValueFn('hover' , true ),
@@ -6207,7 +6453,7 @@ return declare( 'LibCanvas.App.Behaviors.Clickable', Behavior, {
 
 name: "App.Behaviors.Draggable"
 
-description: "When object implements LibCanvas.Behaviors.Draggable interface dragging made possible"
+description: "DEPRECATED"
 
 license:
 	- "[GNU Lesser General Public License](http://opensource.org/licenses/lgpl-license.php)"
@@ -6225,7 +6471,7 @@ provides: App.Behaviors.Draggable
 ...
 */
 
-declare( 'LibCanvas.App.Behaviors.Draggable', Behavior, {
+declare( 'LibCanvas.App.Behaviors.Draggable', App.Behaviors.Behavior, {
 	stopDrag: [ 'up', 'out' ],
 
 	initialize: function (behaviors, args) {
@@ -6388,12 +6634,21 @@ provides: App.Light.Element
 
 /** @class App.Light.Vector */
 App.Light.Element = atom.declare( 'LibCanvas.App.Light.Element', App.Element, {
+
+	get behaviors () {
+		throw new Error( 'Please, use `element.clickable` & `element.draggable` instead' );
+	},
+
+	clickable : null,
+	draggable : null,
+	animatable: null,
+
 	configure: function () {
-		var behaviors = this.settings.get('behaviors');
+		this.clickable  = new App.Clickable(this, this.redraw);
+		this.draggable  = new App.Draggable(this, this.redraw);
+		this.animatable = new atom.Animatable(this);
+		this.animate    = this.animatable.animate;
 
-		this.animate = new atom.Animatable(this).animate;
-
-		Behaviors.attach( this, [ 'Draggable', 'Clickable' ], this.redraw );
 		if (this.settings.get('mouse') !== false) {
 			this.listenMouse();
 		}

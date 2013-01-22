@@ -61,7 +61,7 @@
 		var vector = helper.createVector( new Circle(point, 4), { zIndex: 2 })
 			.setStyle({ fill: '#090' });
 
-		vector.behaviors.get('draggable').start( curve.redraw );
+		vector.draggable.start( curve.redraw );
 	});
 
 	[ new Line(from, cpFr), new Line(to, cpTo) ].forEach(function (line) {

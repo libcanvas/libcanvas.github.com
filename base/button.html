@@ -37,8 +37,11 @@ new function () {
 				'shadow': '0 0 6 #9f9',
 				'text'  : '#cfc'
 			});
-			button.behaviors.get('draggable').start();
-			button.behaviors.get('clickable').start(function (property, value) {
+			//button.behaviors.get('draggable').start();
+
+			this.draggable.start();
+
+			this.clickable.start(function (property, value) {
 				// make our button on top of all elements
 				// if it is active & restore index on release
 				if (property == 'active') {

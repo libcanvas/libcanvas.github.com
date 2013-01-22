@@ -11,9 +11,7 @@ atom.declare( 'Fifteen.Tile', {
 				'hover'   : this.renderSprite( 'hover' )
 			};
 
-			App.Behaviors
-				.attach( this, [ 'Clickable' ], this.redraw )
-				.startAll();
+			new App.Clickable( this, this.redraw );
 		},
 
 		get position () {
