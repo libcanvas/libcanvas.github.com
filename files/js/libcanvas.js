@@ -377,7 +377,9 @@ declare( 'LibCanvas.App.Container', {
 
 		this.isSimple = this.settings.get('simple');
 
-		if (!this.isSimple) {
+		if (this.isSimple) {
+			this.createWrappersSimple();
+		} else {
 			this.createWrappers();
 		}
 	},
@@ -411,18 +413,24 @@ declare( 'LibCanvas.App.Container', {
 	createDom: function (settings) {
 		var dom = new App.Dom( this, settings );
 		this.doms.push(dom);
-
-		if (this.isSimple) {
-			this.bounds  = dom.element;
-			this.wrapper = dom.element;
-		}
-
 		return dom;
 	},
 
 	appendTo: function (element) {
 		if (element) this.wrapper.appendTo( element );
 		return this;
+	},
+
+	/** @private */
+	createWrappersSimple: function () {
+		var size = this.currentSize.toObject();
+
+		this.wrapper = atom.dom(LibCanvas.buffer(size,true));
+		this.bounds  = this.wrapper;
+
+		this.wrapper
+			.addClass('libcanvas-app-simple')
+			.appendTo( this.settings.get('appendTo') )
 	},
 
 	/** @private */
@@ -569,21 +577,34 @@ declare( 'LibCanvas.App.Dom', {
 
 	/** @private */
 	createElement: function () {
+		if (this.container.isSimple) {
+			this.createElementSimple();
+		} else {
+			this.createElementNormal();
+		}
+	},
+
+	/** @private */
+	createElementNormal: function () {
 		this.canvas  = new LibCanvas.Buffer(this.size, true);
+
 		this.element = atom.dom(this.canvas);
 
-		if (this.container.isSimple) {
-			this.element
-				.addClass('libcanvas-app-simple')
-				.appendTo( this.container.settings.get('appendTo') );
-		} else {
-			this.element
-				.attr({ 'data-name': this.name  })
-				.css ({ 'position' : 'absolute' })
-				.appendTo( this.container.bounds );
+		this.element
+			.attr({ 'data-name': this.name  })
+			.css ({ 'position' : 'absolute' })
+			.appendTo( this.container.bounds );
 
-			this.zIndex = this.settings.get('zIndex') || 0;
-		}
+		this.zIndex = this.settings.get('zIndex') || 0;
+	},
+
+	/** @private */
+	createElementSimple: function () {
+		this.element = this.container.wrapper;
+
+		this.canvas  = this.element.first;
+		this.canvas.width  = this.size.width;
+		this.canvas.height = this.size.height;
 	}
 });
 

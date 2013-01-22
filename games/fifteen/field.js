@@ -8,11 +8,11 @@ atom.declare( 'Fifteen.Field', {
 			size: this.size(),
 			simple: true
 		});
-		
-		layer = app.createLayer({ intersection: 'manual' });
 
 		mouse = new Mouse(app.container.bounds);
 		this.mouseHandler = new App.MouseHandler({ mouse: mouse, app: app });
+		
+		layer = app.createLayer({ intersection: 'manual' });
 
 		this.generate( layer );
 		this.bindTouch();

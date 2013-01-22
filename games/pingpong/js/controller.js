@@ -11,7 +11,7 @@ atom.declare( 'Pong.Controller', {
 
 	start: function (images) {
 		this.size  = new Size(800, 500);
-		this.app   = new App({ size: this.size });
+		this.app   = new App({ size: this.size, simple: true });
 		this.layer = this.app.createLayer({ invoke: true });
 		this.app.resources.set('images', images);
 
