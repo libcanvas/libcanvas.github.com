@@ -42,7 +42,11 @@ atom.declare( 'Mines.Action', {
 			actionCode = this.actions[actionCode];
 		}
 
-		this[actionCode](cell);
+		if (actionCode == 'open' && parseInt(cell.value)){
+			this.all(cell);
+		} else {
+			this[actionCode](cell);
+		}
 	},
 
 	open: function (cell) {
