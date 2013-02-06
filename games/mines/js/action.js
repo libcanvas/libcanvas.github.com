@@ -32,7 +32,7 @@ atom.declare( 'Mines.Action', {
 		mouse.events.add( 'contextmenu', Mouse.prevent );
 
 		new TileEngine.Mouse( view.element, mouse ).events
-			.add( 'mousedown', function (cell, e) {
+			.add( 'down', function (cell, e) {
 				this.activate(cell, e.button);
 			}.bind(this));
 	},
