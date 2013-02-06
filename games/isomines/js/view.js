@@ -1,64 +1,111 @@
 /** @class IsoMines.View */
 atom.declare( 'IsoMines.View', {
 	initialize: function (controller, size) {
-		var appSize = new Size(1200, 600);
+		this.appSize = new Size(800, 500);
 
 		this.controller = controller;
 
-		var p = this.projection = new IsometricEngine.Projection({
+		this.projection = new IsometricEngine.Projection({
 		    factor: new Point3D(90, 52, 54)
 		});
 
-		var layerSize = new Size(
-			p.toIsometric(new Point3D(size.x, size.y, 0)).x,
-			p.toIsometric(new Point3D(0, size.y, -1)).y * 2
+		this.layerSize = new Size(
+			this.projection.toIsometric(new Point3D(size.x, size.y, 0)).x,
+			this.projection.toIsometric(new Point3D(0, size.y, -1)).y * 2
 		);
 
-		this.app = new App({ size: appSize });
+		this.app = new App({ size: this.appSize });
 
 		this.layer = this.app.createLayer({
 			name: 'tiles',
 			intersection: 'manual',
-			size: layerSize
+			size: this.layerSize
 		});
 
-		this.projection.start = new Point(0, layerSize.height/2-20);
+		this.projection.start = new Point(0, this.layerSize.height/2-20);
 
+		this.mouse = new LibCanvas.Mouse(this.app.container.bounds);
 
-		var mouse = new LibCanvas.Mouse(this.app.container.bounds);
+		this.mouse.events.add('contextmenu', Mouse.prevent);
+
+		this.mouseHandler = new App.MouseHandler({
+			mouse: this.mouse, app: this.app
+		});
+
+		this.app.resources.set({
+			mouseHandler: this.mouseHandler,
+			mouse : this.mouse,
+			images: controller.images
+		});
+
+		this.initDragger();
+
+		this.initAnimations();
+
+		this.createCellsElements(size);
+
+		this.shift.addShift( this.shift.limitShift.center, true );
+	},
+
+	initAnimations: function () {
+		var frames = new Animation.Frames(
+			this.controller.images.get('gates-animation'), 180, 104
+		);
+
+		this.animationSheets = atom.object.map({
+			opening  : atom.array.range( 12, 23),
+			locking  : atom.array.range(  0, 11),
+			unlocking: atom.array.range( 11,  0)
+		}, function (sequence) {
+			return new Animation.Sheet({
+			    frames: frames,
+			    delay : 40,
+			    sequence: sequence
+			});
+		});
+	},
+
+	initDragger: function () {
 		var padding = new Point(64, 64);
 
-		var shift = new App.LayerShift(this.layer);
-		var shiftLimit = new Rectangle(
-			new Point(appSize)
-				.move(layerSize, true)
+		this.shift = new App.LayerShift(this.layer);
+
+		this.shift.setLimitShift(new Rectangle(
+			new Point(this.appSize)
+				.move(this.layerSize, true)
 				.move(padding, true),
 			padding
-		);
-		shift.setLimitShift(shiftLimit);
+		));
 
-		new App.Dragger( mouse )
-			.addLayerShift( shift )
-			.start();
+		new App.Dragger( this.mouse )
+			.addLayerShift( this.shift )
+			.start(function (e) {
+				return e.button == 1;
+			});
+	},
 
-		var mouseHandler = new App.MouseHandler({
-			mouse: mouse, app: this.app
-		});
+	createCellsElements: function (size) {
+		var x, y, point, cell;
 
-		this.app.resources.set({ images: controller.images });
+		this.cells = [];
 
-		for (var x = size.width; x--;) for (var y = size.height; y--;) {
-			var point = new Point(x, y);
+		this.cellsIndex = atom.array.fillMatrix(size.width, size.height, 0);
 
-			var cell = new IsoMines.Cell(this.layer, {
-				point: point,
-				shape: this.createPoly(point)
+		for (x = size.width; x--;) for (y = size.height; y--;) {
+			point = new Point(x, y);
+
+			cell = new IsoMines.Cell(this.layer, {
+				point : point,
+				sheets: this.animationSheets,
+				shape : this.createPoly(point)
 			});
 
-			mouseHandler.subscribe(cell);
-		}
+			this.mouseHandler.subscribe(cell);
 
-		shift.addShift( shiftLimit.center, true );
+			this.cells.push(cell);
+
+			this.cellsIndex[point.y][point.x] = cell;
+		}
 	},
 
 	createPoly: function (point) {
