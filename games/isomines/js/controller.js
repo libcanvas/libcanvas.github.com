@@ -34,11 +34,44 @@ atom.declare( 'IsoMines.Controller', {
 	},
 
 	start: function (images) {
-		this.size  = new Size(8, 8);
-		this.mines = 10;
-
+		this.size  = new Size(16, 16);
+		this.mines = 40;
 		this.images = images;
+
+		this.screenfull();
+		this.launch();
+	},
+
+	screenfull: function () {
+		if (!screenfull.enabled) return;
+
+		atom.dom.create('p')
+		    .html('Click here to <b>fullscreen</b>')
+		    .appendTo('body')
+			.bind('click', function () {
+				screenfull.request( this.view.app.container.wrapper.first );
+			}.bind(this));
+
+	    screenfull.onchange = function() {
+		    this.view.fullscreen(screenfull.isFullscreen);
+	    }.bind(this);
+	},
+
+	launch: function () {
 		this.view = new IsoMines.View( this, this.size );
+		this.generator = new IsoMines.Generator( this.size, this.mines );
+	},
+
+	checkReady: function (point) {
+		if (!this.generator.isReady()) {
+			var gen = this.generator.generate(point);
+
+			this.view.cells.forEach(function (cell) {
+				cell.value = gen.isMine(cell.point) ?
+					'mine' : gen.getValue(cell.point);
+			});
+
+		}
 	}
 
 });

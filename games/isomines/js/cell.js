@@ -4,17 +4,25 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 	actions: [ 'open', 'all', 'lock' ],
 
 	preStates: {
+		reclosed: 'closing',
 		opened: 'opening',
 		closed: 'unlocking',
 		locked: 'locking'
 	},
 
-	imageSize: new Size(180, 104),
+	imageSize : new Size(180, 104),
+	controller: null,
 
-	value: 0,
+	sheets: null,
+	point : null,
+	state : 'closed',
+	value : 0,
+	lost  : false,
 
 	configure: function () {
-		this.value = Math.random() > 0.5 ? Number.random(0,8) : 0;
+		this.settings.properties(this, 'point sheets controller');
+
+		this.value = 0;
 		this.imageIndex = Number.random(0, 5);
 		this.animation  = null;
 
@@ -24,50 +32,91 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 	},
 
 	activate: function (button) {
+		this.controller.checkReady(this.point);
+
 		if (button == 0) this.open();
 		if (button == 2) this.lock();
 	},
 
-	open: function () {
-		if (this.state == 'closed') {
-			this.goTo('opened', function () {
+	lose: function () {
+		this.controller.view.cells.forEach(function (cell) {
+			cell.lost = true;
 
+			if (cell.state == 'closed' && cell.value == 'mine') {
+				cell.open.delay(Number.random(0,2000), cell, [ true ]);
+			}
+		});
+	},
+
+	close: function (callback) {
+		if (this.state != 'opened') return;
+
+		this.goTo('reclosed', function () {
+			this.state = 'closed';
+		});
+	},
+
+	open: function (auto) {
+		if (this.lost && !auto) return;
+
+		if (this.state == 'closed') {
+			if (!this.lost && this.value == 'mine') {
+				this.lose();
+			}
+
+			this.goTo('opened', function () {
+				this.controller.view.opened(this);
+				if (!this.value) {
+					this.all();
+				}
 			});
-		} else if (this.state == 'opened') {
+		} else if (this.state == 'opened' && !auto) {
 			this.all();
 		}
 	},
 
 	lock: function () {
-		if (this.state == 'closed' || this.state == 'locked') {
-			this.goTo(this.state == 'closed' ? 'locked' : 'closed', function () {
+		if (this.lost) return;
 
-			});
+		if (this.state == 'closed' || this.state == 'locked') {
+			this.goTo(
+				this.state == 'closed' ? 'locked' : 'closed',
+				function () {}
+			);
 		}
 	},
 
 	all: function () {
-
+		this.eachNeighbour(function (cell) {
+			cell.open(true);
+		});
 	},
 
-	state: 'closed',
+	eachNeighbour: function (callback) {
+		this.controller.generator
+			.getNeighbours(this.point)
+			.forEach(function (point) {
+				callback.call( this, this.controller.view.getCell(point) );
+			}.bind(this));
+	},
 
 	goTo: function (state, callback) {
 		var preState = this.preStates[state];
-		if (preState) {
-			this.state = preState;
 
-			this.animation = new Animation({
-			    sheet   : this.settings.get('sheets')[preState],
-			    onUpdate: this.redraw,
-			    onStop  : function () {
-				    this.state = state;
-				    this.animation = null;
-				    this.redraw();
-				    callback.call(this);
-			    }.bind(this)
-			})
-		}
+		if (!preState) return;
+
+		this.state = preState;
+
+		this.animation = new Animation({
+		    sheet   : this.sheets[preState],
+		    onUpdate: this.redraw,
+		    onStop  : function () {
+			    this.state = state;
+			    this.animation = null;
+			    this.redraw();
+			    callback.call(this);
+		    }.bind(this)
+		});
 	},
 
 	getImage: function (x, y, str) {
@@ -100,13 +149,15 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 
 	renderTo: function (ctx) {
 		this.drawImage(ctx, 'static-background');
-		if (this.value && this.state.begins('open')) {
-			this.drawImage(ctx, 'static-number-' + this.value);
+		if (this.value && (this.state.begins('open') || this.state == 'closing')) {
+			if (this.value == 'mine') {
+				this.drawImage(ctx, 'static-mine');
+			} else {
+				this.drawImage(ctx, 'static-number-' + this.value);
+			}
 		}
 		this.drawGates(ctx);
 		this.drawImage(ctx, 'static-carcass-' + this.imageIndex);
-
 	}
-
 
 });

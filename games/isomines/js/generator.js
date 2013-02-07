@@ -31,6 +31,8 @@ atom.declare( 'IsoMines.Generator', {
 		});
 
 		this.mines = minesIndex;
+
+		return this;
 	},
 
 	getValue: function (point) {

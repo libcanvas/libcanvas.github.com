@@ -1,7 +1,8 @@
 /** @class IsoMines.View */
 atom.declare( 'IsoMines.View', {
 	initialize: function (controller, size) {
-		this.appSize = new Size(800, 500);
+		this.size = size;
+		this.appSize = new Size(1000, 600);
 
 		this.controller = controller;
 
@@ -45,6 +46,60 @@ atom.declare( 'IsoMines.View', {
 		this.createCellsElements(size);
 
 		this.shift.addShift( this.shift.limitShift.center, true );
+
+		this.emptyCells = size.width * size.height - controller.mines;
+	},
+
+	fullscreen: function (on) {
+		this.app.container.size = on ?
+			new Size(window.outerWidth-2, window.outerHeight-2) :
+			this.appSize;
+
+		this.updateShiftLimit();
+	},
+
+	destroy: function () {
+		this.app.destroy();
+		this.controller.launch();
+	},
+
+	opened: function (cell) {
+		if (--this.emptyCells) return;
+
+		var
+			view = this,
+			size = view.size,
+			left = cell.point.clone(),
+			right = cell.point.clone();
+
+		function next () {
+			if (left && left.x-- == 0) {
+				left.x = size.width - 1;
+				if (left.y-- == 0) {
+					left = null
+				}
+			}
+
+			if (right && ++right.x == size.width) {
+				right.x = 0;
+				if (++right.y == size.height) {
+					right = null
+				}
+			}
+
+			if (left ) view.getCell(left ).close();
+			if (right) view.getCell(right).close();
+
+			if (left || right) {
+				setTimeout(next, 50);
+			} else {
+				view.destroy.delay(1000, view);
+			}
+
+		}
+
+		cell.close();
+		next();
 	},
 
 	initAnimations: function () {
@@ -54,6 +109,7 @@ atom.declare( 'IsoMines.View', {
 
 		this.animationSheets = atom.object.map({
 			opening  : atom.array.range( 12, 23),
+			closing  : atom.array.range( 23, 12),
 			locking  : atom.array.range(  0, 11),
 			unlocking: atom.array.range( 11,  0)
 		}, function (sequence) {
@@ -65,23 +121,31 @@ atom.declare( 'IsoMines.View', {
 		});
 	},
 
-	initDragger: function () {
-		var padding = new Point(64, 64);
+	getCell: function (point) {
+		return this.cellsIndex[point.y][point.x];
+	},
 
+	initDragger: function () {
 		this.shift = new App.LayerShift(this.layer);
 
-		this.shift.setLimitShift(new Rectangle(
-			new Point(this.appSize)
-				.move(this.layerSize, true)
-				.move(padding, true),
-			padding
-		));
+		this.updateShiftLimit();
 
 		new App.Dragger( this.mouse )
 			.addLayerShift( this.shift )
 			.start(function (e) {
 				return e.button == 1;
 			});
+	},
+
+	updateShiftLimit: function () {
+		var padding = new Point(64, 64);
+
+		this.shift.setLimitShift(new Rectangle(
+			new Point(this.app.container.size)
+				.move(this.layerSize, true)
+				.move(padding, true),
+			padding
+		));
 	},
 
 	createCellsElements: function (size) {
@@ -97,7 +161,8 @@ atom.declare( 'IsoMines.View', {
 			cell = new IsoMines.Cell(this.layer, {
 				point : point,
 				sheets: this.animationSheets,
-				shape : this.createPoly(point)
+				shape : this.createPoly(point),
+				controller: this.controller
 			});
 
 			this.mouseHandler.subscribe(cell);
