@@ -31,6 +31,10 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 		});
 	},
 
+	isLocked: function () {
+		return this.state == 'locked' || this.state == 'locking';
+	},
+
 	activate: function (button) {
 		this.controller.checkReady(this.point);
 
@@ -48,12 +52,12 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 		});
 	},
 
-	close: function (callback) {
-		if (this.state != 'opened') return;
-
-		this.goTo('reclosed', function () {
-			this.state = 'closed';
-		});
+	close: function () {
+		if (this.state == 'opened')  {
+			this.changeState('reclosed', function () {
+				this.state = 'closed';
+			});
+		}
 	},
 
 	open: function (auto) {
@@ -64,25 +68,28 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 				this.lose();
 			}
 
-			this.goTo('opened', function () {
+			this.changeState('opened', function () {
 				this.controller.view.opened(this);
 				if (!this.value) {
 					this.all();
 				}
 			});
-		} else if (this.state == 'opened' && !auto) {
-			this.all();
+		} else if (!auto && this.correctLockesCount()) {
+			if (this.countLockes() == this.value) {
+				this.all();
+			}
 		}
+	},
+
+	correctLockesCount: function () {
+		return this.state == 'opened' && this.countLockes() == this.value;
 	},
 
 	lock: function () {
 		if (this.lost) return;
 
 		if (this.state == 'closed' || this.state == 'locked') {
-			this.goTo(
-				this.state == 'closed' ? 'locked' : 'closed',
-				function () {}
-			);
+			this.changeState( this.state == 'closed' ? 'locked' : 'closed' );
 		}
 	},
 
@@ -90,6 +97,18 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 		this.eachNeighbour(function (cell) {
 			cell.open(true);
 		});
+	},
+
+	countLockes: function () {
+		var lockes = 0;
+
+		this.eachNeighbour(function (cell) {
+			if (cell.isLocked()) {
+				lockes++
+			}
+		});
+
+		return lockes;
 	},
 
 	eachNeighbour: function (callback) {
@@ -100,24 +119,32 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 			}.bind(this));
 	},
 
-	goTo: function (state, callback) {
-		var preState = this.preStates[state];
-
-		if (!preState) return;
-
-		this.state = preState;
+	changeState: function (state, callback) {
+		this.state = this.preStates[state];
 
 		this.animation = new Animation({
-		    sheet   : this.sheets[preState],
+		    sheet   : this.sheets[this.state],
 		    onUpdate: this.redraw,
 		    onStop  : function () {
 			    this.state = state;
 			    this.animation = null;
 			    this.redraw();
-			    callback.call(this);
+			    callback && callback.call(this);
 		    }.bind(this)
 		});
 	},
+
+	clearPrevious: function () {},
+
+	renderTo: function (ctx) {
+		this.drawImage(ctx, 'static-background');
+		if (this.valueIsVisible()) {
+			this.drawImage(ctx, this.getValueImage());
+		}
+		this.drawImage(ctx, this.getGatesImage());
+		this.drawImage(ctx, 'static-carcass-' + this.imageIndex);
+	},
+	
 
 	getImage: function (x, y, str) {
 		return this.layer.app.resources
@@ -137,27 +164,18 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 		ctx.drawImage({ image : image, center: this.shape.center });
 	},
 
-	clearPrevious: function () {},
-
-	drawGates: function (ctx) {
-		if (' closed opened locked'.indexOf(this.state) > 0) {
-			this.drawImage(ctx, 'gates-' + this.state);
-		} else if (this.animation && this.animation.get()) {
-			this.drawImage(ctx, this.animation.get());
-		}
+	getGatesImage: function () {
+		return (this.animation && this.animation.get()) || 'gates-' + this.state;
 	},
 
-	renderTo: function (ctx) {
-		this.drawImage(ctx, 'static-background');
-		if (this.value && (this.state.begins('open') || this.state == 'closing')) {
-			if (this.value == 'mine') {
-				this.drawImage(ctx, 'static-mine');
-			} else {
-				this.drawImage(ctx, 'static-number-' + this.value);
-			}
-		}
-		this.drawGates(ctx);
-		this.drawImage(ctx, 'static-carcass-' + this.imageIndex);
+	valueIsVisible: function () {
+		return this.value && ['opened', 'opening','closing'].contains(this.state);
+	},
+
+	getValueImage: function () {
+		return this.value == 'mine' ?
+			'static-mine' :
+			'static-number-' + this.value;
 	}
 
 });

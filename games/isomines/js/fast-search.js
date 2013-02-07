@@ -8,13 +8,15 @@ atom.declare( 'IsoMines.FastSearch', App.ElementsMouseSearch, {
 	},
 
 	add: function (cell) {
-		this.cells[cell.point.y + '.' + cell.point.x] = cell;
-
-		return this;
+		return this.set(cell, cell);
 	},
 
 	remove: function (cell) {
-		this.cells[cell.point.y + '.' + cell.point.x] = null;
+		return this.set(cell, null);
+	},
+
+	set: function (cell, value) {
+		this.cells[cell.point.y + '.' + cell.point.x] = value;
 		return this;
 	},
 
