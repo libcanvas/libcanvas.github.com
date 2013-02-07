@@ -26,10 +26,10 @@ atom.declare( 'IsoMines.Controller', {
 			'static-number-7'   : 'im/static.png [180:104]{7:1}',
 			'static-number-8'   : 'im/static.png [180:104]{8:1}',
 
-			'walls-right-empty' : 'im/walls.png [90:105]{2:0}',
-			'walls-right-arrows': 'im/walls.png [90:105]{3:0}',
-			'walls-left-empty'  : 'im/walls.png [90:105]{2:1}',
-			'walls-left-arrows' : 'im/walls.png [90:105]{3:1}'
+			'walls-right-empty': 'im/walls.png [90:104]{2:0}',
+			'walls-right-arrow': 'im/walls.png [90:104]{3:0}',
+			'walls-left-empty' : 'im/walls.png [90:104]{2:1}',
+			'walls-left-arrow' : 'im/walls.png [90:104]{3:1}'
 		}, this.start.bind(this) );
 	},
 

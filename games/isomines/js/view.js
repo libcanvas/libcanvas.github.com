@@ -59,8 +59,7 @@ atom.declare( 'IsoMines.View', {
 	},
 
 	destroy: function () {
-		this.app.destroy();
-		this.controller.launch();
+		window.location = window.location;
 	},
 
 	opened: function (cell) {
@@ -164,6 +163,20 @@ atom.declare( 'IsoMines.View', {
 				shape : this.createPoly(point),
 				controller: this.controller
 			});
+
+			if (x == 0) {
+				new IsoMines.Wall(this.layer, {
+					from: cell.shape.points[0].clone(),
+					side: 'left'
+				});
+			}
+
+			if (y == size.height - 1) {
+				new IsoMines.Wall(this.layer, {
+					from: cell.shape.center,
+					side: 'right'
+				});
+			}
 
 			this.mouseHandler.subscribe(cell);
 
