@@ -31,8 +31,11 @@ atom.declare( 'IsoMines.View', {
 			.add('click', Mouse.prevent)
 			.add('contextmenu', Mouse.prevent);
 
+		this.initDragger();
+
 		this.mouseHandler = new App.MouseHandler({
-			mouse: this.mouse, app: this.app
+			mouse: this.mouse, app: this.app,
+			search: new IsoMines.FastSearch(this.shift, this.projection)
 		});
 
 		this.app.resources.set({
@@ -40,8 +43,6 @@ atom.declare( 'IsoMines.View', {
 			mouse : this.mouse,
 			images: controller.images
 		});
-
-		this.initDragger();
 
 		this.initAnimations();
 
