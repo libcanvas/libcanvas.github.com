@@ -27,7 +27,9 @@ atom.declare( 'IsoMines.View', {
 
 		this.mouse = new LibCanvas.Mouse(this.app.container.bounds);
 
-		this.mouse.events.add('contextmenu', Mouse.prevent);
+		this.mouse.events
+			.add('click', Mouse.prevent)
+			.add('contextmenu', Mouse.prevent);
 
 		this.mouseHandler = new App.MouseHandler({
 			mouse: this.mouse, app: this.app
