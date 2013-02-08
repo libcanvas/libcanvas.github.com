@@ -1,6 +1,6 @@
 /** @class IsoMines.FastSearch */
 atom.declare( 'IsoMines.FastSearch', App.ElementsMouseSearch, {
-	// It is fast hex search. Default variant just move through all elements
+
 	initialize: function (shift, projection) {
 		this.projection = projection;
 		this.shift = shift;
@@ -25,7 +25,7 @@ atom.declare( 'IsoMines.FastSearch', App.ElementsMouseSearch, {
 
 		var
 			path = this.projection.to3D(point),
-			cell  = this.cells[Math.floor(path.y) + '.' + Math.floor(path.x)];
+			cell = this.cells[Math.floor(path.y) + '.' + Math.floor(path.x)];
 
 		return cell ? [ cell ] : [];
 	}
