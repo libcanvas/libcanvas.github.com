@@ -5,9 +5,9 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 
 	preStates: {
 		reclosed: 'closing',
-		opened: 'opening',
-		closed: 'unlocking',
-		locked: 'locking'
+		opened  : 'opening',
+		closed  : 'unlocking',
+		locked  : 'locking'
 	},
 
 	imageSize : new Size(180, 104),
@@ -15,9 +15,9 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 
 	sheets: null,
 	point : null,
-	state : 'closed',
 	value : 0,
 	lost  : false,
+	state : 'closed',
 
 	configure: function () {
 		this.settings.properties(this, 'point sheets controller');
@@ -169,7 +169,7 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 	},
 
 	valueIsVisible: function () {
-		return this.value && ['opened', 'opening','closing'].contains(this.state);
+		return this.value && ['opened','opening','closing'].contains(this.state);
 	},
 
 	getValueImage: function () {
