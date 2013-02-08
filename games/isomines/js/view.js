@@ -135,7 +135,7 @@ atom.declare( 'IsoMines.View', {
 		new App.Dragger( this.mouse )
 			.addLayerShift( this.shift )
 			.start(function (e) {
-				return e.button == 1;
+				return e.button == 1 || e.ctrlKey;
 			});
 	},
 

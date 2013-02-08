@@ -27,7 +27,7 @@ atom.declare( 'IsoMines.Cell', App.Element, {
 		this.animation  = null;
 
 		this.events.add('mousedown', function (e) {
-			this.activate(e.button);
+			if (!e.ctrlKey) this.activate(e.button);
 		});
 	},
 
