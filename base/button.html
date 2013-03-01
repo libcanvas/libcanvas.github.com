@@ -11,7 +11,7 @@
 		<p><a href="/">Return to index</a></p>
 		<script>
 new function () {
-	var helper, i, Button;
+	var helper, x, y, Button;
 
 	LibCanvas.extract();
 
@@ -83,11 +83,11 @@ new function () {
 
 	helper = new App.Light(new Size(600, 400));
 
-	for (i = 13; i--;) {
+	for (x = 3; x--;) for (y = 8; y--;) {
 		new Button( helper.layer, {
-			shape : new RoundedRectangle(20, 20 + 28*i, 150, 22).setRadius(3),
-			text  : 'Button #' + i,
-			zIndex: i
+			shape : new RoundedRectangle(20 + 200*x, 15 + 50*y, 150, 22).setRadius(3),
+			text  : 'Button #' + (x+y*3) ,
+			zIndex: x+y*3
 		});
 	}
 
