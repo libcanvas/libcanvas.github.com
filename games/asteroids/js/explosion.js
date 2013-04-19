@@ -39,20 +39,17 @@ declare( 'Ast.Explosion', App.Element, {
 /** @name Ast.Explosion.Debris */
 atom.declare( 'Ast.Explosion.Debris', App.Element, {
 
-	opacity: 1,
 	zIndex : 7,
 	angle  : 0,
 
 	configure: function () {
-		var shape = this.shape;
-		this.angle = Number.random(0, 360).degree();
-
+		this.angle = Number.random(1, 360).degree();
 
 		new atom.Animatable(this).animate({
 			time: 1500,
 			props: {
-				'shape.center.x': shape.center.x + Number.random(-200, 200),
-				'shape.center.y': shape.center.y + Number.random(-200, 200),
+				'shape.center.x': this.shape.center.x + Number.random(-200, 200),
+				'shape.center.y': this.shape.center.y + Number.random(-200, 200),
 				'opacity': 0
 			},
 			fn: 'circ-out',
@@ -62,14 +59,10 @@ atom.declare( 'Ast.Explosion.Debris', App.Element, {
 	},
 
 	renderTo: function (ctx, resources) {
-		ctx
-			.save()
-			.set({ globalAlpha: (this.opacity*1.5).limit(0,1) })
-			.drawImage({
-				image : resources.get('images').get('debris'),
-				center: this.shape.center,
-								angle: this.angle
-			})
-			.restore();
+		ctx.drawImage({
+			image : resources.get('images').get('debris'),
+			center: this.shape.center,
+			angle: this.angle
+		});
 	}
 });

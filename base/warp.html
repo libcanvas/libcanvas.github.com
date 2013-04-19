@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8"/>
+	<title>LibCanvas :: Warp</title>
+	<link href="/files/styles.css" rel="stylesheet"/>
+	<script src="/files/js/atom.js"></script>
+	<script src="/files/js/libcanvas.js"></script>
+	<style>
+		.libcanvas-app { background-color: #030303 }
+	</style>
+</head>
+<body>
+<p><a href="/">Return to index</a></p>
+<script>
+	LibCanvas.extract();
+
+	/** @class Star */
+	var Star = atom.declare(App.Element, {
+
+		progress: 1,
+		opacity : 0,
+
+		configure: function () {
+			this.animate = new atom.Animatable(this).animate;
+
+			this.generatePosition(this.settings.get('center'));
+
+			this.shape = new Polygon(this.from.clone(), this.from.clone(), this.from.clone());
+
+			// во сколько раз хвост будет двигаться медленнее, чем основа. от 2 до 3
+			this.tailFactor    = 2 + Math.random();
+			// ускорение звезды
+			this.progressSpeed = (Math.random() + 0.5)/500;
+			this.color = new atom.Color(128, 128, Number.random(128, 192)).toString();
+
+			this.reset(true);
+			this.recount();
+		},
+
+		generatePosition: function (center) {
+			// на каком расстоянии от центра звезда "стартует"
+			// мы не хотим, чтобы она появлялась прям в центре приложения,
+			// потому смещаем в бок центр
+			var distance = Number.random((center.x/10).round(), center.x);
+
+			// определяемся в каком направлении точка будет лететь
+			this.angle = Number.random(1, 360).degree();
+
+			// смещаем сначала на расстояние, а потом вертим вокруг центра
+			this.from = center.clone()
+				.move(new Point(distance, 0))
+				.rotate(this.angle, center);
+
+			this.sin = (-this.angle).sin();
+			this.cos = (-this.angle).cos();
+		},
+
+		reset: function (init) {
+			if (init) {
+				// При старте приложения четверть будет запускаться с нуля
+				// Остальные - словно мы уже в полёте
+				this.progress = Number.random(-15, 45).limit(1);
+				this.opacity  = 1;
+			} else {
+				this.progress = 1;
+				this.opacity  = 0;
+				this.animate({ opacity: 1 });
+			}
+		},
+
+		recount: function () {
+			var
+				sin = this.sin,
+				cos = this.cos,
+				f   = this.from,
+				p   = this.shape.points,
+				progress = (this.progress - 2).limit(2);
+
+			p[0].x = f.x + progress * cos / this.tailFactor;
+			p[0].y = f.y - progress * sin / this.tailFactor;
+
+			if (this.layer.ctx.rectangle.hasPoint(p[0])) {
+				p[1].x = f.x + progress * cos;
+				p[1].y = f.y - progress * sin;
+				p[2].x = p[1].x + 2 * sin;
+				p[2].y = p[1].y + 2 * cos;
+			} else {
+				this.reset();
+			}
+		},
+
+		onUpdate: function (time) {
+			this.progress *= 1 + this.progressSpeed * time;
+			this.recount();
+			this.redraw();
+		},
+
+		renderTo: function (ctx) {
+			ctx.fill(this.shape, this.color);
+		}
+
+	});
+
+	// App Init
+	(function () {
+		var width, app, layer, i, size, center;
+
+		width  = document.width ? (document.width - 50) : 800;
+		size   = new Size(width, (width / 2).round());
+		center = new Point((size.width/2).round(), (size.height/2).round());
+
+		app    = new App({ size: size, invoke: true, appendTo: 'body' });
+		layer  = app.createLayer({ intersection: 'full' });
+
+		for (i = 0; i < 150; i++) {
+			new Star(layer, { center : center });
+		}
+	}());
+</script>
+</body>
+</html>
