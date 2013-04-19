@@ -524,6 +524,8 @@ provides: dom
 		}
 	});
 	Dom.prototype = {
+		constructor: Dom,
+		elems: [],
 		get length() {
 			return this.elems ? this.elems.length : 0;
 		},
@@ -626,27 +628,35 @@ provides: dom
 				}
 			}
 		}),
-		
-		bind : atom.core.overloadSetter(function (event, callback) {
+
+		addEvent: atom.core.overloadSetter(function (event, callback) {
 			if (callback === false) callback = prevent;
 
 			this.each(function (elem) {
 				if (elem == document && event == 'load') elem = window;
 				elem.addEventListener(event, callback, false);
 			});
-			
+
 			return this;
 		}),
-		unbind : atom.core.overloadSetter(function (event, callback) {
+		removeEvent : atom.core.overloadSetter(function (event, callback) {
 			if (callback === false) callback = prevent;
-				
+
 			this.each(function (elem) {
 				if (elem == document && event == 'load') elem = window;
 				elem.removeEventListener(event, callback, false);
 			});
-			
+
 			return this;
 		}),
+		/** @deprecated */
+		bind : function (event, callback) {
+			return this.addEvent.apply(this, arguments)
+		},
+		/** @deprecated */
+		unbind : function (event, callback) {
+			return this.addEvent.apply(this, arguments)
+		},
 		delegate : function (selector, event, fn) {
 			return this.bind(event, function (e) {
 				if (new Dom(e.target).is(selector)) {
@@ -680,6 +690,30 @@ provides: dom
 				fr.appendChild(elem);
 			});
 			Dom(to).first.appendChild(fr);
+			return this;
+		},
+        appendBefore: function (elem) {
+			var fr = document.createDocumentFragment();
+			this.each(function (elem) {
+				fr.appendChild(elem);
+			});
+			Dom(elem).parent().first.insertBefore(fr, Dom(elem).first);
+			return this;
+		},
+		appendAfter: function (elem) {
+			var parent = Dom(elem).parent().first;
+			var next = Dom(elem).first.nextSibling;
+			var fr = document.createDocumentFragment();
+			this.each(function (elem) {
+				fr.appendChild(elem);
+			});
+			
+			if (next) {
+				parent.insertBefore(fr, next);
+			} else {
+				parent.appendChild(fr);
+			}
+			
 			return this;
 		},
 		/** @private */
@@ -775,7 +809,9 @@ provides: dom
 		},
 		destroy : function () {
 			return this.each(function (elem) {
-				elem.parentNode.removeChild(elem);
+				if (elem.parentNode) {
+					elem.parentNode.removeChild(elem);
+				}
 			});
 		},
 		constructor: Dom
@@ -1316,7 +1352,7 @@ inspiration:
 
 provides: Class
 
-deprected: "Use declare instead"
+deprecated: "Use declare instead"
 
 ...
 */
@@ -1541,12 +1577,13 @@ atom.Class.bindAll = function (object, methods) {
 			object[methods] = object[methods].bind( object );
 		}
 	} else if (methods) {
-		for (i = methods.length; i--;) atom.Class.bindAll( object, methods[i] );
+		for (var i = methods.length; i--;) atom.Class.bindAll( object, methods[i] );
 	} else {
 		for (var i in object) atom.Class.bindAll( object, i );
 	}
 	return object;
 };
+
 
 /*
 ---
@@ -2432,23 +2469,29 @@ declare( 'atom.Settings', {
 	},
 
 	/**
-	 * @test
 	 * @param {object} target
-	 * @param {string[]} names
+	 * @param {string[]} [names=undefined]
 	 * @return {atom.Settings}
 	 */
 	properties: function (target, names) {
+		var originalNames = this.propertiesNames;
+
 		if (typeof names == 'string') {
 			names = names.split(' ');
 		}
 
-		this['properties.names' ] = names;
-		this['properties.target'] = target;
+		if (names == null || names === true) {
+			this.propertiesNames = true;
+		} else if (originalNames == null) {
+			this.propertiesNames = names;
+		} else if (originalNames !== true) {
+			atom.array.append(originalNames, names);
+		}
 
-		for (var i in this.values) if (this.values.hasOwnProperty(i)) {
-			if (names.indexOf(i) >= 0) {
-				target[i] = this.values[i];
-			}
+		this.propertiesTarget = target;
+
+		for (var i in this.values) {
+			this.exportProperty(i, values);
 		}
 
 		return this;
@@ -2464,31 +2507,42 @@ declare( 'atom.Settings', {
 		return values;
 	},
 
+	/** @private */
+	propertiesNames : null,
+	/** @private */
+	propertiesTarget: null,
+
 	/**
 	 * @param {Object} options
 	 * @return atom.Options
 	 */
 	set: function (options, value) {
-		var i,
-			values = this.values,
-			target = this['properties.target'],
-			names  = this['properties.names'];
+		var i, values = this.values;
 
 		options = this.prepareOptions(options, value);
 
-		for (i in options) if (options.hasOwnProperty(i)) {
+		for (i in options) {
 			value = options[i];
 			if (values[i] != value) {
 				values[i] = value;
-				if (target && names.indexOf(i) >= 0) {
-					target[i] = values[i];
-				}
+				this.exportProperty(i, values);
 			}
 		}
 
 		this.invokeEvents();
 
 		return this;
+	},
+
+	/** @private */
+	exportProperty: function (i, values) {
+		var
+			target = this.propertiesTarget,
+			names  = this.propertiesNames;
+
+		if (target && (names === true || names.indexOf(i) >= 0)) {
+			target[i] = values[i];
+		}
 	},
 
 	/** @private */
@@ -3042,13 +3096,6 @@ provides: Color
 
 ...
 */
-
-new function () {
-
-function random (max) {
-	return Math.floor(Math.random() * max);
-}
-
 /** @class atom.Color */
 declare( 'atom.Color', {
 	initialize: function (value) {
@@ -3118,10 +3165,6 @@ declare( 'atom.Color', {
 		// We don't want application down, if user script (e.g. animation)
 		// generates such wrong array: [150, 125, -1]
 		// `noLimits` switch off this check
-		if (this.noLimits) {
-
-		}
-
 		this[prop] = this.noLimits ? value :
 			atom.number.limit( value, 0, isFloat ? 1 : 255 );
 	},
@@ -3357,19 +3400,22 @@ declare( 'atom.Color', {
 	 * @returns {atom.Color}
 	 */
 	random: function (html) {
+		var source, random = atom.number.random;
+
 		if (html) {
-			var keys = Object.keys(this.colorNames);
-			return new this(keys[random(keys.length)]);
+			source = atom.array.random( this.colorNamesList );
 		} else {
-			return new this([ random(256), random(256), random(256) ]);
+			source = [ random(0, 255), random(0, 255), random(0, 255) ];
 		}
+
+		return new this(source);
 	}
 });
 
+atom.Color.colorNamesList = Object.keys(atom.Color.colorNames);
+
 /** @class atom.Color.Shift */
 declare( 'atom.Color.Shift', atom.Color, { noLimits: true });
-
-};
 
 /*
 ---
@@ -4554,6 +4600,7 @@ license:
 
 requires:
 	- Core
+	- Types.Array
 
 provides: Types.Function
 
