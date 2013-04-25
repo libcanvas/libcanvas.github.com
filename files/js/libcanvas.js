@@ -1012,7 +1012,7 @@ declare( 'LibCanvas.App.Element', {
 	},
 
 	isVisible: function () {
-		return !this.settings.get('hidden') || this.opacity > this.opacityThreshold;
+		return !this.settings.get('hidden') && this.opacity > this.opacityThreshold;
 	},
 
 	onUpdate: function (time) {
@@ -3288,13 +3288,16 @@ LibCanvas.declare( 'LibCanvas.Context.Text', {
 			lineHeight : null,
 			overflow   : 'visible', /* hidden|visible */
 			padding : [0,0],
-			shadow : null
+			shadow : null,
+			stroke : null,
+			lineWidth : null
 		}, cfg);
 
 		ctx.save();
 		if (typeof cfg.padding == 'number') {
 			cfg.padding = [cfg.padding, cfg.padding];
 		}
+		var method = cfg.stroke ? 'strokeText' : 'fillText';
 		var to = cfg.to ? toRectangle(cfg.to) : this.context.rectangle;
 		var lh = Math.round(cfg.lineHeight || (cfg.size * 1.15));
 		this.context.set('font', atom.string.substitute(
@@ -3305,9 +3308,14 @@ LibCanvas.declare( 'LibCanvas.Context.Text', {
 				family : cfg.family
 			})
 		);
+
+		if (cfg.color) {
+			this.context.set(cfg.stroke ? 'strokeStyle' : 'fillStyle', cfg.color);
+		}
+
 		if (cfg.shadow) this.context.shadow = cfg.shadow;
-		if (cfg.color) this.context.set({ fillStyle: cfg.color });
 		if (cfg.overflow == 'hidden') this.context.clip(to);
+		if (cfg.lineWidth) this.context.set({ lineWidth: cfg.lineWidth });
 
 		function xGet (lineWidth) {
 			var al = cfg.align, pad = cfg.padding[1];
@@ -3326,7 +3334,7 @@ LibCanvas.declare( 'LibCanvas.Context.Text', {
 			lines.forEach(function (line, i) {
 				if (!line) return;
 
-				ctx.fillText(line, xGet(cfg.align == 'left' ? 0 : measure(line)), to.from.y + (i+1)*lh);
+				ctx[method](line, xGet(cfg.align == 'left' ? 0 : measure(line)), to.from.y + (i+1)*lh);
 			});
 		} else {
 			var lNum = 0;
@@ -3356,7 +3364,7 @@ LibCanvas.declare( 'LibCanvas.Context.Text', {
 						}
 					}
 					if (Lw) {
-						ctx.fillText(L, xGet(Lw), to.from.y + (++lNum)*lh + cfg.padding[0]);
+						ctx[method](L, xGet(Lw), to.from.y + (++lNum)*lh + cfg.padding[0]);
 						if (last) {
 							L  = '';
 							Lw = 0;
@@ -3366,7 +3374,9 @@ LibCanvas.declare( 'LibCanvas.Context.Text', {
 						}
 					}
 				}
-				if (Lw) ctx.fillText(L, xGet(Lw), to.from.y + (++lNum)*lh + cfg.padding[0]);
+				if (Lw) {
+					ctx[method](L, xGet(Lw), to.from.y + (++lNum)*lh + cfg.padding[0]);
+				}
 			});
 
 		}
@@ -6019,6 +6029,12 @@ return LibCanvas.declare( 'LibCanvas.Shapes.Line', 'Line', Shape, {
 	getLength : function () {
 		return this.length;
 	},
+	draw : function (ctx, type) {
+		ctx.beginPath();
+		this.processPath(ctx, true)[type]();
+		ctx.closePath();
+		return this;
+	},
 	processPath : function (ctx, noWrap) {
 		if (!noWrap) ctx.beginPath();
 		ctx.moveTo(this.from).lineTo(this.to);
@@ -6415,6 +6431,13 @@ var RoundedRectangle = LibCanvas.declare(
 				.curveTo(from.x,from.y,from.x,from.y+radius);
 			if (!noWrap) ctx.closePath();
 			return ctx;
+		},
+
+
+		clone: function method () {
+			return method.previous
+				.apply(this, arguments)
+				.setRadius(this.radius);
 		},
 
 		equals: function (shape, accuracy) {

@@ -655,7 +655,7 @@ provides: dom
 		},
 		/** @deprecated */
 		unbind : function (event, callback) {
-			return this.addEvent.apply(this, arguments)
+			return this.removeEvent.apply(this, arguments)
 		},
 		delegate : function (selector, event, fn) {
 			return this.bind(event, function (e) {
@@ -2491,7 +2491,7 @@ declare( 'atom.Settings', {
 		this.propertiesTarget = target;
 
 		for (var i in this.values) {
-			this.exportProperty(i, values);
+			this.exportProperty(i, this.values);
 		}
 
 		return this;
