@@ -55,7 +55,7 @@ atom.declare('Isometric.Box', App.Element, {
 			]
 		};
 
-		s = this.shapes = Object.map( s, function (coords) {
+		s = this.shapes = atom.object.map( s, function (coords) {
 			return new Polygon(coords.map( this.map.projection.toIsometric ));
 		}.bind(this));
 		// this shape includes blured shadow & stroked rects
@@ -71,7 +71,7 @@ atom.declare('Isometric.Box', App.Element, {
 	},
 
 	get zIndex () {
-		return 0 || this.shape.points[0].y;
+		return this.shape.points[0].y || 0;
 	},
 
 	/**
@@ -115,11 +115,11 @@ atom.declare('Isometric.Box', App.Element, {
 	 * @returns {number}
 	 */
 	getTime: function (distance) {
-		return this.speed * Math.sqrt(
-			distance.x.pow(2) +
-			distance.y.pow(2) +
-			distance.z.pow(2)
-		).limit( 0, this.speed );
+		return this.speed * atom.number.limit(Math.sqrt(
+			distance.x * distance.x +
+			distance.y * distance.y +
+			distance.z * distance.z
+		), 0, this.speed );
 	},
 
 	/** @returns {Isometric.Box} */

@@ -14,6 +14,7 @@
 			window.declare  = atom.declare;
 			window.Settings = atom.Settings;
 
+			atom.patching(window);
 			LibCanvas.extract();
 
 			atom.dom(function(){ new Ast.Controller });

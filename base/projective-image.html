@@ -14,6 +14,7 @@ new function () {
 	var helper, ImageDrawer, img, shape, drawer;
 
 	LibCanvas.extract();
+	atom.patching(window);
 
 	ImageDrawer = atom.declare(App.Element, {
 		configure: function () {

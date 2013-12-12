@@ -18,9 +18,9 @@ atom.declare( 'Fifteen.Tile', App.Element, {
 	moveTo: function (destination, onFinish, fast) {
 		var props = {}, current = this.shape.from;
 
-		if ( !destination.x.equals( current.x, 1 ) ) {
+		if ( !atom.number.equals(destination.x, current.x, 1 ) ) {
 			props.x = destination.x;
-		} else if ( !destination.y.equals( current.y, 1 ) ) {
+		} else if ( !atom.number.equals(destination.y, current.y, 1 ) ) {
 			props.y = destination.y;
 		} else {
 			throw new TypeError( 'Wrong destination' );
@@ -73,7 +73,7 @@ atom.declare( 'Fifteen.Tile', App.Element, {
 				color  : 'white',
 				weight : 'bold',
 				align  : 'center',
-				padding: [(shape.height/8).round(), (shape.width/4).round()]
+				padding: [Math.round(shape.height/8), Math.round(shape.width/4)]
 			})
 			.set({ globalAlpha: 0.6, lineWidth: 1 })
 			.stroke(stroke, '#999');

@@ -95,7 +95,7 @@ atom.declare( 'Isometric.Controller', {
 
 	/**
 	 * @private
-	 * @param {Object} boxCfg
+	 * @param {Object} settings
 	 * @returns {Isometric.Box}
 	 */
 	createBox: function (settings) {

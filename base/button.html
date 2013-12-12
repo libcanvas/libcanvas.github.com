@@ -14,6 +14,7 @@ new function () {
 	var helper, x, y, Button;
 
 	LibCanvas.extract();
+	atom.patching(window);
 
 	Button = atom.declare(App.Light.Vector, {
 		configure: function method () {

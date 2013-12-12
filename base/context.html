@@ -17,6 +17,7 @@
 new function () {
 
 	var LC = LibCanvas.extract({});
+	atom.patching(window);
 
 	var canvas  = atom.dom('canvas').first;
 	var context = canvas.getContext('2d-libcanvas');

@@ -34,7 +34,7 @@ atom.declare( 'Isometric.Map', App.Element, {
 	createPolygons: function () {
 		var x, y, s = this.size;
 
-		this.polygons.empty();
+		atom.array.empty(this.polygons);
 
 		for (y = 0; y < s.y; y++) for (x = 0; x < s.x; x++) {
 			this.polygons.push( this.createPolygon(x, x+1, y, y+1) );
@@ -69,10 +69,14 @@ atom.declare( 'Isometric.Map', App.Element, {
 	 * @returns {boolean}
 	 */
 	hasPoint: function (coord) {
-		var size = this.size;
-		return coord.x.ceil().between(0, size.x, 'L') &&
-				 coord.y.ceil().between(0, size.y, 'L') &&
-				 coord.z.ceil().between(0, size.z, 'L')
+		var size = this.size,
+			x = Math.ceil(coord.x),
+			y = Math.ceil(coord.y),
+			z = Math.ceil(coord.z);
+
+		return x >= 0 && x < size.x
+		    && y >= 0 && y < size.y
+		    && z >= 0 && z < size.z;
 	},
 
 	/**
@@ -83,8 +87,8 @@ atom.declare( 'Isometric.Map', App.Element, {
 	to3D: function (coord, z) {
 		var result = this.projection.to3D( Point( coord ), z );
 
-		result.x = result.x.floor();
-		result.y = result.y.floor();
+		result.x = Math.floor(result.x);
+		result.y = Math.floor(result.y);
 
 		return this.hasPoint(result) ? result : null;
 	},
@@ -99,6 +103,6 @@ atom.declare( 'Isometric.Map', App.Element, {
 
 	/** @private */
 	get randomPolygonColor () {
-		return '#' + Number.random( 240, 255 ).toString( 16 ).repeat( 3 );
+		return '#' + atom.string.repeat( atom.number.random( 240, 255 ).toString( 16 ), 3 );
 	}
 });

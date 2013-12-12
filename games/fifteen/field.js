@@ -38,9 +38,8 @@ atom.declare( 'Fifteen.Field', {
 			e.preventDefault();
 		}.bind(this), false);
 
-		var prevent = function(e){e.preventDefault()};
-		document.addEventListener( 'touchmove', prevent, false );
-		document.addEventListener( 'touchend' , prevent, false );
+		document.addEventListener( 'touchmove', Mouse.prevent, false );
+		document.addEventListener( 'touchend' , Mouse.prevent, false );
 	},
 
 	move: function (tile, onFinish, fast) {
@@ -68,7 +67,7 @@ atom.declare( 'Fifteen.Field', {
 			var tile = tiles[y][x];
 			if (tile && tile.activated && tile != previous) t.push( tile );
 		}
-		this.move( t.random, onFinish, true );
+		this.move( atom.array.random(t), onFinish, true );
 		return this;
 	},
 
@@ -100,14 +99,14 @@ atom.declare( 'Fifteen.Field', {
 
 	isMovable: function ( tile ) {
 		var pos = tile.position, empty = this.empty, diff = pos.diff(empty);
-		return (diff.x == 0 && diff.y.abs() == 1) || (diff.y == 0 && diff.x.abs() == 1);
+		return (diff.x == 0 && Math.abs(diff.y) == 1) || (diff.y == 0 && Math.abs(diff.x) == 1);
 	},
 
 	generate: function (layer) {
 		var
 			y, x, position, index,
 			tiles = {},
-			indexes = Array.range( 1, 15 );
+			indexes = atom.array.range( 1, 15 );
 		for (y = 0; y < 4; y++) {
 			tiles[y] = {};
 			for (x = 0; x < 4; x++) {

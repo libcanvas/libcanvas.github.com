@@ -12,6 +12,7 @@
 		<script>
 new function () {
 	LibCanvas.extract();
+	atom.patching(window);
 
 	atom.ImagePreloader.run({ logo: '/files/img/html5-logo.png' },
 		function (images) {

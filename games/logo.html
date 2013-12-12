@@ -53,7 +53,7 @@ new function () {
 				current = cell.value,
 				source  = current < 5 ? [ 1,2,3,4 ] : [ 5,6,7,8 ];
 			do {
-				next = source.random;
+				next = atom.array.random(source);
 			} while (next == current);
 			cell.value = next;
 		},

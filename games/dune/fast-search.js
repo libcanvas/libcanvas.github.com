@@ -1,5 +1,5 @@
 /** @class Dune.FastSearch */
-atom.declare( 'Dune.FastSearch', App.ElementsMouseSearch, {
+atom.declare( 'Dune.FastSearch', App.PointSearch, {
 	initialize: function (size, cell, shift) {
 		this.size  = size;
 		this.cell  = cell;

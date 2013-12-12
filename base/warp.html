@@ -32,7 +32,7 @@
 			this.tailFactor    = 2 + Math.random();
 			// ускорение звезды
 			this.progressSpeed = (Math.random() + 0.5)/500;
-			this.color = new atom.Color(128, 128, Number.random(128, 192)).toString();
+			this.color = new atom.Color(128, 128, atom.number.random(128, 192)).toString();
 
 			this.reset(true);
 			this.recount();
@@ -42,25 +42,25 @@
 			// на каком расстоянии от центра звезда "стартует"
 			// мы не хотим, чтобы она появлялась прям в центре приложения,
 			// потому смещаем в бок центр
-			var distance = Number.random((center.x/10).round(), center.x);
+			var distance = atom.number.random(Math.round(center.x/10), center.x);
 
 			// определяемся в каком направлении точка будет лететь
-			this.angle = Number.random(1, 360).degree();
+			this.angle = atom.math.degree( atom.number.random(1, 360) );
 
 			// смещаем сначала на расстояние, а потом вертим вокруг центра
 			this.from = center.clone()
 				.move(new Point(distance, 0))
 				.rotate(this.angle, center);
 
-			this.sin = (-this.angle).sin();
-			this.cos = (-this.angle).cos();
+			this.sin = Math.sin(-this.angle);
+			this.cos = Math.cos(-this.angle);
 		},
 
 		reset: function (init) {
 			if (init) {
 				// При старте приложения четверть будет запускаться с нуля
 				// Остальные - словно мы уже в полёте
-				this.progress = Number.random(-15, 45).limit(1);
+				this.progress = atom.number.limit(atom.number.random(-15, 45), 1);
 				this.opacity  = 1;
 			} else {
 				this.progress = 1;
@@ -75,7 +75,7 @@
 				cos = this.cos,
 				f   = this.from,
 				p   = this.shape.points,
-				progress = (this.progress - 2).limit(2);
+				progress = atom.number.limit(this.progress - 2, 2);
 
 			p[0].x = f.x + progress * cos / this.tailFactor;
 			p[0].y = f.y - progress * sin / this.tailFactor;
@@ -107,8 +107,8 @@
 		var width, app, layer, i, size, center;
 
 		width  = document.width ? (document.width - 50) : 800;
-		size   = new Size(width, (width / 2).round());
-		center = new Point((size.width/2).round(), (size.height/2).round());
+		size   = new Size(width, Math.round(width / 2));
+		center = new Point(Math.round(size.width/2), Math.round(size.height/2));
 
 		app    = new App({ size: size, invoke: true, appendTo: 'body' });
 		layer  = app.createLayer({ intersection: 'full' });

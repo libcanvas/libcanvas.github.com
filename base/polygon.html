@@ -16,6 +16,7 @@ new function () {
 	var helper, first, second, path, pathFrom, keyboard = new atom.Keyboard();
 
 	LibCanvas.extract();
+	atom.patching(window);
 
 	helper = new App.Light(new Size(600, 400));
 
